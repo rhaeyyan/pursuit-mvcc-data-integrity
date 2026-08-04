@@ -5,12 +5,23 @@ from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exist
 
 ## Active
 
-- **Nothing is committed.** Two SPECs' work sits in the working tree: the scaffold (6 files plus
-  generator output) and the platform-agreement fix (3 files). `ARCHIVED_SPECS.md` and this ledger
-  are also dirty.
-- **Next:** Cypress audit of both completed SPECs, then the walking-skeleton SPEC from Cedar.
-  Neither completed SPEC had behavior to write failing tests against, so both carry an explicit
-  ordering override — Cypress audits *after*. Its first **test file** belongs to the skeleton.
+- **Committed and pushed** (2026-08-04) — `14b2960` scaffold, `4f396e1` platform guard, `d2cedb9`
+  SPECs + ledger. Tree clean, no stashes, `origin/main` synced. Split by concern rather than by
+  edit order, so the guard's rationale isn't buried in the scaffold commit.
+- **Next session, in order:**
+  1. **Cypress audit of both completed SPECs.** Both carry an explicit ordering override — neither
+     has behavior to write failing tests against, so Cypress audits *after*; its first **test file**
+     belongs to the skeleton, not to either completed SPEC. Audit checklist is in `ARCHIVED_SPECS.md`
+     (scaffold, items a–f) and `SPEC.md` (platform, plus: run the hook under both Node 20 and 22 and
+     confirm exit 2 / exit 0).
+  2. **Docs task** — the two batched items below. Higher priority than it looks: a fresh clone now
+     needs **three** out-of-band setup steps (fnm + Node 22, the `settings.local.json` env block,
+     and `.git/hooks/commit-msg`), none of which are discoverable from the repo.
+  3. **Walking-skeleton `[SPEC]` from Cedar** — the actual objective. It inherits Amendment 3(b)'s
+     `node -v` clause and 3(e)'s authorized `.mts` rename, and it is where `recharts` and `zod`
+     finally arrive with the requirements that justify them.
+- **Still no application code exists.** No Route Handler, no chart, no test file, no figure
+  rendered. The toolchain is real; the product is not started.
 - **Harness platform fixed at the root — applies from the NEXT session.** `stop-quality-gate.sh`
   exits 2 on a platform mismatch, and the harness runs both its Bash tool and its Stop hooks under
   the **system Node 20**, so the guard fired on every turn and nothing inside a turn could change
