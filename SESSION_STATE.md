@@ -1,48 +1,53 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** stand up the walking skeleton — one chart, one metric (deaths per year),
-rendering from a live server-side SoQL call (PRD handoff, Rule 6). Nothing is built yet.
+**Current objective:** the walking skeleton — one chart, one metric (deaths per year), rendering
+from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exists; no app code does.
 
 ## Active
 
-- **Blocked on: human approval of the kickoff `[SPEC]`** (Rule 1 HITL — no code until then).
-  `SPEC.md` now exists and holds Cedar's scaffold authorization. On approval, dispatch **Redwood**;
-  Cypress audits after (the SPEC states an explicit ordering override — a scaffold has no
-  behavior to write failing tests against).
-- **Why the scaffold is its own SPEC rather than pre-work:** `create-next-app` introduces the
-  entire dependency tree, and Rule 9 gives Cedar sole dependency authority. Treating it as
-  "just plumbing" would route around that rule. It also can't be a normal task — a scaffold
-  writes ~20 files against Rule 5's cap of 5, so the SPEC grants a *bounded* exemption: generator
-  output is exempt because it encodes no decisions and is reproducible from one pinned command,
-  while hand-authored/hand-modified files are capped at 5 and enumerated for audit.
-- **Version check discharged early** (main session ran it; Cedar has no shell): `next@16.3.0`
-  needs Node `>=20.9.0`, local is 20.19.6 — compatible, no Node upgrade forced. `vitest` corrected
-  from Cedar's guessed `^3` to `^4` (4.1.10, Node-20 compatible). Vercel's build runtime is a
-  deploy-time setting, not a scaffold constraint, since `next@16` runs on Node 20 and 22 alike.
-- **Styling decided: CSS Modules**, not Tailwind (human, 2026-08-04). Grounds are reversibility,
-  not taste — Tailwind is two dev deps and a PostCSS config to add later, but removing it means
-  unwinding class attributes across every component Magnolia will have written by then.
-- **Two hazards the SPEC exists to prevent, both verified present in this tree:** a stock
-  `eslint .` lints 270+ third-party `.mjs` skill-payload files under `.claude/`, `.gemini/`, and
-  `skills/`; and the stock `tsconfig` `include` of `**/*.ts` sweeps three `types.d.ts` files from
-  those same trees into `tsc --noEmit`. Both gates would fail on their first run. Fixed up front
-  via ignore entries and a `src/**` allowlist `include` (allowlist, not denylist — a denylist
-  re-breaks the moment a fourth skill tree appears).
-- `ARCHITECTURE.md` is **deferred by decision, not pending** (2026-08-04); its absence is not a
-  gap to close. Rationale and the revisit trigger are in `CLAUDE.md` § Project Layout.
-- **Follow-up owed, tracked not lost:** the PRD handoff (`docs/project-mvcc-data.md` ~280–289)
-  is stale — it tells kickoff to create an assignment subdirectory with its own `AGENTS.md` and
-  record the §5.6 assessment there. All three clauses are superseded (this repo *is* that
-  directory; `AGENTS.md` was folded into `CLAUDE.md`; §5.6 is already recorded there). Amend so a
-  future agent doesn't act on it.
-- **Stale-entry correction (2026-08-04, both files fixed):** this ledger and `CLAUDE.md` § Recorded
-  decisions both said "git not yet initialized." The repo *is* initialized (2 commits on `main`)
-  and `.git/hooks/commit-msg` is byte-identical to `.githooks/commit-msg`, so the AI-byline guard,
-  worktree parallelism (Rule 5), and the merge protocol (Rule 10) are all live rather than inert.
-  Two follow-ons recorded in `CLAUDE.md` rather than lost: the guard lives outside version control,
-  so a fresh clone starts unprotected and must reinstall it; and `commitlint`'s decline reason
-  ("not yet a git repo") has lapsed, leaving Rule 10's Conventional Commits format unenforced by
-  anything mechanical — re-open if commit hygiene slips.
+- **Nothing is committed.** Two SPECs' work sits in the working tree: the scaffold (6 files plus
+  generator output) and the platform-agreement fix (3 files). `ARCHIVED_SPECS.md` and this ledger
+  are also dirty.
+- **Next:** Cypress audit of both completed SPECs, then the walking-skeleton SPEC from Cedar.
+  Neither completed SPEC had behavior to write failing tests against, so both carry an explicit
+  ordering override — Cypress audits *after*. Its first **test file** belongs to the skeleton.
+- **Harness platform fixed at the root — applies from the NEXT session.** `stop-quality-gate.sh`
+  exits 2 on a platform mismatch, and the harness runs both its Bash tool and its Stop hooks under
+  the **system Node 20**, so the guard fired on every turn and nothing inside a turn could change
+  the shell. Fix: `env.PATH` in **`.claude/settings.local.json`** prepending
+  `~/.local/share/fnm/node-versions/v22.23.2/installation/bin`. Chosen over letting the hook
+  re-exec itself, which would have contradicted Cedar's "a guard that silently repairs teaches no
+  one the shell was wrong" *and* left the Bash tool on Node 20 — so agents would still get
+  wrong-platform results, just uncaught. This fixes both surfaces at once.
+  - *Why `settings.local.json` and not `settings.json`:* the value is an absolute path under
+    `/home/rhaeyyan`. Committing it would break every other clone. `settings.local.json` is
+    gitignored (`.gitignore:36`), which is exactly the right scope for machine-specific config —
+    and it means **a fresh clone must re-do this**, alongside the fnm install and the
+    `.git/hooks/commit-msg` guard.
+  - *Version-pinned path is a known cost.* It names `v22.23.2` explicitly and will need updating
+    when Node moves. Accepted as the price of not hardcoding a `$PATH` expansion whose support is
+    unverified.
+  - **Until this session ends, `node -v` in the Bash tool is still v20.19.6** and the Stop gate will
+    keep blocking. That is correct behavior, not a regression. Verify via `bash -ic 'cd <root> &&
+    …'` or `fish -i -c 'cd <root>; and …'` and confirm `node -v` is `v22.23.2` first.
+- **Docs task owed, two items batched:**
+  1. PRD handoff (`docs/project-mvcc-data.md` ~280–289) is stale — it tells kickoff to create an
+     assignment subdirectory with its own `AGENTS.md` and record the §5.6 assessment there. All
+     three clauses are superseded (this repo *is* that directory; `AGENTS.md` was folded into
+     `CLAUDE.md`; §5.6 is already recorded there). Acting on it would also silently no-op
+     `stop-quality-gate.sh`, which probes `.`, `app`, `web`, `frontend` for the app root.
+  2. A README line naming the Node floor, for the fresh-clone gap — `.nvmrc` ships but the fnm
+     wiring that reads it does not.
+- **Deploy `[SPEC]` obligation:** verify Vercel's project Node runtime matches `engines.node` and
+  record the result. Deferred rather than blocking because `jsdom`/`@testing-library/*` are dev deps
+  and `next build` doesn't run tests — a Vercel image on Node 20 would still build green, so the
+  divergence surfaces only as local-vs-deploy drift in Route Handler behavior.
+- **Machine changes outside the repo, needing re-doing on any other machine:**
+  `~/.config/fish/conf.d/fnm.fish` (new) and an appended block in `~/.bashrc` (existing file
+  edited). Both silence fnm's "Using Node" banner in non-interactive shells — it lands on **stdout**
+  and would contaminate parsed command output.
+- `ARCHITECTURE.md` is **deferred by decision, not pending**; its absence is not a gap to close.
+  Rationale and revisit trigger in `CLAUDE.md` § Project Layout.
 
 ## Context Cache
 
@@ -52,19 +57,70 @@ rendering from a live server-side SoQL call (PRD handoff, Rule 6). Nothing is bu
 - Every pinned figure in PRD Appendix A was **re-verified live on 2026-08-04** via
   `.claude/scripts/verify-figures.py`: all 32 values across four series matched exactly. The
   preliminary-feed revision risk has not materialized as of that date.
+- **Platform: Node v22.23.2 / npm 10.9.8**, per-project via `fnm` + `.nvmrc`. fnm's `default` alias
+  is `system`, so only `.nvmrc` directories switch; `/tmp` and `$HOME` still yield the system
+  v20.19.6. `engines.node` is `>=22.22.2`.
+- **Standing rule — `@types/node`'s major tracks `engines.node`'s major.** Derived, not chosen;
+  moves in the same edit as the floor, no Rule 9 halt required.
+- **Standing acceptance clause (Amendment 3(b)), binds every future SPEC:** acceptance-by-command
+  must record `node -v` beside the results, and it must satisfy `engines.node`. A gate that ran on
+  an unverified platform produced an unverified result; unverified is not PASS. NFR-4 pointed at
+  the toolchain.
+- **`eslint@^9` is required, not merely unbumped.** The discriminator is *not* `eslint-config-next`
+  (permissive, `>=9.0.0`) — it is **`eslint-plugin-jsx-a11y@6.10.2`, whose peer range excludes
+  eslint 10**, the plugin NFR-3 depends on. Check that package first before evaluating eslint 10.
+- **Styling is CSS Modules**, not Tailwind — chosen on reversibility, not taste. Tailwind is two dev
+  deps and a PostCSS config to add later; removing it means unwinding class attributes across every
+  component Magnolia will have written by then.
 
 ## History
 
-- **2026-08-04 — `.gitignore` created; NFR-2's pre-first-commit check had never actually run.**
-  CLAUDE.md requires verifying `.gitignore` covers `.env*` *before the first commit*; there was no
-  `.gitignore` in the repo at all, and three commits had already been pushed public. Nothing leaked
-  — `.env` does not exist yet — but the gap was live: creating one and running `git add -A` would
-  have published `SOCRATA_APP_TOKEN`, the exact Rule 3 failure. Also closes two quieter holes:
-  `.claude/settings.local.json` was ignored only by the *user's global* excludes file, so any fresh
-  clone or second machine would have tracked it, and its `.tmp.*` write-leftovers were accumulating
-  as untracked noise that an `add -A` would eventually sweep in. `.env.example` is negated back in
-  so variable *names* can be documented without values.
+- **2026-08-04 — Toolchain stood up across two SPECs; both halted usefully before they finished.**
+  The scaffold (Next 16 / React 19 / TS / Vitest / CSS Modules, 6 hand-authored files) and a
+  follow-on platform-agreement fix (3 files). All four gates green on Node 22.23.2, verified
+  independently rather than taken from the completion reports; `stop-quality-gate.sh` is live.
+  - *Why the scaffold was its own SPEC rather than pre-work:* `create-next-app` introduces the whole
+    dependency tree, and Rule 9 gives Cedar sole dependency authority — treating it as plumbing
+    would have routed around that rule. It also broke Rule 5's file cap (~20 files), resolved by a
+    **bounded** exemption: generator output is exempt because it encodes no decisions and is
+    reproducible from one pinned command; hand-authored files stay capped and enumerated for audit.
+  - *The Node 20 halt, and why it was the most valuable thing that happened.* Redwood stopped at
+    step 0: `jsdom@30` and `@testing-library/jest-dom@7` (and `6.10.0`) exclude Node 20.19.6. npm
+    doesn't enforce `engines` without `engine-strict`, so both install on a warning — and vitest
+    only instantiates jsdom per test file, of which the scaffold writes none. Every acceptance
+    command would have exited 0 over a toolchain that breaks at Cypress's first component test.
+    Pinning back to `jsdom@^29` was rejected as a rolling problem: it adopts two packages already on
+    their maintainers' drop lists, and each future dependency hits the same wall as Node 20 recedes
+    past its April 2026 EOL. Chose to raise the platform per-project instead, leaving the system
+    Node and every other project on the machine untouched.
+  - *Then the same failure reproduced from the other side.* After the scaffold landed, all four
+    gates passed on Node 20 in the agent's own shell — the Bash tool runs bash, not the login fish
+    shell, and inherits its environment rather than re-sourcing `.bashrc`, so no shell wiring
+    reaches it. The acceptance criteria could not see it.
+  - *`engine-strict` was proposed as the fix and rejected on evidence.* `stop-quality-gate.sh`
+    invokes `./node_modules/.bin/tsc` and `./node_modules/.bin/eslint` **directly**, bypassing npm —
+    no `.npmrc` setting can reach the process that emits the verdict. It is install-scoped and
+    cannot gate a run against an existing tree; on a Node 20 Vercel image it would additionally
+    hard-fail production deploys over `jsdom`, a test-only dep `next build` never loads. The fix
+    went into the hook instead: read `.nvmrc`, compare **majors only** (the patch floor is npm's
+    `EBADENGINE` job), exit 2 naming both versions. No semver parser, no `fnm exec` auto-repair.
+  - *Cedar's test for granting a file beyond a spent budget, worth reusing:* a slot is granted only
+    when (i) the mechanism is the **only** thing catching the named failure and (ii) no existing
+    file, hook, CI config, or acceptance clause can carry it. `engine-strict` failed both, so the
+    bound held on merit rather than on the number.
+  - *Two hazards the scaffold SPEC existed to prevent, both real in this tree:* a stock `eslint .`
+    lints 270+ third-party `.mjs` skill-payload files under `.claude/`, `.gemini/`, `skills/`; and
+    the stock `tsconfig` `include` of `**/*.ts` sweeps three `types.d.ts` files from those trees
+    into `tsc --noEmit`. Fixed with ignore entries and a `src/**` **allowlist** include — allowlist
+    rather than denylist, since a denylist re-breaks the moment a fourth skill tree appears.
+  - *Deviations Redwood declared rather than hid:* `--disable-git` (without it the scratchpad
+    scaffold carries its own `.git` into the repo root); `--no-agents-md` (Next 16 generates
+    `AGENTS.md` by default, which CLAUDE.md rules against — suppressed at generation rather than
+    generated-then-deleted); `tsconfig.include` at 5 entries because `next build` re-adds
+    `.next/dev/types/**/*.ts` and it is a stable fixed point; jsx-a11y spread as `.rules` only,
+    since the full recommended object throws `Cannot redefine plugin` — `eslint-config-next`
+    already registers it.
 
-Older entries are in `ARCHIVED_SESSIONS.md` (README diagram rebuild and the
-`ARCHITECTURE.md` deferral; NYC DOT Vision Zero evaluation and the SIP confounder; initial Claude
-Code agent configuration and the GEMINI.md parity drop).
+Older entries are in `ARCHIVED_SESSIONS.md` (README diagram rebuild and the `ARCHITECTURE.md`
+deferral; NYC DOT Vision Zero evaluation and the SIP confounder; initial Claude Code agent
+configuration and the GEMINI.md parity drop; the `.gitignore` / NFR-2 gap).

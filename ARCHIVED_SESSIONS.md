@@ -122,3 +122,18 @@ remain recoverable from `Pursuit_AI-Native/.gemini/skills/`.
 
 **MCP pruned** from 7 servers to 3 (context7, playwright, github). Dropped supabase (no database in
 this build), markitdown (nothing to convert), godot and aseprite (other projects).
+
+---
+
+## 2026-08-04 — `.gitignore` created; NFR-2's pre-first-commit check had never actually run
+
+CLAUDE.md requires verifying `.gitignore` covers `.env*` *before the first commit*. There was no
+`.gitignore` in the repo at all, and three commits had already been pushed public. Nothing leaked —
+`.env` does not exist yet — but the gap was live: creating one and running `git add -A` would have
+published `SOCRATA_APP_TOKEN`, the exact Rule 3 failure.
+
+Also closed two quieter holes. `.claude/settings.local.json` was ignored only by the *user's global*
+excludes file, so any fresh clone or second machine would have tracked it; and its `.tmp.*`
+write-leftovers were accumulating as untracked noise an `add -A` would eventually sweep in.
+`.env.example` is negated back in so variable *names* can be documented without values — the
+mechanism that later let the scaffold ship a token-name placeholder safely.
