@@ -7,7 +7,9 @@ rendering from a live server-side SoQL call (PRD handoff, Rule 6). Nothing is bu
 
 - **Blocked on nothing.** Next action is Cedar kickoff: scaffold the Next.js App Router project
   and convert PRD §5.3 P0 requirements into `[SPEC]` tasks, starting with the skeleton.
-- `SPEC.md` and `ARCHITECTURE.md` do not exist yet — they get created at kickoff.
+- `SPEC.md` does not exist yet — it gets created at kickoff. `ARCHITECTURE.md` is **deferred by
+  decision, not pending** (2026-08-04); its absence is not a gap to close. Rationale and the
+  revisit trigger are in `CLAUDE.md` § Project Layout.
 - **Stale-entry correction (2026-08-04, both files fixed):** this ledger and `CLAUDE.md` § Recorded
   decisions both said "git not yet initialized." The repo *is* initialized (2 commits on `main`)
   and `.git/hooks/commit-msg` is byte-identical to `.githooks/commit-msg`, so the AI-byline guard,
@@ -28,6 +30,26 @@ rendering from a live server-side SoQL call (PRD handoff, Rule 6). Nothing is bu
 
 ## History
 
+- **2026-08-04 — README architecture diagram repaired and corrected.** The mermaid block failed to
+  render: escaped `[\"` openers, which mermaid parses as a parallelogram it can never close. Fixed,
+  and rebuilt to current mermaid.js.org standards — markdown strings (backtick-quoted) in place of
+  the discouraged `<br/>`, `direction TB` rather than the top-level-only `TD` alias, `classDef`
+  ahead of its `class` assignments. Classic shape syntax kept deliberately over the v11.3 `@{ shape: }`
+  form, which would break on any renderer pinned below that version for no gain.
+  - *Two modeling errors fixed while redrawing, worth more than the syntax fix:* the old diagram
+    routed every series through a "Data Repair Engine" box, which (a) invents a subsystem FR-12
+    explicitly says is just one `$where` clause, and (b) left the **raw** series with no path to
+    the chart — yet raw-beside-repaired *is* the product's central claim. A diagram that omits it
+    describes a different, weaker product. Also added the NFR-3 accessible data table, whose
+    absence CLAUDE.md rates an automatic FAIL.
+  - *Decision that came out of it — `ARCHITECTURE.md` is deferred, not owed.* Both this ledger and
+    `CLAUDE.md` § Project Layout had listed it as a pending deliverable, which is how an agent ends
+    up manufacturing a hollow one to satisfy the reference. Rejected because its content is already
+    covered three times over (CLAUDE.md Stack table, PRD §5.1, README Technical Notes) and because
+    a design doc written before any code documents intentions, not architecture — it would be
+    rewritten at the first Route Handler and rot in between, which is ADR 0001's failure mode
+    exactly. The revisit trigger is recorded with the decision rather than left implicit: when
+    locating a change requires more than a glance at the file tree.
 - **2026-08-04 — NYC DOT Vision Zero releases evaluated against the record; two docs amended.**
   Reviewed DOT's [January 2025 equity report](https://www.nyc.gov/html/dot/html/pr2025/vision-zero-report-street-redesign.shtml)
   and its [October 2025 Q3 companion](https://www.nyc.gov/html/dot/html/pr2025/decline-in-traffic-deaths.shtml)

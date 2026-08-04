@@ -78,8 +78,19 @@ Each Stop hook blocks at most once per turn (`stop_hook_active`), then escalates
   for lockstep (see Divergence note below).
 - `.claude/hooks/`, `.claude/commands/`, `.claude/scripts/` — the enforcement, command, and
   deterministic-tooling layers described above.
-- `SESSION_STATE.md` — the Sprint Ledger. `SPEC.md` / `ARCHITECTURE.md` — active spec and current
-  design.
+- `SESSION_STATE.md` — the Sprint Ledger. `SPEC.md` — the active spec, created at kickoff.
+- **`ARCHITECTURE.md` — deliberately deferred, not missing.** Do not create one to satisfy a
+  reference. Its content already lives in three places that are harder to let rot: this file's
+  Stack table (the choices), PRD §5.1 (the requirement-level rationale for dropping FastAPI /
+  Supabase / Supabase Auth), and README § Technical Notes (the system diagram, build order, and
+  out-of-scope list). A fourth copy would restate all three and start diverging immediately — the
+  exact drift ADR 0001 was written about, and a design doc that reads as authoritative while being
+  wrong is worse than no design doc. Written before the walking skeleton it would document
+  intentions rather than architecture, and be rewritten the moment the first Route Handler lands.
+  **Revisit when** "where does this change go?" stops being answerable from the file tree at a
+  glance — realistically once several Route Handlers, a shared validation layer, a caching wrapper,
+  and chart components with non-obvious boundaries coexist. Under the 5-file task cap, V1 may never
+  reach that point.
 
 > **Divergence note.** `GEMINI.md` and `.gemini/` are a parallel Gemini CLI setup. As of
 > 2026-08-04 this file is deliberately **no longer kept at parity** with it — CLAUDE.md is tuned

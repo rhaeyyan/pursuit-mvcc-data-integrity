@@ -45,41 +45,59 @@ The analysis window is strictly locked to **2018–2025** to avoid the 2026 repo
 
 ### System Architecture & Execution Flow
 
+Every series is a separate SoQL aggregate resolved server-side. The casualty-filtered "repair" is
+not a processing stage — it is the same aggregate with one added `$where` clause, which is why the
+raw and repaired series reach the chart side by side rather than one replacing the other.
+
 ```mermaid
 flowchart TD
-    %% Inputs 
-    SocrataCrashes[\"NYC Open Data<br/>(h9gi-nx95)"]
-    SocrataArrests[\"NYC Open Data<br/>(8h9b-rp9u)"]
+    classDef source fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
+    classDef service fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef gate fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
 
-    subgraph ServerSide ["Next.js App Router (Server-Side)"]
-        direction TD
-        SoQLQuery("SoQL Query Builder<br/>(Aggregates by Year)")
-        DataRepair("Data Repair Engine<br/>(Casualty Filtering)")
-        TrapCheck{"Data Integrity Check<br/>(Absent Key Validation)"}
-        
-        SocrataCrashes --> SoQLQuery
-        SocrataArrests --> SoQLQuery
-        
-        SoQLQuery --> TrapCheck
-        TrapCheck ==>|"PASS"| DataRepair
-        TrapCheck -->|"FAIL"| ErrorState("Raise Error State<br/>(Prevent Silent 0)")
+    Crashes["`**Crashes** · h9gi-nx95
+NYC Open Data (Socrata)`"]
+    Arrests["`**Arrests** · 8h9b-rp9u
+NYC Open Data (Socrata)`"]
+
+    subgraph Server ["Next.js Route Handlers (server-side)"]
+        direction TB
+        QRaw("`**Raw series**
+deaths, injuries, collisions by year`")
+        QRepaired("`**Repaired series**
+collisions by year, casualty filter`")
+        QArrests("`**Enforcement series**
+traffic arrests, both offense spellings`")
+        Gate{"`**Integrity gate**
+every year 2018–2025 present and non-null?`"}
     end
 
-    subgraph ClientSide ["React Frontend (Client-Side)"]
-        direction TD
-        DataRepair ==> RechartsRender(["Recharts DataViz<br/>(Trend Lines & Deltas)"])
-        ErrorState -.-> ErrorBoundary(["Error Boundary Alert"])
+    subgraph Client ["React client"]
+        direction TB
+        Chart(["`**Recharts**
+raw vs repaired, dashed and labelled`"])
+        Table(["`**Data table**
+same figures, screen-reader equivalent`"])
+        Failure(["`**Error state**
+never a silent zero`"])
     end
 
-    %% Class Assignments
-    class SocrataCrashes,SocrataArrests,RechartsRender,ErrorBoundary inputOutput;
-    class SoQLQuery,DataRepair deterministic;
-    class TrapCheck decision;
+    Crashes --> QRaw
+    Crashes --> QRepaired
+    Arrests --> QArrests
 
-    %% Styling Definitions
-    classDef deterministic fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef decision fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
-    classDef inputOutput fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
+    QRaw --> Gate
+    QRepaired --> Gate
+    QArrests --> Gate
+
+    Gate ==>|pass| Chart
+    Gate ==>|pass| Table
+    Gate -->|"absent or null"| Failure
+
+    class Crashes,Arrests source;
+    class QRaw,QRepaired,QArrests service;
+    class Gate gate;
+    class Chart,Table,Failure source;
 ```
 
 ### Build order (walking skeleton)
