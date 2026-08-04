@@ -115,14 +115,18 @@ record lives here rather than in a file nothing reads.
   entirely). Re-assess and re-record if any of the three changes.
 - **Test-quality gates adopted:** the Stop-hook typecheck/lint gate, and ADRs in `docs/adr/`.
   Declined for now: a sibling-test-file PostToolUse check (nothing to check until the app exists)
-  and `commitlint` (this directory is not yet a git repo).
+  and `commitlint` — though that decline's stated reason ("not yet a git repo") lapsed on
+  2026-08-04. Re-open it if Rule 10's Conventional Commits start slipping; `.githooks/commit-msg`
+  currently enforces only the AI-byline ban, not the message format.
 - **Lighthouse CI** may be added as a post-deploy step once a Vercel preview URL exists — record
   the budget thresholds here when it is. It complements rather than replaces `axe-core` /
   `eslint-plugin-jsx-a11y`, which run pre-deploy on test-time JSX.
-- **Git: not yet initialized.** Until `git init`, the ledger Stop hook, worktree parallelism
-  (Rule 5), and the merge protocol (Rule 10) are inert. After init, install the AI-byline guard —
-  it needs no `git config` change, which agents never touch:
-  `cp .githooks/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg`
+- **Git: initialized, guard installed** (verified 2026-08-04 — `main`, 2 commits, and
+  `.git/hooks/commit-msg` byte-identical to `.githooks/commit-msg`). The ledger Stop hook, worktree
+  parallelism (Rule 5), and the merge protocol (Rule 10) are all live, not inert. The guard lives
+  outside version control, so **a fresh clone starts unprotected** — reinstall it there with
+  `cp .githooks/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg`. It needs no
+  `git config` change, which agents never touch.
 
 ---
 

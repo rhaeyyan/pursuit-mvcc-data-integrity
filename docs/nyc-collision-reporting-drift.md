@@ -216,6 +216,30 @@ models trained across the 2020 boundary inherit a structural break and yield inv
 And publicly citing "a 60% drop in crashes" manufactures a false sense of safety that undercuts
 support for street redesign.
 
+**That benefit-cost claim has a live specimen.** NYC DOT's [2 October 2025 Vision Zero
+release](https://www.nyc.gov/html/dot/html/pr2025/decline-in-traffic-deaths.shtml) evaluates three
+individual street redesigns by before/after **injury** counts: Schermerhorn Street, Brooklyn
+(completed 2022) −31% pedestrian injuries; White Plains Road, Bronx (2022) −41%
+motor-vehicle-occupant and −10% total crash injuries; Queens Boulevard Phase IV (2021) −45%
+pedestrian and −20% total crash injuries. Those counts come from `number_of_persons_injured` — the
+same MV-104 pipeline the April 2020 change truncated. The release states no before/after windows,
+but any pre-period for a project completed in 2021–22 plausibly reaches back across the break. Two
+things are true at once and the citation needs both: this note's own casualty-filter finding is
+that the *injuries* series survived the change far better than the raw collision count did, so
+these deltas are not presumptively wrong — and a before/after comparison drawn across an
+unannounced collection-scope change still carries a reporting component of unknown size that
+neither the release nor the portal gives a reader any way to bound. The abstract claim above now
+has a date and three corridors attached.
+
+**The same agency's [January 2025 equity
+report](https://www.nyc.gov/html/dot/downloads/pdf/equity-and-street-safety.pdf) shows the
+avoidance pattern.** Its methodology (p.2, appendix p.15) measures **fatalities only**, comparing
+2004–2013 against 2014–2023 at the neighborhood-tabulation-area level — no collision counts, no
+single-year endpoints. Whether or not that choice was made with the reporting break in mind, it is
+the correct one, and it is worth citing precisely because it comes from the agency whose flattering
+number this note is skeptical of: DOT's most rigorous public analysis quietly declines to use the
+series that broke. Cite it for what it did, not for what it concluded.
+
 **One more discontinuity, worth noting because the report's own critique applies to it:** the
 dataset's automated updates are **currently paused** at maximum `crash_date` **2026-06-11** — an
 undocumented break of exactly the type section 1 above complains about, discovered independently
