@@ -52,6 +52,7 @@ reaches the client until the integrity gate confirms all eight years are present
 an absent Socrata key surfaces as an error rather than a fabricated zero.
 
 ```mermaid
+%%{init: {"flowchart": {"curve": "linear", "nodeSpacing": 45, "rankSpacing": 45}}}%%
 flowchart TD
     classDef source stroke:#199e70,stroke-width:2px,fill:none;
     classDef service stroke:#3987e5,stroke-width:2px,fill:none;
@@ -65,12 +66,12 @@ flowchart TD
     subgraph Server ["Next.js Route Handlers · server-side"]
         direction TB
         QRaw("`**Raw series**
-deaths, injuries, collisions by year`")
+deaths, injuries, collisions`")
         QRepaired("`**Repaired series**
-collisions by year + casualty filter`")
+collisions + casualty filter`")
         QArrests("`**Enforcement series**
-traffic arrests, both offense spellings`")
-        Gate{"all 8 years non-null?"}
+arrests, both spellings`")
+        Gate{{"all 8 years non-null?"}}
     end
 
     Payload["`**Validated payload**
@@ -79,9 +80,9 @@ one response, 8 rows per series`"]
     subgraph Client ["React client"]
         direction TB
         Chart(["`**Recharts**
-raw vs repaired, dashed and labelled`"])
+raw vs repaired, dashed`"])
         Table(["`**Data table**
-same figures, screen-reader equivalent`"])
+screen-reader equivalent`"])
         Failure(["`**Error state**
 never a silent zero`"])
     end

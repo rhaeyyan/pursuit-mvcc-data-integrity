@@ -74,6 +74,14 @@ rendering from a live server-side SoQL call (PRD handoff, Rule 6). Nothing is bu
     they clear 3:1 against **both** `#ffffff` and `#0d1117` (computed, not eyeballed). Validator:
     all PASS both modes except `#c98500` at 2.99:1 on light, where the relief rule is satisfied by
     construction — every node carries a visible text label, so identity is never color-alone.
+  - *Second render pass — edge routing.* The swooping arrows were mermaid's default `basis` curve,
+    not a layout accident; a 3-into-1 fan-in rendered as beziers reads as spaghetti at any size.
+    Set `curve: "linear"` via an init directive and tightened `nodeSpacing`/`rankSpacing`. Also
+    swapped the decision node from a diamond `{...}` to a hexagon `{{...}}`: mermaid sizes a diamond
+    around its text's *inscribed* rectangle, so it inflates far faster than any other shape and
+    forces every incoming edge onto a slanted face. Decision semantics survive the swap because
+    they were never carried by the shape — the `pass`/`fail` edge labels and the node's own
+    question mark do that work.
 - **2026-08-04 — NYC DOT Vision Zero releases evaluated against the record; two docs amended.**
   Reviewed DOT's [January 2025 equity report](https://www.nyc.gov/html/dot/html/pr2025/vision-zero-report-street-redesign.shtml)
   and its [October 2025 Q3 companion](https://www.nyc.gov/html/dot/html/pr2025/decline-in-traffic-deaths.shtml)
