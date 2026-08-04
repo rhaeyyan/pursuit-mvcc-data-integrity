@@ -1,0 +1,52 @@
+# Secrets — NFR-2 / CLAUDE.md rule 3. SOCRATA_APP_TOKEN lives in .env and is read
+# only inside server-side Route Handlers. The negation lets a committed .env.example
+# document the variable names without ever carrying a value.
+.env*
+!.env.example
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js build output
+/.next/
+/out/
+/build/
+next-env.d.ts
+*.tsbuildinfo
+
+# Deploy
+.vercel/
+
+# Test / coverage
+/coverage/
+/test-results/
+/playwright-report/
+
+# Claude Code machine-local state. The rest of .claude/ (agents, hooks, skills,
+# commands, scripts) is tracked deliberately — it is the project's enforcement layer.
+# settings.local.json holds per-machine permission grants, and the .tmp.* siblings are
+# leftovers from interrupted writes to it.
+.claude/settings.local.json
+.claude/settings.local.json.tmp.*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.pem
+.idea/
+.vscode/*
+!.vscode/extensions.json
