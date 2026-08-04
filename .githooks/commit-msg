@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Rejects commits whose message carries an AI co-author trailer.
+# This repo's Conventional Commits go through Rayan's review either way;
+# he doesn't want an AI byline on commits in his own name.
+#
+# Not auto-installed by git (core.hooksPath is untouched — see CLAUDE.md's
+# Git Safety Protocol: never edit git config from an agent session). After a
+# fresh clone, install it once with:
+#   cp .githooks/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg
+
+ai_trailer=$(grep -iE '^Co-Authored-By:.*(claude|anthropic|copilot|chatgpt|openai|codex|gemini|bard|cursor|windsurf|codeium|tabnine|devin|replit ai|amazon q|sourcegraph cody)' "$1" || true)
+
+if [ -n "$ai_trailer" ]; then
+  echo "error: commit message contains an AI co-author trailer:" >&2
+  echo "  $ai_trailer" >&2
+  echo "Remove it before committing." >&2
+  exit 1
+fi

@@ -1,0 +1,57 @@
+{
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "CONTEXT7_API_KEY": "$CONTEXT7_API_KEY"
+      }
+    },
+    "github": {
+      "httpUrl": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer $GITHUB_PAT"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
+    "markitdown": {
+      "command": "uvx",
+      "args": [
+        "markitdown-mcp"
+      ]
+    },
+    "supabase": {
+      "httpUrl": "https://mcp.supabase.com/mcp"
+    },
+    "godot": {
+      "command": "/home/rayan/.local/bin/uv",
+      "args": [
+        "run",
+        "/home/rayan/Documents/untitled-flower-game/addons/gdai-mcp-plugin-godot/gdai_mcp_server.py"
+      ]
+    },
+    "aseprite": {
+      "command": "/home/rayan/.local/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/home/rayan/Documents/aseprite-mcp",
+        "-m",
+        "aseprite_mcp"
+      ],
+      "env": {
+        "ASEPRITE_PATH": "/media/rayan/Disk A/SteamLibrary/steamapps/common/Aseprite/aseprite"
+      }
+    }
+  }
+}
