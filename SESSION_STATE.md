@@ -30,6 +30,15 @@ rendering from a live server-side SoQL call (PRD handoff, Rule 6). Nothing is bu
 
 ## History
 
+- **2026-08-04 — `.gitignore` created; NFR-2's pre-first-commit check had never actually run.**
+  CLAUDE.md requires verifying `.gitignore` covers `.env*` *before the first commit*; there was no
+  `.gitignore` in the repo at all, and three commits had already been pushed public. Nothing leaked
+  — `.env` does not exist yet — but the gap was live: creating one and running `git add -A` would
+  have published `SOCRATA_APP_TOKEN`, the exact Rule 3 failure. Also closes two quieter holes:
+  `.claude/settings.local.json` was ignored only by the *user's global* excludes file, so any fresh
+  clone or second machine would have tracked it, and its `.tmp.*` write-leftovers were accumulating
+  as untracked noise that an `add -A` would eventually sweep in. `.env.example` is negated back in
+  so variable *names* can be documented without values.
 - **2026-08-04 — README architecture diagram repaired and corrected.** The mermaid block failed to
   render: escaped `[\"` openers, which mermaid parses as a parallelogram it can never close. Fixed,
   and rebuilt to current mermaid.js.org standards — markdown strings (backtick-quoted) in place of
@@ -50,6 +59,21 @@ rendering from a live server-side SoQL call (PRD handoff, Rule 6). Nothing is bu
     rewritten at the first Route Handler and rot in between, which is ADR 0001's failure mode
     exactly. The revisit trigger is recorded with the decision rather than left implicit: when
     locating a change requires more than a glance at the file tree.
+  - *Polish pass after seeing it rendered (`dataviz` skill loaded per CLAUDE.md).* Rendering
+    exposed three faults no syntax check catches: a three-line label turned the decision node into
+    a diamond that swallowed half the canvas, two identical `pass` labels collided with the
+    subgraph title, and the default cluster grey muddied everything. Fixes: a one-line gate label,
+    and a **validated payload** node so the fan-out to chart and table is labelled once — which is
+    also more honest, since NFR-3 requires the table to show *the same figures*, i.e. one response
+    feeding both, not two independent paths.
+  - *Palette decision worth not re-litigating:* switched to `fill:none` with role identity carried
+    by **stroke + label only**. Mermaid inside a README cannot branch on `prefers-color-scheme`, so
+    hardcoded fills mean committing to one theme and losing the other; transparent fills let text
+    and edge-label chips inherit the viewer's own mermaid theme, so the diagram is correct in
+    GitHub light *and* dark. Strokes are the reference palette's dark-column steps, chosen because
+    they clear 3:1 against **both** `#ffffff` and `#0d1117` (computed, not eyeballed). Validator:
+    all PASS both modes except `#c98500` at 2.99:1 on light, where the relief rule is satisfied by
+    construction — every node carries a visible text label, so identity is never color-alone.
 - **2026-08-04 — NYC DOT Vision Zero releases evaluated against the record; two docs amended.**
   Reviewed DOT's [January 2025 equity report](https://www.nyc.gov/html/dot/html/pr2025/vision-zero-report-street-redesign.shtml)
   and its [October 2025 Q3 companion](https://www.nyc.gov/html/dot/html/pr2025/decline-in-traffic-deaths.shtml)

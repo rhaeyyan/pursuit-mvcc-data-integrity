@@ -47,30 +47,34 @@ The analysis window is strictly locked to **2018–2025** to avoid the 2026 repo
 
 Every series is a separate SoQL aggregate resolved server-side. The casualty-filtered "repair" is
 not a processing stage — it is the same aggregate with one added `$where` clause, which is why the
-raw and repaired series reach the chart side by side rather than one replacing the other.
+raw and repaired series reach the chart side by side rather than one replacing the other. Nothing
+reaches the client until the integrity gate confirms all eight years are present and non-null, so
+an absent Socrata key surfaces as an error rather than a fabricated zero.
 
 ```mermaid
 flowchart TD
-    classDef source fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-    classDef service fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef gate fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
+    classDef source stroke:#199e70,stroke-width:2px,fill:none;
+    classDef service stroke:#3987e5,stroke-width:2px,fill:none;
+    classDef gate stroke:#c98500,stroke-width:2px,fill:none;
+    classDef output stroke:#9085e9,stroke-width:2px,fill:none;
+    classDef failure stroke:#d03b3b,stroke-width:2px,fill:none;
 
-    Crashes["`**Crashes** · h9gi-nx95
-NYC Open Data (Socrata)`"]
-    Arrests["`**Arrests** · 8h9b-rp9u
-NYC Open Data (Socrata)`"]
+    Crashes["`**Crashes** · h9gi-nx95`"]
+    Arrests["`**Arrests** · 8h9b-rp9u`"]
 
-    subgraph Server ["Next.js Route Handlers (server-side)"]
+    subgraph Server ["Next.js Route Handlers · server-side"]
         direction TB
         QRaw("`**Raw series**
 deaths, injuries, collisions by year`")
         QRepaired("`**Repaired series**
-collisions by year, casualty filter`")
+collisions by year + casualty filter`")
         QArrests("`**Enforcement series**
 traffic arrests, both offense spellings`")
-        Gate{"`**Integrity gate**
-every year 2018–2025 present and non-null?`"}
+        Gate{"all 8 years non-null?"}
     end
+
+    Payload["`**Validated payload**
+one response, 8 rows per series`"]
 
     subgraph Client ["React client"]
         direction TB
@@ -90,14 +94,20 @@ never a silent zero`"])
     QRepaired --> Gate
     QArrests --> Gate
 
-    Gate ==>|pass| Chart
-    Gate ==>|pass| Table
-    Gate -->|"absent or null"| Failure
+    Gate ==>|pass| Payload
+    Gate -->|fail| Failure
+    Payload ==> Chart
+    Payload ==> Table
+
+    linkStyle default stroke:#6e7781
+    style Server fill:none,stroke:#6e7781
+    style Client fill:none,stroke:#6e7781
 
     class Crashes,Arrests source;
     class QRaw,QRepaired,QArrests service;
     class Gate gate;
-    class Chart,Table,Failure source;
+    class Payload,Chart,Table output;
+    class Failure failure;
 ```
 
 ### Build order (walking skeleton)
