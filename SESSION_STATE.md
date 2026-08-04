@@ -5,11 +5,36 @@ rendering from a live server-side SoQL call (PRD handoff, Rule 6). Nothing is bu
 
 ## Active
 
-- **Blocked on nothing.** Next action is Cedar kickoff: scaffold the Next.js App Router project
-  and convert PRD §5.3 P0 requirements into `[SPEC]` tasks, starting with the skeleton.
-- `SPEC.md` does not exist yet — it gets created at kickoff. `ARCHITECTURE.md` is **deferred by
-  decision, not pending** (2026-08-04); its absence is not a gap to close. Rationale and the
-  revisit trigger are in `CLAUDE.md` § Project Layout.
+- **Blocked on: human approval of the kickoff `[SPEC]`** (Rule 1 HITL — no code until then).
+  `SPEC.md` now exists and holds Cedar's scaffold authorization. On approval, dispatch **Redwood**;
+  Cypress audits after (the SPEC states an explicit ordering override — a scaffold has no
+  behavior to write failing tests against).
+- **Why the scaffold is its own SPEC rather than pre-work:** `create-next-app` introduces the
+  entire dependency tree, and Rule 9 gives Cedar sole dependency authority. Treating it as
+  "just plumbing" would route around that rule. It also can't be a normal task — a scaffold
+  writes ~20 files against Rule 5's cap of 5, so the SPEC grants a *bounded* exemption: generator
+  output is exempt because it encodes no decisions and is reproducible from one pinned command,
+  while hand-authored/hand-modified files are capped at 5 and enumerated for audit.
+- **Version check discharged early** (main session ran it; Cedar has no shell): `next@16.3.0`
+  needs Node `>=20.9.0`, local is 20.19.6 — compatible, no Node upgrade forced. `vitest` corrected
+  from Cedar's guessed `^3` to `^4` (4.1.10, Node-20 compatible). Vercel's build runtime is a
+  deploy-time setting, not a scaffold constraint, since `next@16` runs on Node 20 and 22 alike.
+- **Styling decided: CSS Modules**, not Tailwind (human, 2026-08-04). Grounds are reversibility,
+  not taste — Tailwind is two dev deps and a PostCSS config to add later, but removing it means
+  unwinding class attributes across every component Magnolia will have written by then.
+- **Two hazards the SPEC exists to prevent, both verified present in this tree:** a stock
+  `eslint .` lints 270+ third-party `.mjs` skill-payload files under `.claude/`, `.gemini/`, and
+  `skills/`; and the stock `tsconfig` `include` of `**/*.ts` sweeps three `types.d.ts` files from
+  those same trees into `tsc --noEmit`. Both gates would fail on their first run. Fixed up front
+  via ignore entries and a `src/**` allowlist `include` (allowlist, not denylist — a denylist
+  re-breaks the moment a fourth skill tree appears).
+- `ARCHITECTURE.md` is **deferred by decision, not pending** (2026-08-04); its absence is not a
+  gap to close. Rationale and the revisit trigger are in `CLAUDE.md` § Project Layout.
+- **Follow-up owed, tracked not lost:** the PRD handoff (`docs/project-mvcc-data.md` ~280–289)
+  is stale — it tells kickoff to create an assignment subdirectory with its own `AGENTS.md` and
+  record the §5.6 assessment there. All three clauses are superseded (this repo *is* that
+  directory; `AGENTS.md` was folded into `CLAUDE.md`; §5.6 is already recorded there). Amend so a
+  future agent doesn't act on it.
 - **Stale-entry correction (2026-08-04, both files fixed):** this ledger and `CLAUDE.md` § Recorded
   decisions both said "git not yet initialized." The repo *is* initialized (2 commits on `main`)
   and `.git/hooks/commit-msg` is byte-identical to `.githooks/commit-msg`, so the AI-byline guard,
