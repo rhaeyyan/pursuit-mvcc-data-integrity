@@ -108,3 +108,8 @@ flowchart TD
 **V1 Kickoff / Walking Skeleton Phase**
 
 The data contract has been rigorously verified against live Socrata endpoints (as of August 2026), and we are currently standing up the walking skeleton to render the initial metric (deaths per year) from a live server-side SoQL call.
+
+---
+
+*Built for Pursuit's AI-Native Fellowship.*
+[GitHub Repository](https://github.com/rhaeyyan/pursuit-mvcc-data-integrity) • [rayankhan.io](https://rayankhan.io) • [LinkedIn](https://www.linkedin.com/in/rayan-khan-3b90a2356/)
