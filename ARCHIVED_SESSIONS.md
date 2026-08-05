@@ -8,6 +8,45 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-05 — Cypress audited both completed SPECs in one pass; PASS, no critical violations
+
+Verified cold, nothing fixed, no test file written (the first belongs to the skeleton, per both
+ordering overrides), tree left clean.
+
+**The scaffold's file bound was proven, not argued.** Cypress regenerated verbatim
+`create-next-app@16.3.0` output into the scratchpad and byte-compared: all 11 generator-class files
+identical, exactly 6 divergences matching the enumerated list with no substitutions. This is the
+right way to audit an exemption granted on "generator output encodes no decisions" — the claim is
+falsifiable by `cmp`, so it should be falsified by `cmp` rather than by reading a completion report.
+
+**Item (b) would have passed vacuously and was caught.** `git status --porcelain -- .gitignore
+README.md` is trivially empty on a committed tree, so the check was re-pointed at the commit range:
+both files are byte-identical across `14b2960^..HEAD`. A checklist item written for an uncommitted
+working tree silently stops testing anything once the work lands — worth remembering for any future
+acceptance clause phrased against `git status`.
+
+`tsconfig.include` at 5 entries confirmed as a genuine fixed point, not drift: `npm run build` left
+`git status --porcelain` empty before and after.
+
+**The one real finding is a fake-green, and it is not in the code that was audited.** Both hook
+defects predate the platform SPEC. The gate's `[ -x ]` binary guards mean a present-but-empty
+`node_modules/` yields "clean" from zero checks — structurally the same fake-green the platform SPEC
+was written to kill, sitting one layer beneath it. Finding it required running the hook in
+constructed environments rather than reading it, which is why the five-cell matrix mattered.
+
+**Node-20 reproduction now costs deliberate effort.** With the harness `PATH` fix live, the failure
+path has to be constructed (`env PATH=/usr/local/bin:/usr/bin:/bin`). Convenient today, but it means
+the guard's own failure mode is no longer exercised incidentally — future audits must construct it
+on purpose or stop testing it at all.
+
+**Amendment 3(e)'s two rename checks split.** The first is pre-discharged by Redwood having dropped
+`"**/*.mts"` from `tsconfig.include`; the second is not, because `eslint.config.mjs` declares no
+explicit `files` patterns and inherits `eslint-config-next`'s — so `.mts` lint coverage is an
+unverified default. (Later resolved and confirmed during Task 1's test-writing phase: it does lint
+`.mts`, verified with a deliberate violation.)
+
+---
+
 ## 2026-08-04 — Toolchain stood up across two SPECs; both halted usefully before they finished
 
 The scaffold (Next 16 / React 19 / TS / Vitest / CSS Modules, 6 hand-authored files) and a

@@ -1,7 +1,8 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** the walking skeleton — one chart, one metric (deaths per year), rendering
-from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exists; no app code does.
+**Current objective:** Task 2 of the walking skeleton — mount a Recharts chart over the deaths-
+per-year table Task 1 already built and audited. Pre-declared in `SPEC.md`, not yet dispatched to
+Cedar for a full `[SPEC]`.
 
 ## Active
 
@@ -36,39 +37,21 @@ from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exist
   Committed and pushed. **The fresh-clone gap is now down to two undocumented out-of-band steps**
   (the `settings.local.json` env block and `.git/hooks/commit-msg`) — the third, fnm + Node 22, is
   now named in-repo even though the wiring that reads `.nvmrc` still lives outside it.
-- **Walking-skeleton Task 1 is in flight — SPEC dispatched, tests written, implementation built,
-  all four gates green.** First application code in the repo. Sequence so far, each phase committed
-  and pushed except the last (about to be):
-  1. **Phase A (`4e63717`):** Cedar drafted the `[SPEC]`, human-approved via plan mode. Full slice
-     (data + Route Handler + page + Recharts chart + its CSS) was 6+ files, over Rule 5's cap, so
-     Cedar split on the agent boundary: this task (Redwood, 5 files) is data + the NFR-3 table, no
-     chart; Task 2 (Magnolia, ~3 files, pre-declared in `SPEC.md`) adds the chart afterward.
-  2. **Phase B (`503c239`):** Cypress wrote failing tests first (standard TDD order, not the SPIKE
-     override the two prior SPECs used) — confirmed red for the right reason (missing modules, not
-     broken test logic). Batched Amendment 3(e)'s `vitest.config.ts` → `.mts` rename + `setupFiles`
-     into the same commit, plus two corollary test-infra fixes (jest-dom matcher types not reaching
-     `tsc`; RTL auto-cleanup not firing since `test.globals` is deliberately off).
-  3. **Phase C (about to commit):** Redwood built `src/lib/deaths.ts`, `src/app/api/deaths/route.ts`,
-     `src/app/page.tsx`, added `zod@^4`. Found and correctly declined to fix a bug in Cypress's own
-     `page.test.tsx` (a `vi.mock` factory closing over a plain top-level `const` that Vitest's
-     hoisting reads before its TDZ initialization — the classic "wrap it in `vi.hoisted()` too" gap)
-     — reported it instead, since only Cypress may edit tests. Relayed to the same Cypress
-     invocation (continuation, not a respawn) to fix; fixed, re-verified. **All four gates green:
-     `typecheck`/`lint`/`build` exit 0, `test` is 3 files / 39 tests passed.** Live
-     `/api/deaths` response captured verbatim in Redwood's completion report for Cypress's audit to
-     compare against Appendix A — Redwood did not perform that comparison itself (NFR-4).
-- **Next: Phase D — Cypress audits Task 1** (standard order, not SPIKE). Compare the live response
-  against PRD Appendix A's Deaths column, confirm the FR-8 invariant (every SoQL clause appears
-  encoded in `buildDeathsUrl()`), confirm no deaths figure appears as a literal anywhere in `src/**`
-  (the guard hook's pinned-figure list does **not** cover 3-digit values — no mechanical net here,
-  audit is the only check), confirm token discipline and zero-coercion. On PASS: archive `SPEC.md`
-  to `ARCHIVED_SPECS.md`, update this ledger, dispatch/pre-declare Task 2 (Magnolia's chart SPEC).
-- **One open finding from Phase B, not yet resolved:** `@/*` path-alias imports don't resolve under
-  Vitest (no `resolve.alias`/`tsconfig-paths` plugin in `vitest.config.mts`), even though `tsc` and
-  `next build` see them fine via `tsconfig.json`. Redwood used relative imports in all three of its
-  files to route around it — correct for this task, but the underlying gap persists for whatever
-  writes the next Vitest-tested file with an alias import. Not urgent; noted so it isn't rediscovered
-  from scratch.
+- **Walking-skeleton Task 1 CLOSED (2026-08-06).** First application code in the repo:
+  `src/lib/deaths.ts`, `src/app/api/deaths/route.ts`, `src/app/page.tsx` — the deaths-per-year
+  metric, live from Socrata, rendered as an accessible table (FR-1/8/10/11, NFR-1–4). Cypress audit
+  PASS, standard ordering (tests first, then implementation, then audit — the first SPEC here to
+  use standard order rather than the SPIKE override the two prior SPECs used). Live figures
+  independently re-verified against PRD Appendix A with **zero drift across all 8 years**, including
+  the fragile 2025 endpoint. Full phase-by-phase narrative and the two bugs found mid-flight
+  (a TDZ bug in Cypress's own test, and `next dev`/`build` auto-dirtying `CLAUDE.md`) are in
+  `## History` below and in the archived SPEC. Commits: `4e63717` (SPEC) → `503c239` (tests) →
+  `9ca19e4`+`7fc0050` (implementation + test fix) → this ledger update. All pushed.
+- **Next: Task 2 (the Recharts chart)** — pre-declared sketch in `SPEC.md`, needs a fresh Cedar
+  pass for a dispatch-ready `[SPEC]` before Magnolia builds it. Two standing gotchas Task 1 found,
+  now recorded in `SPEC.md`'s standing clauses so Task 2 doesn't rediscover them: `@/*` path-alias
+  imports don't resolve under Vitest (use relative imports in test-covered files), and `next dev`/
+  `build` auto-dirty `CLAUDE.md` (revert with `git checkout`, never commit or "fix").
 - **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
   `v22.23.2` and `which node` resolves under the fnm v22 tree. Fix was `env.PATH` in
   **`.claude/settings.local.json`**, gitignored (machine-specific, absolute path under
@@ -112,38 +95,56 @@ from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exist
 
 ## History
 
-- **2026-08-05 — Cypress audited both completed SPECs in one pass; PASS, no critical violations.**
-  Verified cold, nothing fixed, no test file written (the first belongs to the skeleton, per both
-  ordering overrides), tree left clean.
-  - *The scaffold's file bound was proven, not argued.* Cypress regenerated verbatim
-    `create-next-app@16.3.0` output into the scratchpad and byte-compared: all 11 generator-class
-    files identical, exactly 6 divergences matching the enumerated list with no substitutions. This
-    is the right way to audit an exemption granted on "generator output encodes no decisions" — the
-    claim is falsifiable by `cmp`, so it should be falsified by `cmp` rather than by reading a
-    completion report.
-  - *Item (b) would have passed vacuously and was caught.* `git status --porcelain -- .gitignore
-    README.md` is trivially empty on a committed tree, so the check was re-pointed at the commit
-    range: both files are byte-identical across `14b2960^..HEAD`. A checklist item written for an
-    uncommitted working tree silently stops testing anything once the work lands — worth
-    remembering for any future acceptance clause phrased against `git status`.
-  - *`tsconfig.include` at 5 entries confirmed as a genuine fixed point*, not drift: `npm run build`
-    left `git status --porcelain` empty before and after.
-  - *The one real finding is a fake-green, and it is not in the code that was audited.* Both hook
-    defects predate the platform SPEC. The gate's `[ -x ]` binary guards mean a present-but-empty
-    `node_modules/` yields "clean" from zero checks — structurally the same fake-green the platform
-    SPEC was written to kill, sitting one layer beneath it. Finding it required running the hook in
-    constructed environments rather than reading it, which is why the five-cell matrix mattered.
-  - *Node-20 reproduction now costs deliberate effort.* With the harness `PATH` fix live, the
-    failure path has to be constructed (`env PATH=/usr/local/bin:/usr/bin:/bin`). Convenient today,
-    but it means the guard's own failure mode is no longer exercised incidentally — future audits
-    must construct it on purpose or stop testing it at all.
-  - *Amendment 3(e)'s two rename checks split.* The first is pre-discharged by Redwood having
-    dropped `"**/*.mts"` from `tsconfig.include`; the second is not, because `eslint.config.mjs`
-    declares no explicit `files` patterns and inherits `eslint-config-next`'s — so `.mts` lint
-    coverage is an unverified default. Carried into `SPEC.md`.
+- **2026-08-06 — Task 1 of the walking skeleton shipped: deaths per year, live from Socrata,
+  standard TDD order, Cypress audit PASS.** First application code in the repo.
+  - *Why the skeleton split into two tasks instead of one.* Cedar found the full slice (data +
+    Route Handler + page + a `'use client'` Recharts component + its CSS) was 6+ files against
+    Rule 5's 5-file cap, and none of the six qualified as generator-output-class the way the
+    scaffold's exemption did. Rather than spend another bounded exemption, Cedar split on the
+    agent boundary: Redwood builds data + the NFR-3 table now, Magnolia adds the chart over it
+    later. Presented to the human as an explicit decision point in plan mode rather than assumed —
+    approved as proposed.
+  - *Why the page imports the fetch function directly instead of calling its own Route Handler
+    over HTTP.* Self-fetching needs an absolute URL the server doesn't portably know, fails during
+    `next build`'s prerender when no server is listening, and adds a redundant round trip and a
+    second caching layer. The Route Handler still exists — not decorative — because NFR-2 and the
+    Stack table name it as the token-handling mechanism, and it's the black-box surface Cypress
+    tests and a human can `curl`. One query, one schema, one validator, in one module, imported by
+    both faces.
+  - *The one constraint with no mechanical net, named before it could be discovered the hard way.*
+    `guard-data-integrity.sh`'s pinned-figure list only covers 26 six-digit literals (collisions,
+    injuries, casualty-filtered) — three-digit deaths values would false-positive the hook on every
+    ordinary integer, so they're deliberately absent from it. Cedar flagged this in the SPEC itself
+    rather than let it surface as a surprise at audit time; Cypress's audit (grep across all
+    non-test source for the 8 real deaths figures) was the only protection, and it held.
+  - *A bug found mid-implementation was routed to its owner, not fixed by whoever found it.*
+    Redwood hit a `ReferenceError` in Cypress's own `page.test.tsx` — a `vi.mock` factory closing
+    over a plain top-level `const` that Vitest's mock-hoisting evaluates before its temporal-dead-
+    zone initialization (the same pattern the file's own `fetchDeathsPerYear` was correctly
+    wrapped in `vi.hoisted()` for, two lines above the bug). Redwood diagnosed it precisely, built
+    an isolated repro, and **declined to touch the file** — test files are Cypress's alone. The
+    orchestrator relayed the diagnosis to the same Cypress invocation (continuation, not a
+    respawn, so it kept its authoring context) rather than fixing it in the main session, which
+    would have been faster but would have blurred who owns test correctness. One-line fix,
+    verified against the exact failure it corrected. No rejection loop needed — this was a test-
+    authoring bug surfaced during implementation, not a Cypress FAIL of Redwood's work after audit.
+  - *A second hazard reappeared after being fixed once, and that was expected, not a regression.*
+    `next dev`/`next build` auto-append a `<!-- BEGIN:nextjs-agent-rules -->` block to `CLAUDE.md`
+    (Next 16's `generate-agent-files.js`) on every run. Redwood reverted it during implementation;
+    it came back during Cypress's independent `npm run dev` verification pass, and the orchestrator
+    reverted it again before archiving the SPEC. Recorded as a standing clause rather than a bug
+    to fix, since it's a generator side effect outside the repo's control — the fix is "revert
+    after every dev/build run," permanently, not a one-time cleanup.
+  - *The audit didn't trust the implementer's own evidence.* Cypress re-ran the live Socrata query
+    independently (`npm run dev` → `curl` → kill the server) rather than diffing Redwood's pasted
+    response body, and re-derived the FR-8 invariant by reading `src/lib/deaths.ts` directly rather
+    than trusting its own pre-written test's pass. Both matched. This is the same discipline the
+    2026-08-05 audit established for the scaffold SPEC (verify cold, not from a report) — now
+    applied to live data, not just static files.
 
-Older entries are in `ARCHIVED_SESSIONS.md` (the two-SPEC toolchain build-out — the bounded
-generator-output exemption, the Node 20 halt and the per-project platform raise, and
-`engine-strict`'s rejection on efficacy; README diagram rebuild and the `ARCHITECTURE.md`
-deferral; NYC DOT Vision Zero evaluation and the SIP confounder; initial Claude Code agent
-configuration and the GEMINI.md parity drop; the `.gitignore` / NFR-2 gap).
+Older entries are in `ARCHIVED_SESSIONS.md` (the 2026-08-05 audit of both kickoff SPECs — the
+scaffold's file bound proven by byte-comparison, the fake-green hook defect it found; the two-SPEC
+toolchain build-out — the bounded generator-output exemption, the Node 20 halt and the per-project
+platform raise, and `engine-strict`'s rejection on efficacy; README diagram rebuild and the
+`ARCHITECTURE.md` deferral; NYC DOT Vision Zero evaluation and the SIP confounder; initial Claude
+Code agent configuration and the GEMINI.md parity drop; the `.gitignore` / NFR-2 gap).
