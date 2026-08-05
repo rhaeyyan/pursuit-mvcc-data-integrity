@@ -36,13 +36,39 @@ from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exist
   Committed and pushed. **The fresh-clone gap is now down to two undocumented out-of-band steps**
   (the `settings.local.json` env block and `.git/hooks/commit-msg`) — the third, fnm + Node 22, is
   now named in-repo even though the wiring that reads `.nvmrc` still lives outside it.
-- **Next session, in order:**
-  1. **Walking-skeleton `[SPEC]` from Cedar** — the actual objective. It inherits Amendment 3(b)'s
-     `node -v` clause and 3(e)'s authorized `.mts` rename, and it is where `recharts` and `zod`
-     finally arrive with the requirements that justify them. Standing clauses and everything owed
-     to it are enumerated in `SPEC.md`.
-- **Still no application code exists.** No Route Handler, no chart, no test file, no figure
-  rendered. The toolchain is real; the product is not started.
+- **Walking-skeleton Task 1 is in flight — SPEC dispatched, tests written, implementation built,
+  all four gates green.** First application code in the repo. Sequence so far, each phase committed
+  and pushed except the last (about to be):
+  1. **Phase A (`4e63717`):** Cedar drafted the `[SPEC]`, human-approved via plan mode. Full slice
+     (data + Route Handler + page + Recharts chart + its CSS) was 6+ files, over Rule 5's cap, so
+     Cedar split on the agent boundary: this task (Redwood, 5 files) is data + the NFR-3 table, no
+     chart; Task 2 (Magnolia, ~3 files, pre-declared in `SPEC.md`) adds the chart afterward.
+  2. **Phase B (`503c239`):** Cypress wrote failing tests first (standard TDD order, not the SPIKE
+     override the two prior SPECs used) — confirmed red for the right reason (missing modules, not
+     broken test logic). Batched Amendment 3(e)'s `vitest.config.ts` → `.mts` rename + `setupFiles`
+     into the same commit, plus two corollary test-infra fixes (jest-dom matcher types not reaching
+     `tsc`; RTL auto-cleanup not firing since `test.globals` is deliberately off).
+  3. **Phase C (about to commit):** Redwood built `src/lib/deaths.ts`, `src/app/api/deaths/route.ts`,
+     `src/app/page.tsx`, added `zod@^4`. Found and correctly declined to fix a bug in Cypress's own
+     `page.test.tsx` (a `vi.mock` factory closing over a plain top-level `const` that Vitest's
+     hoisting reads before its TDZ initialization — the classic "wrap it in `vi.hoisted()` too" gap)
+     — reported it instead, since only Cypress may edit tests. Relayed to the same Cypress
+     invocation (continuation, not a respawn) to fix; fixed, re-verified. **All four gates green:
+     `typecheck`/`lint`/`build` exit 0, `test` is 3 files / 39 tests passed.** Live
+     `/api/deaths` response captured verbatim in Redwood's completion report for Cypress's audit to
+     compare against Appendix A — Redwood did not perform that comparison itself (NFR-4).
+- **Next: Phase D — Cypress audits Task 1** (standard order, not SPIKE). Compare the live response
+  against PRD Appendix A's Deaths column, confirm the FR-8 invariant (every SoQL clause appears
+  encoded in `buildDeathsUrl()`), confirm no deaths figure appears as a literal anywhere in `src/**`
+  (the guard hook's pinned-figure list does **not** cover 3-digit values — no mechanical net here,
+  audit is the only check), confirm token discipline and zero-coercion. On PASS: archive `SPEC.md`
+  to `ARCHIVED_SPECS.md`, update this ledger, dispatch/pre-declare Task 2 (Magnolia's chart SPEC).
+- **One open finding from Phase B, not yet resolved:** `@/*` path-alias imports don't resolve under
+  Vitest (no `resolve.alias`/`tsconfig-paths` plugin in `vitest.config.mts`), even though `tsc` and
+  `next build` see them fine via `tsconfig.json`. Redwood used relative imports in all three of its
+  files to route around it — correct for this task, but the underlying gap persists for whatever
+  writes the next Vitest-tested file with an alias import. Not urgent; noted so it isn't rediscovered
+  from scratch.
 - **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
   `v22.23.2` and `which node` resolves under the fnm v22 tree. Fix was `env.PATH` in
   **`.claude/settings.local.json`**, gitignored (machine-specific, absolute path under
