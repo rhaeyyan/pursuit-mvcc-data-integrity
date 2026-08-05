@@ -284,9 +284,16 @@ fields (`perp_race`, `perp_sex`, `age_group`) are **excluded from ingestion enti
 > initial build. Per Rule 6, the first task must be the walking skeleton: **one chart, one metric
 > (deaths per year), rendering from a live server-side SoQL call.** Everything else grows from
 > that slice. Per Rule 5, no task may touch more than 5 files. FR priorities are explicit in
-> §5.3 (FR-1–4, 8–12 = P0; FR-5–7 and FR-13 = P1; FR-5–7 severable as a group). At kickoff, create the
-> assignment's own subdirectory with its `AGENTS.md` per the repo layout, move this PRD into it,
-> and record the §5.6 security-isolation assessment there.
+> §5.3 (FR-1–4, 8–12 = P0; FR-5–7 and FR-13 = P1; FR-5–7 severable as a group).
+>
+> *Kickoff-clause update, 2026-08-05: the three instructions that originally followed this sentence
+> are superseded and intentionally removed — this repo already **is** the assignment's own
+> subdirectory (scaffolding a nested one would silently no-op `stop-quality-gate.sh`, which probes
+> `.`, `app`, `web`, `frontend` for the app root); `AGENTS.md` was folded into `CLAUDE.md` by
+> recorded decision, since Claude Code does not auto-load `AGENTS.md`; and the §5.6
+> security-isolation assessment already lives in `CLAUDE.md` § Recorded decisions. Left here as a
+> dated note rather than silently deleted, so a future reader who remembers the original text can
+> see it was retired on purpose, not lost.*
 
 ---
 
