@@ -5,23 +5,43 @@ from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exist
 
 ## Active
 
+- **Both completed SPECs are audited and closed.** Cypress PASS on 2026-08-05, one pass covering
+  the scaffold (checklist a–f) and the platform guard (acceptance clause + constraints 1–8). No
+  critical violations; seven non-blocking recommendations, all recorded in `SPEC.md` § Carried
+  forward. `SPEC.md` is now reset and holds no active work.
 - **Committed and pushed** (2026-08-04) — `14b2960` scaffold, `4f396e1` platform guard, `d2cedb9`
-  SPECs + ledger. Tree clean, no stashes, `origin/main` synced. Split by concern rather than by
-  edit order, so the guard's rationale isn't buried in the scaffold commit.
+  SPECs + ledger. Split by concern rather than by edit order, so the guard's rationale isn't buried
+  in the scaffold commit. *Audit note:* this means SPEC 2's `@types/node` and lockfile changes
+  actually landed in `14b2960`, not `4f396e1` — all three file outputs are present and correct,
+  only the commit boundary differs from the SPEC's file list. Not a violation.
+- **Two hook defects the audit surfaced**, both in `.claude/hooks/stop-quality-gate.sh` and both
+  **pre-existing** (they predate `4f396e1`), so neither is a regression from the platform SPEC:
+  1. **Fake-green when `node_modules/` exists but the binaries do not** (lines 81, 90) — the `[ -x ]`
+     guards skip both checks, `failed` stays 0, and the gate prints "clean" having run nothing.
+     Reproduced on an empty `node_modules/`. This is the same failure class the platform SPEC
+     existed to eliminate, one layer down, and it fires on any interrupted `npm install`.
+  2. **The all-clear line can print an empty version** (line 104) — it re-invokes `node -v` rather
+     than reusing the captured value, so an unresolvable `node` yields `(Node )` in the very line
+     that exists to make the platform auditable.
+
+  Both belong to the next SPEC that touches that file. Cypress may not edit it; Redwood or Banyan
+  must. Neither blocks the skeleton.
 - **Next session, in order:**
-  1. **Cypress audit of both completed SPECs.** Both carry an explicit ordering override — neither
-     has behavior to write failing tests against, so Cypress audits *after*; its first **test file**
-     belongs to the skeleton, not to either completed SPEC. Audit checklist is in `ARCHIVED_SPECS.md`
-     (scaffold, items a–f) and `SPEC.md` (platform, plus: run the hook under both Node 20 and 22 and
-     confirm exit 2 / exit 0).
-  2. **Docs task** — the two batched items below. Higher priority than it looks: a fresh clone now
+  1. **Docs task** — the two batched items below. Higher priority than it looks: a fresh clone now
      needs **three** out-of-band setup steps (fnm + Node 22, the `settings.local.json` env block,
-     and `.git/hooks/commit-msg`), none of which are discoverable from the repo.
-  3. **Walking-skeleton `[SPEC]` from Cedar** — the actual objective. It inherits Amendment 3(b)'s
+     and `.git/hooks/commit-msg`), none of which are discoverable from the repo. The audit
+     independently reached the same ranking: the guard now means a clone without fnm cannot end
+     *any* turn, so the gap hardened from quiet to loud.
+  2. **Walking-skeleton `[SPEC]` from Cedar** — the actual objective. It inherits Amendment 3(b)'s
      `node -v` clause and 3(e)'s authorized `.mts` rename, and it is where `recharts` and `zod`
-     finally arrive with the requirements that justify them.
+     finally arrive with the requirements that justify them. Standing clauses and everything owed
+     to it are enumerated in `SPEC.md`.
 - **Still no application code exists.** No Route Handler, no chart, no test file, no figure
   rendered. The toolchain is real; the product is not started.
+- **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
+  `v22.23.2` and `which node` resolves under the fnm v22 tree. The block below is retained for its
+  reasoning; the "until this session ends" caveat has expired. One consequence: reproducing the
+  Node 20 failure path now takes deliberate effort — `env PATH=/usr/local/bin:/usr/bin:/bin`.
 - **Harness platform fixed at the root — applies from the NEXT session.** `stop-quality-gate.sh`
   exits 2 on a platform mismatch, and the harness runs both its Bash tool and its Stop hooks under
   the **system Node 20**, so the guard fired on every turn and nothing inside a turn could change
@@ -86,52 +106,38 @@ from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exist
 
 ## History
 
-- **2026-08-04 — Toolchain stood up across two SPECs; both halted usefully before they finished.**
-  The scaffold (Next 16 / React 19 / TS / Vitest / CSS Modules, 6 hand-authored files) and a
-  follow-on platform-agreement fix (3 files). All four gates green on Node 22.23.2, verified
-  independently rather than taken from the completion reports; `stop-quality-gate.sh` is live.
-  - *Why the scaffold was its own SPEC rather than pre-work:* `create-next-app` introduces the whole
-    dependency tree, and Rule 9 gives Cedar sole dependency authority — treating it as plumbing
-    would have routed around that rule. It also broke Rule 5's file cap (~20 files), resolved by a
-    **bounded** exemption: generator output is exempt because it encodes no decisions and is
-    reproducible from one pinned command; hand-authored files stay capped and enumerated for audit.
-  - *The Node 20 halt, and why it was the most valuable thing that happened.* Redwood stopped at
-    step 0: `jsdom@30` and `@testing-library/jest-dom@7` (and `6.10.0`) exclude Node 20.19.6. npm
-    doesn't enforce `engines` without `engine-strict`, so both install on a warning — and vitest
-    only instantiates jsdom per test file, of which the scaffold writes none. Every acceptance
-    command would have exited 0 over a toolchain that breaks at Cypress's first component test.
-    Pinning back to `jsdom@^29` was rejected as a rolling problem: it adopts two packages already on
-    their maintainers' drop lists, and each future dependency hits the same wall as Node 20 recedes
-    past its April 2026 EOL. Chose to raise the platform per-project instead, leaving the system
-    Node and every other project on the machine untouched.
-  - *Then the same failure reproduced from the other side.* After the scaffold landed, all four
-    gates passed on Node 20 in the agent's own shell — the Bash tool runs bash, not the login fish
-    shell, and inherits its environment rather than re-sourcing `.bashrc`, so no shell wiring
-    reaches it. The acceptance criteria could not see it.
-  - *`engine-strict` was proposed as the fix and rejected on evidence.* `stop-quality-gate.sh`
-    invokes `./node_modules/.bin/tsc` and `./node_modules/.bin/eslint` **directly**, bypassing npm —
-    no `.npmrc` setting can reach the process that emits the verdict. It is install-scoped and
-    cannot gate a run against an existing tree; on a Node 20 Vercel image it would additionally
-    hard-fail production deploys over `jsdom`, a test-only dep `next build` never loads. The fix
-    went into the hook instead: read `.nvmrc`, compare **majors only** (the patch floor is npm's
-    `EBADENGINE` job), exit 2 naming both versions. No semver parser, no `fnm exec` auto-repair.
-  - *Cedar's test for granting a file beyond a spent budget, worth reusing:* a slot is granted only
-    when (i) the mechanism is the **only** thing catching the named failure and (ii) no existing
-    file, hook, CI config, or acceptance clause can carry it. `engine-strict` failed both, so the
-    bound held on merit rather than on the number.
-  - *Two hazards the scaffold SPEC existed to prevent, both real in this tree:* a stock `eslint .`
-    lints 270+ third-party `.mjs` skill-payload files under `.claude/`, `.gemini/`, `skills/`; and
-    the stock `tsconfig` `include` of `**/*.ts` sweeps three `types.d.ts` files from those trees
-    into `tsc --noEmit`. Fixed with ignore entries and a `src/**` **allowlist** include — allowlist
-    rather than denylist, since a denylist re-breaks the moment a fourth skill tree appears.
-  - *Deviations Redwood declared rather than hid:* `--disable-git` (without it the scratchpad
-    scaffold carries its own `.git` into the repo root); `--no-agents-md` (Next 16 generates
-    `AGENTS.md` by default, which CLAUDE.md rules against — suppressed at generation rather than
-    generated-then-deleted); `tsconfig.include` at 5 entries because `next build` re-adds
-    `.next/dev/types/**/*.ts` and it is a stable fixed point; jsx-a11y spread as `.rules` only,
-    since the full recommended object throws `Cannot redefine plugin` — `eslint-config-next`
-    already registers it.
+- **2026-08-05 — Cypress audited both completed SPECs in one pass; PASS, no critical violations.**
+  Verified cold, nothing fixed, no test file written (the first belongs to the skeleton, per both
+  ordering overrides), tree left clean.
+  - *The scaffold's file bound was proven, not argued.* Cypress regenerated verbatim
+    `create-next-app@16.3.0` output into the scratchpad and byte-compared: all 11 generator-class
+    files identical, exactly 6 divergences matching the enumerated list with no substitutions. This
+    is the right way to audit an exemption granted on "generator output encodes no decisions" — the
+    claim is falsifiable by `cmp`, so it should be falsified by `cmp` rather than by reading a
+    completion report.
+  - *Item (b) would have passed vacuously and was caught.* `git status --porcelain -- .gitignore
+    README.md` is trivially empty on a committed tree, so the check was re-pointed at the commit
+    range: both files are byte-identical across `14b2960^..HEAD`. A checklist item written for an
+    uncommitted working tree silently stops testing anything once the work lands — worth
+    remembering for any future acceptance clause phrased against `git status`.
+  - *`tsconfig.include` at 5 entries confirmed as a genuine fixed point*, not drift: `npm run build`
+    left `git status --porcelain` empty before and after.
+  - *The one real finding is a fake-green, and it is not in the code that was audited.* Both hook
+    defects predate the platform SPEC. The gate's `[ -x ]` binary guards mean a present-but-empty
+    `node_modules/` yields "clean" from zero checks — structurally the same fake-green the platform
+    SPEC was written to kill, sitting one layer beneath it. Finding it required running the hook in
+    constructed environments rather than reading it, which is why the five-cell matrix mattered.
+  - *Node-20 reproduction now costs deliberate effort.* With the harness `PATH` fix live, the
+    failure path has to be constructed (`env PATH=/usr/local/bin:/usr/bin:/bin`). Convenient today,
+    but it means the guard's own failure mode is no longer exercised incidentally — future audits
+    must construct it on purpose or stop testing it at all.
+  - *Amendment 3(e)'s two rename checks split.* The first is pre-discharged by Redwood having
+    dropped `"**/*.mts"` from `tsconfig.include`; the second is not, because `eslint.config.mjs`
+    declares no explicit `files` patterns and inherits `eslint-config-next`'s — so `.mts` lint
+    coverage is an unverified default. Carried into `SPEC.md`.
 
-Older entries are in `ARCHIVED_SESSIONS.md` (README diagram rebuild and the `ARCHITECTURE.md`
+Older entries are in `ARCHIVED_SESSIONS.md` (the two-SPEC toolchain build-out — the bounded
+generator-output exemption, the Node 20 halt and the per-project platform raise, and
+`engine-strict`'s rejection on efficacy; README diagram rebuild and the `ARCHITECTURE.md`
 deferral; NYC DOT Vision Zero evaluation and the SIP confounder; initial Claude Code agent
 configuration and the GEMINI.md parity drop; the `.gitignore` / NFR-2 gap).

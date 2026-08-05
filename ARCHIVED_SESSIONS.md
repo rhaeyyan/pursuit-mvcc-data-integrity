@@ -8,6 +8,65 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-04 — Toolchain stood up across two SPECs; both halted usefully before they finished
+
+The scaffold (Next 16 / React 19 / TS / Vitest / CSS Modules, 6 hand-authored files) and a
+follow-on platform-agreement fix (3 files). All four gates green on Node 22.23.2, verified
+independently rather than taken from the completion reports; `stop-quality-gate.sh` is live.
+Both were audited clean by Cypress on 2026-08-05.
+
+**Why the scaffold was its own SPEC rather than pre-work:** `create-next-app` introduces the whole
+dependency tree, and Rule 9 gives Cedar sole dependency authority — treating it as plumbing would
+have routed around that rule. It also broke Rule 5's file cap (~20 files), resolved by a **bounded**
+exemption: generator output is exempt because it encodes no decisions and is reproducible from one
+pinned command; hand-authored files stay capped and enumerated for audit. The 2026-08-05 audit
+proved that bound rather than arguing it — regenerate verbatim, `cmp` every file — which is the
+check that makes the exemption safe to grant again.
+
+**The Node 20 halt, and why it was the most valuable thing that happened.** Redwood stopped at
+step 0: `jsdom@30` and `@testing-library/jest-dom@7` (and `6.10.0`) exclude Node 20.19.6. npm
+doesn't enforce `engines` without `engine-strict`, so both install on a warning — and vitest only
+instantiates jsdom per test file, of which the scaffold writes none. Every acceptance command would
+have exited 0 over a toolchain that breaks at Cypress's first component test. Pinning back to
+`jsdom@^29` was rejected as a rolling problem: it adopts two packages already on their maintainers'
+drop lists, and each future dependency hits the same wall as Node 20 recedes past its April 2026
+EOL. Chose to raise the platform per-project instead, leaving the system Node and every other
+project on the machine untouched.
+
+**Then the same failure reproduced from the other side.** After the scaffold landed, all four gates
+passed on Node 20 in the agent's own shell — the Bash tool runs bash, not the login fish shell, and
+inherits its environment rather than re-sourcing `.bashrc`, so no shell wiring reaches it. The
+acceptance criteria could not see it.
+
+**`engine-strict` was proposed as the fix and rejected on evidence.** `stop-quality-gate.sh` invokes
+`./node_modules/.bin/tsc` and `./node_modules/.bin/eslint` **directly**, bypassing npm — no `.npmrc`
+setting can reach the process that emits the verdict. It is install-scoped and cannot gate a run
+against an existing tree; on a Node 20 Vercel image it would additionally hard-fail production
+deploys over `jsdom`, a test-only dep `next build` never loads. The fix went into the hook instead:
+read `.nvmrc`, compare **majors only** (the patch floor is npm's `EBADENGINE` job), exit 2 naming
+both versions. No semver parser, no `fnm exec` auto-repair.
+
+**Cedar's test for granting a file beyond a spent budget, worth reusing:** a slot is granted only
+when (i) the mechanism is the **only** thing catching the named failure and (ii) no existing file,
+hook, CI config, or acceptance clause can carry it. `engine-strict` failed both, so the bound held
+on merit rather than on the number.
+
+**Two hazards the scaffold SPEC existed to prevent, both real in this tree:** a stock `eslint .`
+lints 270+ third-party `.mjs` skill-payload files under `.claude/`, `.gemini/`, `skills/`; and the
+stock `tsconfig` `include` of `**/*.ts` sweeps three `types.d.ts` files from those trees into
+`tsc --noEmit`. Fixed with ignore entries and a `src/**` **allowlist** include — allowlist rather
+than denylist, since a denylist re-breaks the moment a fourth skill tree appears.
+
+**Deviations Redwood declared rather than hid:** `--disable-git` (without it the scratchpad scaffold
+carries its own `.git` into the repo root); `--no-agents-md` (Next 16 generates `AGENTS.md` by
+default, which CLAUDE.md rules against — suppressed at generation rather than
+generated-then-deleted); `tsconfig.include` at 5 entries because `next build` re-adds
+`.next/dev/types/**/*.ts` and it is a stable fixed point; jsx-a11y spread as `.rules` only, since
+the full recommended object throws `Cannot redefine plugin` — `eslint-config-next` already
+registers it. All three were confirmed as declared, not silently wider, by the 2026-08-05 audit.
+
+---
+
 ## 2026-08-04 — README architecture diagram repaired and corrected
 
 The mermaid block failed to render: escaped `[\"` openers, which mermaid parses as a parallelogram
