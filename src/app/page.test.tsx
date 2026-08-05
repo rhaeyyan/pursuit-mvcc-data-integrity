@@ -16,11 +16,10 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import axe from "axe-core";
 
-const SYNTHETIC_SOQL =
-  "SYNTHETIC SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...";
-
-const { fetchDeathsPerYear } = vi.hoisted(() => ({
+const { fetchDeathsPerYear, SYNTHETIC_SOQL } = vi.hoisted(() => ({
   fetchDeathsPerYear: vi.fn(),
+  SYNTHETIC_SOQL:
+    "SYNTHETIC SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
 }));
 
 vi.mock("../lib/deaths", () => ({
