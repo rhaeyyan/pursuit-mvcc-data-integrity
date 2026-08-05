@@ -26,49 +26,29 @@ from a live server-side SoQL call (PRD handoff, Rule 6). The toolchain now exist
 
   Both belong to the next SPEC that touches that file. Cypress may not edit it; Redwood or Banyan
   must. Neither blocks the skeleton.
+- **Docs task CLOSED (2026-08-05).** Both batched items landed:
+  1. `docs/project-mvcc-data.md` § Handoff amended in place — the three superseded kickoff clauses
+     (subdirectory + its own `AGENTS.md`, move the PRD, record §5.6 there) replaced with a dated
+     note explaining why each was retired, rather than silently deleted. `f77ae1c`.
+  2. README § Stack gained one line naming the Node floor (`>=22.22.2`, pinned in `.nvmrc` and
+     `engines.node`) and that a fresh clone needs `fnm`/`nvm` to pick it up. `c9e28b9`.
+
+  Committed and pushed. **The fresh-clone gap is now down to two undocumented out-of-band steps**
+  (the `settings.local.json` env block and `.git/hooks/commit-msg`) — the third, fnm + Node 22, is
+  now named in-repo even though the wiring that reads `.nvmrc` still lives outside it.
 - **Next session, in order:**
-  1. **Docs task** — the two batched items below. Higher priority than it looks: a fresh clone now
-     needs **three** out-of-band setup steps (fnm + Node 22, the `settings.local.json` env block,
-     and `.git/hooks/commit-msg`), none of which are discoverable from the repo. The audit
-     independently reached the same ranking: the guard now means a clone without fnm cannot end
-     *any* turn, so the gap hardened from quiet to loud.
-  2. **Walking-skeleton `[SPEC]` from Cedar** — the actual objective. It inherits Amendment 3(b)'s
+  1. **Walking-skeleton `[SPEC]` from Cedar** — the actual objective. It inherits Amendment 3(b)'s
      `node -v` clause and 3(e)'s authorized `.mts` rename, and it is where `recharts` and `zod`
      finally arrive with the requirements that justify them. Standing clauses and everything owed
      to it are enumerated in `SPEC.md`.
 - **Still no application code exists.** No Route Handler, no chart, no test file, no figure
   rendered. The toolchain is real; the product is not started.
 - **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
-  `v22.23.2` and `which node` resolves under the fnm v22 tree. The block below is retained for its
-  reasoning; the "until this session ends" caveat has expired. One consequence: reproducing the
-  Node 20 failure path now takes deliberate effort — `env PATH=/usr/local/bin:/usr/bin:/bin`.
-- **Harness platform fixed at the root — applies from the NEXT session.** `stop-quality-gate.sh`
-  exits 2 on a platform mismatch, and the harness runs both its Bash tool and its Stop hooks under
-  the **system Node 20**, so the guard fired on every turn and nothing inside a turn could change
-  the shell. Fix: `env.PATH` in **`.claude/settings.local.json`** prepending
-  `~/.local/share/fnm/node-versions/v22.23.2/installation/bin`. Chosen over letting the hook
-  re-exec itself, which would have contradicted Cedar's "a guard that silently repairs teaches no
-  one the shell was wrong" *and* left the Bash tool on Node 20 — so agents would still get
-  wrong-platform results, just uncaught. This fixes both surfaces at once.
-  - *Why `settings.local.json` and not `settings.json`:* the value is an absolute path under
-    `/home/rhaeyyan`. Committing it would break every other clone. `settings.local.json` is
-    gitignored (`.gitignore:36`), which is exactly the right scope for machine-specific config —
-    and it means **a fresh clone must re-do this**, alongside the fnm install and the
-    `.git/hooks/commit-msg` guard.
-  - *Version-pinned path is a known cost.* It names `v22.23.2` explicitly and will need updating
-    when Node moves. Accepted as the price of not hardcoding a `$PATH` expansion whose support is
-    unverified.
-  - **Until this session ends, `node -v` in the Bash tool is still v20.19.6** and the Stop gate will
-    keep blocking. That is correct behavior, not a regression. Verify via `bash -ic 'cd <root> &&
-    …'` or `fish -i -c 'cd <root>; and …'` and confirm `node -v` is `v22.23.2` first.
-- **Docs task owed, two items batched:**
-  1. PRD handoff (`docs/project-mvcc-data.md` ~280–289) is stale — it tells kickoff to create an
-     assignment subdirectory with its own `AGENTS.md` and record the §5.6 assessment there. All
-     three clauses are superseded (this repo *is* that directory; `AGENTS.md` was folded into
-     `CLAUDE.md`; §5.6 is already recorded there). Acting on it would also silently no-op
-     `stop-quality-gate.sh`, which probes `.`, `app`, `web`, `frontend` for the app root.
-  2. A README line naming the Node floor, for the fresh-clone gap — `.nvmrc` ships but the fnm
-     wiring that reads it does not.
+  `v22.23.2` and `which node` resolves under the fnm v22 tree. Fix was `env.PATH` in
+  **`.claude/settings.local.json`**, gitignored (machine-specific, absolute path under
+  `/home/rhaeyyan`), so **a fresh clone must redo it**, alongside the fnm install and the
+  `.git/hooks/commit-msg` guard. Reproducing the Node 20 failure path now takes deliberate effort —
+  `env PATH=/usr/local/bin:/usr/bin:/bin`.
 - **Deploy `[SPEC]` obligation:** verify Vercel's project Node runtime matches `engines.node` and
   record the result. Deferred rather than blocking because `jsdom`/`@testing-library/*` are dev deps
   and `next build` doesn't run tests — a Vercel image on Node 20 would still build green, so the
