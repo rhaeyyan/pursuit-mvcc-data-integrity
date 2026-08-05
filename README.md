@@ -127,6 +127,9 @@ never a silent zero`"])
 
 ### Stack
 
+- **Node:** `>=22.22.2` (pinned in `.nvmrc` and `engines.node`) — a fresh clone needs `fnm` or `nvm`
+  installed to pick it up; Node 20 installs the toolchain with warnings but breaks at the first
+  component test.
 - **Frontend / Backend:** Next.js App Router (React + TypeScript)
 - **DataViz:** Recharts
 - **Data Fetching:** Server-side SoQL (`$select`, `$where`, `$group`)
