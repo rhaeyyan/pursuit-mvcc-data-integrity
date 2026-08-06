@@ -1,12 +1,25 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** None active. FR-3's data half (collisions per year) closed. `SPEC.md` has
-no task pre-declared — the next task needs a fresh Cedar pass. See `SPEC.md` § No task
-pre-declared (FR-3's chart half, FR-4, FR-9, FR-12) and its new `page.tsx` line-count Tipping
-Point.
+**Current objective:** Extract `MetricSection` from `page.tsx`'s three near-duplicate blocks,
+delete orphaned `page.module.css` — a Banyan mechanical refactor, human-approved (2026-08-06),
+sequenced *before* the FR-3 chart redesign so that task doesn't compete for the same file.
+Persisted to `SPEC.md`, ready to dispatch to Banyan (deviated ordering: execute first, Cypress
+audits after — no new behavior for a red test to describe).
 
 ## Active
 
+- **`MetricSection` extraction + `page.module.css` deletion — Banyan mechanical refactor,
+  dispatched, human-approved.** Cedar's sequencing call: do this *before* the FR-3 chart redesign,
+  not folded into it — that task is independently large enough to trip `DeathsChart`'s own Tipping
+  Point on three counts (legend, tooltip, dashed stroke), so bolting on an unrelated page-wide
+  extraction would mix two owners' concerns in one diff and risk the 5-file cap. New
+  `src/components/MetricSection.tsx` (generic Server Component, no CSS, no chart slot — the deaths
+  chart mount deliberately stays a sibling in `page.tsx` rather than a children/render-prop slot,
+  since only one of three callers needs it) + `MetricSection.test.tsx`; `page.tsx`'s three blocks
+  become three `<MetricSection>` calls; `page.module.css` deleted (gated on a zero-reference grep).
+  **Zero behavioral change is the whole point** — the mechanical gate is `page.test.tsx` passing
+  with zero edits. Deviated ordering: Banyan executes first, Cypress audits after (no new behavior
+  for a red test to describe). 4 files. **Next: dispatch Banyan.**
 - **FR-3's data half (collisions per year) CLOSED (2026-08-06).** Third one-line caller over
   `socrata.ts` (unmodified); `page.tsx` gained an independent collisions table, the verbatim
   reporting-policy inline note (the label half of FR-3's dashed-stroke-plus-label requirement),
