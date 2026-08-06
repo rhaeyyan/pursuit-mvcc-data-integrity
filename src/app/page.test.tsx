@@ -49,6 +49,30 @@
 // disclosure) entirely before the injuries block in document order, so the
 // first `<details>` in the tree is always the deaths one regardless of
 // either metric's status — verified by inspection, not assumed.
+//
+// This-SPEC addition ("Collisions per year: the raw reporting-affected
+// series, data half only", FR-3): ../lib/collisions is mocked the same way
+// as ../lib/deaths and ../lib/injuries, with its own default-"ok" beforeEach
+// entry mirroring injuries' — every pre-existing deaths/injuries-only test
+// now also gets a well-formed collisions result to Promise.all against
+// without having to touch that test's body. Because a default "ok"
+// collisions render adds a *third* unconditional <details> disclosure to
+// every render, the small number of pre-existing assertions that hard-coded
+// "2 disclosures total" are updated in place to "3" below — that is a
+// necessary consequence of this file's own new default, not scope creep, and
+// the assertions' original intent (this specific disclosure is present and
+// reachable) is preserved exactly; only the total-count arithmetic changes.
+// SPEC.md Output 3 places the collisions block after the injuries block in
+// document order (deaths, then injuries, then collisions), so the unscoped
+// `container.querySelector("details")` call sites (which only ever want the
+// *first* details, the deaths one) remain correct unchanged.
+//
+// Edge Case 9 (new coverage this task introduces): the two-way independence
+// describe block below FR-2 established is extended with a third describe
+// block exercising three-way independence — collisions, deaths, and
+// injuries in various ok/empty/error combinations, discriminated by which
+// mocked module a call belongs to (three distinct hoisted vi.fn()s bound to
+// three distinct vi.mock()'d modules), never by call order.
 
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -59,16 +83,21 @@ import type { DeathsChartProps } from "../components/DeathsChart";
 const {
   fetchDeathsPerYear,
   fetchInjuriesPerYear,
+  fetchCollisionsPerYear,
   SYNTHETIC_SOQL,
   INJURIES_SYNTHETIC_SOQL,
+  COLLISIONS_SYNTHETIC_SOQL,
   DeathsChart,
 } = vi.hoisted(() => ({
   fetchDeathsPerYear: vi.fn(),
   fetchInjuriesPerYear: vi.fn(),
+  fetchCollisionsPerYear: vi.fn(),
   SYNTHETIC_SOQL:
     "SYNTHETIC SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   INJURIES_SYNTHETIC_SOQL:
     "SYNTHETIC INJURIES SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
+  COLLISIONS_SYNTHETIC_SOQL:
+    "SYNTHETIC COLLISIONS SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   // A minimal stand-in, not the real chart — DeathsChart.test.tsx is where
   // the real component's rendered SVG geometry is asserted against real
   // recharts output. Here we only need something identifiable in the DOM
@@ -88,6 +117,11 @@ vi.mock("../lib/deaths", () => ({
 vi.mock("../lib/injuries", () => ({
   fetchInjuriesPerYear,
   INJURIES_SOQL: INJURIES_SYNTHETIC_SOQL,
+}));
+
+vi.mock("../lib/collisions", () => ({
+  fetchCollisionsPerYear,
+  COLLISIONS_SOQL: COLLISIONS_SYNTHETIC_SOQL,
 }));
 
 vi.mock("../components/DeathsChart", () => ({ DeathsChart }));
@@ -116,6 +150,26 @@ const INJURIES_SYNTHETIC_ROWS = [
   { year: 2025, injuries: 800 },
 ];
 
+// Obviously-synthetic, four-digit round numbers — distinct in magnitude from
+// both the deaths (11..88) and injuries (100..800) fixtures above, and never
+// the pinned Appendix A / mvcc-data-skill collisions column (six- and
+// five-digit figures in the hundred-thousands: 231564, 211486, 112918,
+// 110558, 103887, 96607, 91316, 85546).
+const COLLISIONS_SYNTHETIC_ROWS = [
+  { year: 2018, collisions: 1000 },
+  { year: 2019, collisions: 2000 },
+  { year: 2020, collisions: 3000 },
+  { year: 2021, collisions: 4000 },
+  { year: 2022, collisions: 5000 },
+  { year: 2023, collisions: 6000 },
+  { year: 2024, collisions: 7000 },
+  { year: 2025, collisions: 8000 },
+];
+
+// Verbatim per SPEC.md's Output 3 — copied exactly, not paraphrased.
+const COLLISIONS_NOTE_TEXT =
+  "This series is affected by a 2020 NYPD reporting-policy change that reduced how many minor collisions are recorded; it is not evidence of a comparable drop in real collisions.";
+
 async function renderHome() {
   // Home() is an async function component; calling and awaiting it directly
   // resolves the JSX tree the Server Component would have streamed.
@@ -124,20 +178,27 @@ async function renderHome() {
 }
 
 beforeEach(() => {
-  // Default: injuries "just works" unless a test overrides it with
-  // mockResolvedValueOnce. Deaths intentionally has no default — every test
-  // that cares about the page's rendered output already arranges its own
-  // fetchDeathsPerYear() result, per the pre-existing Task 1/2 convention.
+  // Default: injuries and collisions "just work" unless a test overrides
+  // them with mockResolvedValueOnce. Deaths intentionally has no default —
+  // every test that cares about the page's rendered output already arranges
+  // its own fetchDeathsPerYear() result, per the pre-existing Task 1/2
+  // convention.
   fetchInjuriesPerYear.mockResolvedValue({
     status: "ok",
     soql: INJURIES_SYNTHETIC_SOQL,
     rows: INJURIES_SYNTHETIC_ROWS,
+  });
+  fetchCollisionsPerYear.mockResolvedValue({
+    status: "ok",
+    soql: COLLISIONS_SYNTHETIC_SOQL,
+    rows: COLLISIONS_SYNTHETIC_ROWS,
   });
 });
 
 afterEach(() => {
   fetchDeathsPerYear.mockReset();
   fetchInjuriesPerYear.mockReset();
+  fetchCollisionsPerYear.mockReset();
   DeathsChart.mockClear();
 });
 
@@ -440,8 +501,11 @@ describe("/ (Home) — injuries block (FR-2, Task 3)", () => {
     // Not just "some text somewhere" (that's trivially true from the deaths
     // block alone) — the injuries block's own disclosure must still be
     // present, proving this assertion actually exercises injuries and isn't
-    // a false-positive pass off deaths' unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(2);
+    // a false-positive pass off deaths' unrelated content. Total is 3, not
+    // 2, because this-SPEC's default "ok" collisions mock (see beforeEach)
+    // also renders its own unconditional disclosure on every test in this
+    // file unless overridden.
+    expect(container.querySelectorAll("details")).toHaveLength(3);
   });
 });
 
@@ -517,7 +581,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     ).toBeInTheDocument();
   });
 
-  it("disambiguates the two <details> disclosures by summary text, both reachable by accessible name (FR-8)", async () => {
+  it("disambiguates the three <details> disclosures by summary text, all reachable by accessible name (FR-8)", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
@@ -528,11 +592,16 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
       soql: INJURIES_SYNTHETIC_SOQL,
       rows: INJURIES_SYNTHETIC_ROWS,
     });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
+    });
 
     const { container } = await renderHome();
 
     const disclosures = Array.from(container.querySelectorAll("details"));
-    expect(disclosures).toHaveLength(2);
+    expect(disclosures).toHaveLength(3);
 
     const summaries = disclosures.map(
       (d) => d.querySelector("summary")?.textContent ?? "",
@@ -543,13 +612,17 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(
       summaries.some((s) => /soql query/i.test(s) && /injuries/i.test(s)),
     ).toBe(true);
-    // Distinct accessible names, so assistive tech can reach either
-    // disclosure independently — this changed from the pre-Task-3 generic
-    // "SoQL query" summary text on purpose (SPEC.md Output 5).
-    expect(summaries[0]).not.toBe(summaries[1]);
+    expect(
+      summaries.some((s) => /soql query/i.test(s) && /collisions/i.test(s)),
+    ).toBe(true);
+    // Distinct accessible names, so assistive tech can reach any of the
+    // three disclosures independently — this extends the pre-existing
+    // deaths/injuries distinct-summary guarantee (SPEC.md Output 5) to the
+    // third, collisions disclosure this SPEC adds.
+    expect(new Set(summaries).size).toBe(3);
   });
 
-  it("has no axe-core violations across the injuries table and both SoQL disclosures", async () => {
+  it("has no axe-core violations across the injuries table and all three SoQL disclosures", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
@@ -559,6 +632,11 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
       status: "ok",
       soql: INJURIES_SYNTHETIC_SOQL,
       rows: INJURIES_SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
     });
 
     const { container } = await renderHome();
@@ -570,10 +648,345 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(
       screen.getByRole("table", { name: /injuries/i }),
     ).toBeInTheDocument();
-    expect(container.querySelectorAll("details")).toHaveLength(2);
+    expect(container.querySelectorAll("details")).toHaveLength(3);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
+  });
+});
+
+describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR-5 label-only)", () => {
+  it("renders an accessible collisions <table> with caption, headers, 8 rows, the verbatim inline reporting-change note, and its own SoQL disclosure", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      rows: INJURIES_SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    const table = screen.getByRole("table", { name: /collisions/i });
+    expect(table).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: /year/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: /collisions/i }),
+    ).toBeInTheDocument();
+    // 8 data rows + 1 header row, scoped to the collisions table only.
+    expect(within(table).getAllByRole("row")).toHaveLength(9);
+
+    // The verbatim inline note (SPEC.md Output 3) — copied exactly, not
+    // paraphrased, and present as real page copy (not merely in an
+    // attribute).
+    expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
+
+    const disclosures = Array.from(container.querySelectorAll("details"));
+    const collisionsDisclosure = disclosures.find((d) =>
+      /collisions/i.test(d.querySelector("summary")?.textContent ?? ""),
+    );
+    expect(collisionsDisclosure).toBeTruthy();
+    expect(collisionsDisclosure).toHaveTextContent("SoQL query — collisions");
+    expect(collisionsDisclosure).toHaveTextContent(COLLISIONS_SYNTHETIC_SOQL);
+  });
+
+  it("renders a visible, non-decorative collisions error message, independent of deaths and injuries (FR-10)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      rows: INJURIES_SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      kind: "contract",
+      reason:
+        "no aggregate returned for 2020 (synthetic collisions test reason)",
+    });
+
+    await renderHome();
+
+    expect(
+      screen.queryByRole("table", { name: /collisions/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/no aggregate returned for 2020/i),
+    ).toBeInTheDocument();
+    // The failure must not suppress the other two metrics' renders.
+    expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: /injuries/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a visible, non-decorative collisions empty-state message, distinct from the error path (FR-10)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      rows: INJURIES_SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+    });
+
+    const { container } = await renderHome();
+
+    expect(
+      screen.queryByRole("table", { name: /collisions/i }),
+    ).not.toBeInTheDocument();
+    // Not just "some text somewhere" — the collisions block's own disclosure
+    // must still be present, proving this assertion actually exercises
+    // collisions and isn't a false-positive pass off the other two blocks'
+    // unrelated content.
+    expect(container.querySelectorAll("details")).toHaveLength(3);
+    expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
+  });
+
+  it("never renders the inline reporting-change note on the collisions error or empty paths — the note is part of the ok-branch table rendering only", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      rows: INJURIES_SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+    });
+
+    const { container } = await renderHome();
+
+    // Prove the collisions block is actually rendering its own defined
+    // empty state (a third, independent disclosure) before asserting on
+    // what it must not contain — otherwise this negative assertion would
+    // trivially "pass" against a page that doesn't implement the collisions
+    // block at all, which would be exactly the kind of spuriously-passing
+    // test the dispatch instructions warn against.
+    expect(container.querySelectorAll("details")).toHaveLength(3);
+    expect(document.body.textContent ?? "").not.toContain(COLLISIONS_NOTE_TEXT);
+  });
+
+  it("has no axe-core violations on the collisions table, its inline note, and its disclosure", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      rows: INJURIES_SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    // Prove the elements this test claims to cover actually exist before
+    // scanning them — an axe.run() that passes over content that isn't
+    // present would be a false-positive that proves nothing.
+    expect(
+      screen.getByRole("table", { name: /collisions/i }),
+    ).toBeInTheDocument();
+    expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
+    expect(container.querySelectorAll("details")).toHaveLength(3);
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
+  });
+});
+
+describe("/ (Home) — three independent metrics on one page (new coverage this SPEC introduces, Edge Case 9)", () => {
+  // These mocks are discriminated by which module they come from
+  // (fetchDeathsPerYear / fetchInjuriesPerYear / fetchCollisionsPerYear —
+  // three distinct hoisted vi.fn()s bound to three distinct vi.mock()'d
+  // modules) — never by which one Promise.all happens to settle first.
+  // FR-2 (Task 3) only exercised two independent unions (deaths x injuries);
+  // this is the first three-way independence coverage, per SPEC.md's Edge
+  // Case 9. Not all 8 permutations are enumerated — enough combinations are
+  // covered that "any one metric failing doesn't affect the other two" is
+  // actually demonstrated for every metric in at least one failing role and
+  // at least one succeeding role.
+
+  it("collisions ok while deaths AND injuries both error: collisions renders fully, completely unaffected by the other two failing together", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (three-way test, deaths)",
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (three-way test, injuries)",
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    // Collisions renders fully.
+    expect(
+      screen.getByRole("table", { name: /collisions/i }),
+    ).toBeInTheDocument();
+    expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
+
+    // Deaths and injuries each show their own error, no crash, no
+    // suppression of the collisions render.
+    expect(
+      screen.queryByRole("table", { name: /deaths/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: /injuries/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Socrata responded 503 \(three-way test, deaths\)/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Socrata responded 503 \(three-way test, injuries\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("collisions error while deaths AND injuries both ok (the inverse): the other two render fully, unsuppressed by the collisions failure", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      rows: INJURIES_SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (three-way test, collisions)",
+    });
+
+    await renderHome();
+
+    expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: /injuries/i }),
+    ).toBeInTheDocument();
+    expect(DeathsChart).toHaveBeenCalledTimes(1);
+
+    expect(
+      screen.queryByRole("table", { name: /collisions/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Socrata responded 503 \(three-way test, collisions\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("mixed combination: deaths ok, injuries error, collisions empty — each of the three renders its own defined state independently", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      kind: "contract",
+      reason: "no aggregate returned for 2019 (three-way mixed test, injuries)",
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+    });
+
+    const { container } = await renderHome();
+
+    expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("table", { name: /injuries/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/no aggregate returned for 2019/i),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("table", { name: /collisions/i }),
+    ).not.toBeInTheDocument();
+
+    // All three disclosures still render regardless of each metric's status
+    // (FR-8's unconditional-disclosure guarantee, extended to three).
+    expect(container.querySelectorAll("details")).toHaveLength(3);
+  });
+
+  it("mixed combination (another): deaths error, injuries empty, collisions ok — each of the three renders its own defined state independently", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "contract",
+      reason: "no aggregate returned for 2021 (three-way mixed test, deaths)",
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: INJURIES_SYNTHETIC_SOQL,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    expect(DeathsChart).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("table", { name: /deaths/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/no aggregate returned for 2021/i),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("table", { name: /injuries/i }),
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole("table", { name: /collisions/i }),
+    ).toBeInTheDocument();
+    expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
+
+    expect(container.querySelectorAll("details")).toHaveLength(3);
   });
 });
 
