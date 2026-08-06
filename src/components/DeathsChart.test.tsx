@@ -346,6 +346,7 @@ describe("<DeathsChart> — source-level greps (the only net for these constrain
     }
     const offenders = listFilesRecursive(COMPONENTS_DIR)
       .filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
+      .filter((f) => !isTestFile(f))
       .filter((f) => readFileSync(f, "utf8").includes("process.env"));
     expect(offenders).toEqual([]);
   });
