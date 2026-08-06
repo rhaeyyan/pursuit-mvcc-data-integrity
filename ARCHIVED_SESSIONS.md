@@ -8,6 +8,61 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — Task 1 of the walking skeleton shipped: deaths per year, live from Socrata
+
+First application code in the repo — `src/lib/deaths.ts`, `src/app/api/deaths/route.ts`,
+`src/app/page.tsx` (FR-1/8/10/11, NFR-1–4). Standard TDD order (tests → implementation → audit),
+the first SPEC here not to use the SPIKE ordering override the two prior ones did. Cypress audit
+PASS. Live figures independently re-verified against PRD Appendix A with zero drift across all 8
+years, including the fragile 2025 endpoint. Commits `4e63717` → `503c239` → `9ca19e4` + `7fc0050`.
+
+- *Why the skeleton split into two tasks instead of one.* Cedar found the full slice (data +
+  Route Handler + page + a `'use client'` Recharts component + its CSS) was 6+ files against
+  Rule 5's 5-file cap, and none of the six qualified as generator-output-class the way the
+  scaffold's exemption did. Rather than spend another bounded exemption, Cedar split on the agent
+  boundary: Redwood builds data + the NFR-3 table now, Magnolia adds the chart over it later.
+  Presented to the human as an explicit decision point in plan mode rather than assumed —
+  approved as proposed.
+- *Why the page imports the fetch function directly instead of calling its own Route Handler over
+  HTTP.* Self-fetching needs an absolute URL the server doesn't portably know, fails during
+  `next build`'s prerender when no server is listening, and adds a redundant round trip and a
+  second caching layer. The Route Handler still exists — not decorative — because NFR-2 and the
+  Stack table name it as the token-handling mechanism, and it's the black-box surface Cypress
+  tests and a human can `curl`. One query, one schema, one validator, in one module, imported by
+  both faces.
+- *The one constraint with no mechanical net, named before it could be discovered the hard way.*
+  `guard-data-integrity.sh`'s pinned-figure list only covers 26 six-digit literals (collisions,
+  injuries, casualty-filtered) — three-digit deaths values would false-positive the hook on every
+  ordinary integer, so they're deliberately absent from it. Cedar flagged this in the SPEC itself
+  rather than let it surface as a surprise at audit time; Cypress's audit (grep across all
+  non-test source for the 8 real deaths figures) was the only protection, and it held.
+- *A bug found mid-implementation was routed to its owner, not fixed by whoever found it.*
+  Redwood hit a `ReferenceError` in Cypress's own `page.test.tsx` — a `vi.mock` factory closing
+  over a plain top-level `const` that Vitest's mock-hoisting evaluates before its temporal-dead-
+  zone initialization (the same pattern the file's own `fetchDeathsPerYear` was correctly wrapped
+  in `vi.hoisted()` for, two lines above the bug). Redwood diagnosed it precisely, built an
+  isolated repro, and **declined to touch the file** — test files are Cypress's alone. The
+  orchestrator relayed the diagnosis to the same Cypress invocation (continuation, not a respawn,
+  so it kept its authoring context) rather than fixing it in the main session, which would have
+  been faster but would have blurred who owns test correctness. One-line fix, verified against the
+  exact failure it corrected. No rejection loop needed — this was a test-authoring bug surfaced
+  during implementation, not a Cypress FAIL of Redwood's work after audit.
+- *A second hazard reappeared after being fixed once, and that was expected, not a regression.*
+  `next dev`/`next build` auto-append a `<!-- BEGIN:nextjs-agent-rules -->` block to `CLAUDE.md`
+  (Next 16's `generate-agent-files.js`) on every run. Redwood reverted it during implementation;
+  it came back during Cypress's independent `npm run dev` verification pass, and the orchestrator
+  reverted it again before archiving the SPEC. Recorded as a standing clause rather than a bug to
+  fix, since it's a generator side effect outside the repo's control — the fix is "revert after
+  every dev/build run," permanently, not a one-time cleanup.
+- *The audit didn't trust the implementer's own evidence.* Cypress re-ran the live Socrata query
+  independently (`npm run dev` → `curl` → kill the server) rather than diffing Redwood's pasted
+  response body, and re-derived the FR-8 invariant by reading `src/lib/deaths.ts` directly rather
+  than trusting its own pre-written test's pass. Both matched. This extends the discipline the
+  2026-08-05 audit established for the scaffold SPEC (verify cold, not from a report) to live data,
+  not just static files.
+
+---
+
 ## 2026-08-05 — Cypress audited both completed SPECs in one pass; PASS, no critical violations
 
 Verified cold, nothing fixed, no test file written (the first belongs to the skeleton, per both
