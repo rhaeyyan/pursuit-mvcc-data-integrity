@@ -1,11 +1,26 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** None active. Walking skeleton (Tasks 1 and 2) and the subgroup-sum-fallback
-correction are all CLOSED. `SPEC.md` has no task pre-declared — the next task needs a fresh Cedar
-pass. See `SPEC.md` § No task pre-declared for the open P0 candidates (FR-2/3/4/9/12).
+**Current objective:** FR-2 (injuries per year) + the `src/lib/socrata.ts` extraction Task 1's own
+Tipping Point pre-committed to. Cedar's `[SPEC]` is human-approved (2026-08-06) and persisted to
+`SPEC.md`, ready to dispatch to Cypress (standard ordering, tests first).
 
 ## Active
 
+- **FR-2 (injuries per year) SPEC dispatched, human-approved, ready for Cypress.** Cedar picked
+  this over FR-3 (collisions, dashed stroke) specifically because FR-3 inherently bundles a data
+  task and a Magnolia chart-redesign task, which combining was ruled out; FR-2 is smaller and was
+  Task 1's own Tipping Point's named next trigger ("second series → parameterize the fetch; second
+  Route Handler → extract `socrata.ts`"). Extracts `src/lib/socrata.ts` (generic yearly-metric
+  transport, parameterized only on aggregate expression + field alias — `$where`/`$group` stay
+  fixed constants, not parameters, until a third distinct query shape genuinely needs them), reduces
+  `deaths.ts` to a thin wrapper over it (byte-identical `DEATHS_SOQL`, structurally identical
+  `DeathsRow`/`DeathsResult` so `DeathsChart.tsx` and all existing tests are provably unaffected —
+  acceptance clause 5 requires `git diff --stat` show zero changes to the existing deaths test
+  files), adds `injuries.ts` + `api/injuries/route.ts` + an independent injuries table/disclosure on
+  `page.tsx`, fetched in `Promise.all` not sequentially (NFR-1). Explicitly does **not** touch
+  `DeathsChart.tsx` — injuries joining the chart is a deferred, separate Magnolia task, and is what
+  will trip Task 2's chart Tipping Point. 5 files, standard ordering (Cypress tests-first).
+  **Next: dispatch Cypress.**
 - **Two hook defects the 2026-08-05 audit surfaced**, both in `.claude/hooks/stop-quality-gate.sh`
   and both
   **pre-existing** (they predate `4f396e1`), so neither is a regression from the platform SPEC:
