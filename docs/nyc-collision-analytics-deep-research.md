@@ -45,7 +45,9 @@ pass caught, because it's a direct illustration of why AI-generated "research" i
    if it were a cited fact. **The symptom itself is real and independently confirmed still live**
    (records after 2026-05-05 omit the `number_of_persons_killed` key entirely while
    `number_of_pedestrians_killed`/`_cyclist_killed`/`_motorist_killed` remain populated) — but the
-   *cause* is unconfirmed speculation dressed up as a citation.
+   *cause* is unconfirmed speculation dressed up as a citation. Separately, the report's own
+   *proposed remedy* for this row — summing the subgroup fields as a fallback total — has since
+   been independently falsified; see [ADR 0002](adr/0002-no-synthetic-subtotal-fallback.md).
 
 **What was *not* independently re-verified**, and should be treated as unverified rather than
 confirmed: the Danger Index formulas and the BIRCH clustering-feature (CF) vector math, both
@@ -153,7 +155,7 @@ migration"):
 
 | Anomaly | What happens | Root cause | Mitigation |
 |---|---|---|---|
-| Aggregate Nullification | `number_of_persons_killed` stops populating while pedestrian/cyclist/motorist subtotal fields stay live | **Unconfirmed** — sourced to one Help Desk ticket reporting the symptom, no official diagnosis | Runtime schema validation computing a synthetic fallback total (sum of the subgroup fields) when the primary field is null |
+| Aggregate Nullification | `number_of_persons_killed` stops populating while pedestrian/cyclist/motorist subtotal fields stay live | **Unconfirmed** — sourced to one Help Desk ticket reporting the symptom, no official diagnosis | **Fail loud — never a synthetic total.** Raise the error state when the primary field is absent. The subgroup sum is **not** a valid substitute: it undercounts by a margin that is 0 for 2018–2020 then opens from 2021 (see [ADR 0002](adr/0002-no-synthetic-subtotal-fallback.md)) |
 | Date Encoding Discrepancy | Date fields arrive as unparsed text instead of ISO timestamps | Data export misconfiguration during batch job generation | String matching / explicit typecasting during ingestion |
 | Coordinate Spatial Dropout | Missing lat/long, returned as NULL or `(0,0)` | Incomplete field reports, GPS failures, legacy manual entry | `$where latitude IS NOT NULL` pre-filter before loading into GIS |
 | Text Category Inconsistency | Free-text vehicle classification strings (`Sedan`, `SEDAN`, `4 dr door`) | Free-text manual entry on the physical MV-104AN form | Case normalization + dictionary-based canonical mapping |
@@ -165,10 +167,12 @@ convention and free-text vehicle-type drift) — this table's genuinely new cont
 doesn't cover.
 
 ## Strategic recommendations (as stated in the source)
-- **Data engineers:** implement schema validation that computes synthetic fallback totals when
-  primary aggregate fields go null; enforce spatial pre-filtering (`$where latitude IS NOT
-  NULL`) directly in SoQL queries rather than filtering client-side after the full payload
-  transfers.
+- **Data engineers:** implement schema validation that **fails loud** when a primary aggregate
+  field goes null, rather than substituting a computed total — the obvious-looking fallback
+  (summing the subgroup fields) was tried in production by another team against this same
+  dataset and independently falsified (see [ADR 0002](adr/0002-no-synthetic-subtotal-fallback.md));
+  enforce spatial pre-filtering (`$where latitude IS NOT NULL`) directly in SoQL queries rather
+  than filtering client-side after the full payload transfers.
 - **Spatial data scientists:** adopt a **multi-stage** clustering architecture — BIRCH first for
   city-wide reduction (lower memory, outlier-tolerant), then distance-normalized Danger Index
   scoring on the resulting sub-clusters for route-level precision. Maintain categorization

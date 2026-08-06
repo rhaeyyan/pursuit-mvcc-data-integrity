@@ -254,7 +254,7 @@ Two separate defects in the same dataset, easy to blur together and important to
 | When | 2019–2020 | after 2026-05-05 |
 | Symptom | Recorded crash *volume* falls ~63% | The `number_of_persons_killed` *field* stops populating while pedestrian/cyclist/motorist subtotals stay live |
 | Cause | **Confirmed** — documented NYPD PDO non-response policy | **Still unconfirmed** — sourced only to a user-submitted Help Desk ticket reporting the symptom |
-| Fix | Casualty filter (validated above) | Runtime schema validation with a synthetic fallback total |
+| Fix | Casualty filter (validated above) | Fail loud on the absent aggregate (FR-11). **Not** a synthetic subgroup-sum total — that remedy is falsified; see [ADR 0002](adr/0002-no-synthetic-subtotal-fallback.md) |
 
 This note's mechanism explains the **volume** decline. It says nothing about the 2026
 **field-population** dropout, which remains unexplained — see the [deep-research

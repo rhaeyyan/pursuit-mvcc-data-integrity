@@ -33,7 +33,10 @@ boundary and the 2026 fatality dropout, and removes any need for the year-to-dat
 ## Verified fields
 
 `h9gi-nx95`: `crash_date`, `number_of_persons_injured`, `number_of_persons_killed`, `borough`,
-`collision_id`.
+`collision_id`. Also verified: `number_of_pedestrians_killed`, `number_of_cyclist_killed`,
+`number_of_motorist_killed`, `number_of_pedestrians_injured`, `number_of_cyclist_injured`,
+`number_of_motorist_injured` — **breakdown fields that do not reconcile to the totals** (see trap
+1); listing them here is not an endorsement of summing them.
 `8h9b-rp9u`: `arrest_date`, `ofns_desc`, `arrest_boro`.
 
 Every numeric field arrives as a **string**. Cast explicitly, always.
@@ -44,7 +47,11 @@ Every numeric field arrives as a **string**. Cast explicitly, always.
    aggregates (deaths, injuries, collisions, arrests) an absent or null value must raise the
    error state — **never** coerce to zero. `number_of_persons_killed` is confirmed absent after
    **2026-05-05**; if that dropout ever extends backwards into the window, a silent zero would
-   fabricate a safety improvement. This is the exact failure the product exists to expose.
+   fabricate a safety improvement. This is the exact failure the product exists to expose. The
+   pedestrian/cyclist/motorist subgroup fields are **not** a substitute for an absent primary
+   aggregate either — the sums genuinely disagree from 2021 onward because NYPD records a
+   casualty without always assigning that person a role. Fail loud is the only correct behavior
+   in both cases; see [ADR 0002](../../../docs/adr/0002-no-synthetic-subtotal-fallback.md).
 2. **`B` is the Bronx, not Brooklyn.** Arrest borough codes: `B`=Bronx, `K`=Brooklyn (Kings),
    `M`=Manhattan, `Q`=Queens, `S`=Staten Island. Confirmed empirically — arrest row with
    `arrest_boro: K`, precinct 71, at 40.661/−73.932 is Crown Heights, Brooklyn.
