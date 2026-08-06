@@ -1,8 +1,8 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Walking skeleton is feature-complete (Tasks 1 and 2, both CLOSED). The
-subgroup-sum-fallback correction: Redwood has executed the SPEC (uncommitted); **Cypress audit is
-next**, per the SPEC's own deviated ordering (Redwood-first, Cypress-after).
+**Current objective:** None active. Walking skeleton (Tasks 1 and 2) and the subgroup-sum-fallback
+correction are all CLOSED. `SPEC.md` has no task pre-declared — the next task needs a fresh Cedar
+pass. See `SPEC.md` § No task pre-declared for the open P0 candidates (FR-2/3/4/9/12).
 
 ## Active
 
@@ -23,53 +23,15 @@ next**, per the SPEC's own deviated ordering (Redwood-first, Cypress-after).
   phase-by-phase narrative for both (Task 1: `4e63717`→`503c239`→`9ca19e4`+`7fc0050`; Task 2:
   `bc3d43e`→`503c239`→`1e67154`→`735bcfd`) is in `ARCHIVED_SESSIONS.md`; the completed SPECs
   themselves are in `ARCHIVED_SPECS.md`. Docs task (`f77ae1c`, `c9e28b9`) also closed and archived.
-- **Prior-art finding (2026-08-05) — the subgroup-sum fallback is falsified; it must not be
-  specced.** `docs/nyc-collision-analytics-deep-research.md:156` proposes, as the mitigation for
-  the `number_of_persons_killed` dropout, "a synthetic fallback total (sum of the subgroup
-  fields)". GreenInfo-Network/nyc-crash-mapper (crashmapper.org, live, ~1M rows) shipped exactly
-  that and it produced a public discrepancy against NYC Open Data — their issue #111
-  ("Investigate sum discrepancies 2021-2024"): `number_of_pedestrians_* + _cyclist_* + _motorist_*`
-  does not equal `number_of_persons_*`, because some casualties carry no role. Measured live
-  against `h9gi-nx95` over our own window: the gap is exactly 0 for 2018–2020, then opens in 2021
-  and stays open — **deaths short by 12, 20, 19, 9, 6** (2021–2025) and injuries short by ~1.4k–2.4k
-  a year. So the "fallback" is not the same series; substituting it would understate 2022 deaths by
-  ~7% while looking healthy. **FR-11 fail-loud stays the only behavior.** If a fallback is ever
-  wanted it must render as a separate, labelled series with the residual shown, never backfilled
-  into the fatality line. Their fix is the pattern worth copying: authoritative total field for the
-  grand total, plus an explicit "Other/Unknown" category carrying `total − sum(categories)`.
-  The same live query re-confirmed all 8 pinned deaths figures with zero drift.
-  **Cedar's SPEC now lives in `SPEC.md` itself (moved there verbatim on Task 2's close) and has
-  been revised (2026-08-06) — see § Revision history at the top of `SPEC.md`.** `subtotal-gap.py`
-  is now specced as a checker (pins `PINNED_GAPS`, exits 1 on drift, matching `verify-figures.py`'s
-  exit-code contract) rather than a reporter, closing the detector gap in this SPEC's own Tipping
-  Point. Two of three reviewed judgment calls were endorsed unchanged (the `SKILL.md` edit's
-  placement, the Redwood-first ordering). Cedar's original pass changed the blast radius in both
-  directions: the falsified mitigation is live in **four** places, not one — the research doc's
-  table row (156), its strategic-recommendations bullet (168–171), its trust note (40–48), and
-  `nyc-collision-reporting-drift.md`'s Fix column (257), which is the most dangerous because a
-  reader of that table sees no hedging at all. Conversely **the PRD is out of scope entirely**
-  (FR-11 line 207 and the risk register line 262 already specify fail-loud and never mention a
-  fallback) and **`src/lib/deaths.ts` is correct twice over** — `parseRow` rejects any non-numeric
-  value, and `SELECT_CLAUSE` never selects the subgroup fields, so the fallback is unreachable
-  rather than merely unused. No source change is owed. One thing worth carrying: crashmapper's
-  "Other/Unknown" residual pattern is recorded in the ADR but deliberately **not** adopted — it is
-  a residual over *people within a record*, our PDO tier is a residual over *collision records*,
-  and conflating them would be an error. Applying it needs its own SPEC.
-  **Redwood EXECUTED (2026-08-06), uncommitted.** Exactly 5 files: new `.claude/scripts/subtotal-
-  gap.py` and `docs/adr/0002-no-synthetic-subtotal-fallback.md`; edited
-  `docs/nyc-collision-analytics-deep-research.md` (sites 1/2/4), `docs/nyc-collision-reporting-
-  drift.md` (site 3), `.claude/skills/mvcc-data/SKILL.md` (trap 1 + six subgroup fields). Since the
-  scratchpad script the SPEC referenced (session-scoped, from an earlier session) was gone, exactly
-  as its own Edge Case 5 anticipated, Redwood rebuilt it fresh from the pinned query. **Baseline
-  run: exit 0, all 16 cells (8 years × deaths/injuries) matched the pinned table with zero drift.**
-  **Detector proof passed**: mutating one `PINNED_GAPS` cell produced exit 1 naming the exact
-  series/year/delta; reverting restored exit 0. `ruff check` clean; citations hook clean before and
-  after (though it doesn't scan the three non-ADR edited files — the orchestrator independently
-  verified all `[ADR 0002]` links in those three resolve, since the hook's normative-doc target
-  list is narrower than this task's file list); residual-mention grep shows exactly one hit, inside
-  the corrected mitigation cell itself, explicitly naming the remedy as rejected.
-  **Next: Cypress audit** (re-runs acceptance clauses 2, 3, 5, 6 per the SPEC's own instruction),
-  then close out and archive this SPEC the same way Tasks 1 and 2 were closed.
+- **Subgroup-sum-fallback correction CLOSED (2026-08-06).** The falsified mitigation (subgroup
+  fields don't reconcile to the authoritative total from 2021 onward — GreenInfo-Network/
+  nyc-crash-mapper issue #111) is corrected at all four sites; `.claude/scripts/subtotal-gap.py`
+  is a permanent, self-checking re-verification script (`PINNED_GAPS`, exits 1 on drift); ADR 0002
+  records the finding. Detector proof independently confirmed twice (Redwood + Cypress, different
+  cells). Cypress PASS. Full narrative, including why the mid-flight revision request mattered and
+  why the detector was re-proven independently rather than trusted, is in `ARCHIVED_SESSIONS.md`;
+  the closed SPEC itself is in `ARCHIVED_SPECS.md`. Commits: `da35ab6` (execution) → `a0f2c27`
+  (ledger) → archival. `SPEC.md` is now reset — no task pre-declared.
 - **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
   `v22.23.2` and `which node` resolves under the fnm v22 tree. Fix was `env.PATH` in
   **`.claude/settings.local.json`**, gitignored (machine-specific, absolute path under
@@ -110,9 +72,14 @@ next**, per the SPEC's own deviated ordering (Redwood-first, Cypress-after).
 
 ## History
 
-*(Empty — everything closed so far is archived; nothing has closed since Task 2.)*
+*(Empty — everything closed so far is archived; nothing has closed since the subgroup-sum fix.)*
 
-All entries are in `ARCHIVED_SESSIONS.md`: **Task 2 of the walking skeleton, 2026-08-06** — why
+All entries are in `ARCHIVED_SESSIONS.md`: **The falsified subgroup-sum fallback corrected,
+2026-08-06** — why the mid-flight revision request (reporter → checker) was worth blocking
+dispatch over, why the detector proof was independently re-run by a second agent on a different
+cell rather than trusted from the first run, why two agents hand-verified links a hook was known
+not to cover, and why the script was rebuilt fresh rather than chasing a gone scratchpad path.
+**Task 2 of the walking skeleton, 2026-08-06** — why
 colour lives entirely in the CSS module targeting Recharts' own class names rather than
 `currentColor` props (a dot needs two colours at once, `currentColor` only carries one), why the
 zero-based y-axis was the single most important test in the file rather than a style choice, the

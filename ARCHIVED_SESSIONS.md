@@ -8,6 +8,50 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — The falsified subgroup-sum fallback corrected across all four sites
+
+A prior-art finding (2026-08-05: GreenInfo-Network/nyc-crash-mapper's own issue #111) showed the
+research docs' proposed mitigation for the `number_of_persons_killed` dropout — summing the
+pedestrian/cyclist/motorist subgroup fields as a fallback total — silently undercounts from 2021
+onward (0 gap 2018–2020, then 12/20/19/9/6 deaths and ~1.4k–2.4k injuries a year short), because
+NYPD stopped always assigning a role to a recorded casualty. Cedar specced the correction; a
+human-approved revision request then closed one gap in that SPEC (below) before Redwood executed
+and Cypress audited, both PASS. Commits `da35ab6` (execution) → `a0f2c27` (ledger) → archival.
+
+- *Why the revision request mattered enough to block dispatch over.* Cedar's first pass specced
+  `.claude/scripts/subtotal-gap.py` as a reporter (prints a table, exits 0 always) even though it
+  named `verify-figures.py` — a checker, pins expected values, exits 1 on drift — as the pattern to
+  copy. The mismatch wasn't cosmetic: this SPEC's own Tipping Point says "revisit when the gap
+  closes, or extends backward before 2021," and a reporter gives that clause no mechanical trigger
+  — someone has to run the script, open the ADR, and eyeball-compare eight number pairs. That's a
+  human performing a diff, which is the exact class of problem the Bounded-AI principle (compute
+  deterministically, don't ask a human — or a model — to eyeball a comparison) exists to eliminate
+  one level up. The orchestrator held the SPEC back rather than dispatching it as written, sent a
+  scoped revision request to a cold-respawned Cedar (explicitly endorsing two other reviewed
+  judgment calls unchanged, so Cedar wouldn't re-litigate them), and only dispatched once a human
+  had signed off on the revised version — the same HITL checkpoint Rule 1 requires for an original
+  SPEC, applied to a revision of one.
+- *Why the detector proof was run twice, by two different agents, on two different cells.* A
+  green run of a checker proves nothing about whether the checker actually checks — only a run
+  that's supposed to fail and does prove that. Redwood ran it once (mutating the 2022 deaths cell)
+  during implementation; Cypress, auditing after, deliberately re-ran it on a different cell (2023
+  injuries) rather than accepting Redwood's proof as sufficient. Independent reproduction on a
+  different input is what makes this evidence rather than a repeated assertion.
+- *Why two agents independently verified links a hook was known not to cover.* `check-citations.sh`'s
+  normative-doc scan (`CLAUDE.md`, `GEMINI.md`, ledgers, `.claude/agents/*.md`, `docs/adr/*.md`)
+  doesn't include the two research docs or `SKILL.md` — so the new `[ADR 0002]` links added *into*
+  those three files were invisible to the mechanical gate, even though the ADR file itself (matching
+  `docs/adr/*.md`) was covered. Both the orchestrator and Cypress resolved the links by hand against
+  the filesystem rather than trusting the hook's green exit to mean more than it does. Worth
+  remembering: a hook's "all clear" is scoped to what it scans, not to the task's actual footprint.
+- *Why the script was rebuilt from the pinned query rather than chased down.* The SPEC's Output 1
+  pointed at a session-scoped scratchpad path from an entirely different, earlier session — gone by
+  construction, and the SPEC's own Edge Case 5 said so explicitly: rebuild from the pinned query,
+  never reconstruct expected values from memory. Redwood didn't spend time searching for a file that
+  couldn't exist; it built fresh from the SPEC's own pinned tables, which is the actual contract.
+
+---
+
 ## 2026-08-06 — Task 2 of the walking skeleton shipped: the deaths-per-year line chart
 
 Mounted a Recharts line chart over Task 1's accessible table — `src/components/DeathsChart.tsx`
