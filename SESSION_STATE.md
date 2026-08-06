@@ -1,8 +1,8 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Task 2 of the walking skeleton — mount a Recharts chart over the deaths-
-per-year table Task 1 already built and audited. Cedar's `[SPEC]` is dispatched and human-approved;
-Phase C (Magnolia implements) is done, uncommitted; **Phase D (Cypress audits) is next.**
+**Current objective:** Walking skeleton is now feature-complete (Tasks 1 and 2, both CLOSED). The
+subgroup-sum-fallback correction is queued in `SPEC.md` but **not dispatchable as written** — a
+revision request is owed to Cedar first. **That is the next session's first action.**
 
 ## Active
 
@@ -19,71 +19,10 @@ Phase C (Magnolia implements) is done, uncommitted; **Phase D (Cypress audits) i
 
   Both belong to the next SPEC that touches that file. Cypress may not edit it; Redwood or Banyan
   must. Neither blocks the skeleton.
-- **Docs task CLOSED (2026-08-05).** Both batched items landed:
-  1. `docs/project-mvcc-data.md` § Handoff amended in place — the three superseded kickoff clauses
-     (subdirectory + its own `AGENTS.md`, move the PRD, record §5.6 there) replaced with a dated
-     note explaining why each was retired, rather than silently deleted. `f77ae1c`.
-  2. README § Stack gained one line naming the Node floor (`>=22.22.2`, pinned in `.nvmrc` and
-     `engines.node`) and that a fresh clone needs `fnm`/`nvm` to pick it up. `c9e28b9`.
-
-  Committed and pushed. **The fresh-clone gap is now down to two undocumented out-of-band steps**
-  (the `settings.local.json` env block and `.git/hooks/commit-msg`) — the third, fnm + Node 22, is
-  now named in-repo even though the wiring that reads `.nvmrc` still lives outside it.
-- **Walking-skeleton Task 1 CLOSED (2026-08-06).** First application code in the repo:
-  `src/lib/deaths.ts`, `src/app/api/deaths/route.ts`, `src/app/page.tsx` — the deaths-per-year
-  metric, live from Socrata, rendered as an accessible table (FR-1/8/10/11, NFR-1–4). Cypress audit
-  PASS, standard ordering (tests first, then implementation, then audit — the first SPEC here to
-  use standard order rather than the SPIKE override the two prior SPECs used). Live figures
-  independently re-verified against PRD Appendix A with **zero drift across all 8 years**, including
-  the fragile 2025 endpoint. Full phase-by-phase narrative and the two bugs found mid-flight
-  (a TDZ bug in Cypress's own test, and `next dev`/`build` auto-dirtying `CLAUDE.md`) are in
-  `## History` below and in the archived SPEC. Commits: `4e63717` (SPEC) → `503c239` (tests) →
-  `9ca19e4`+`7fc0050` (implementation + test fix) → this ledger update. All pushed.
-- **Task 2 (the Recharts chart) is in flight.** Cedar's fresh-pass `[SPEC]` dispatched and
-  human-approved via plan mode (`bc3d43e`) — supersedes the pre-Task-1 sketch in three places: 5
-  files not ~3, the `<figure>`/caption live inside the chart component not `page.tsx`, and
-  deliberately **no** table-view toggle (Task 1's permanent table already discharges NFR-3).
-  **Phase B done (Cypress, tests first):** new `src/components/DeathsChart.test.tsx` (pinned SVG
-  geometry — zero-based y-axis tick is called out in the SPEC and the tests as "the single most
-  important test in this file"; solid non-dashed stroke; category not numeric x-axis; source-level
-  greps standing in for the hook's uncovered constraints), `page.test.tsx` extended with a
-  `DeathsChart` mock to assert the mount position/props without re-testing the chart's own
-  rendering, and a `ResizeObserver`+dimension stub added to `vitest.setup.ts` (jsdom has no layout
-  engine, so `<ResponsiveContainer>` renders nothing without it — verified against a temporarily
-  installed `recharts@3.10.1`, never committed, including a text-measurement-span fix that fixed-size
-  stubbing broke by making every axis tick appear the same width). Confirmed red for the right
-  reason: `DeathsChart.test.tsx` fails to resolve `./DeathsChart` (doesn't exist yet); `page.test.tsx`
-  has exactly one new failing assertion (the mount test) with all 42 other tests, including every
-  Task 1 test, still green.
-- **Phase C done (2026-08-06), uncommitted.** Magnolia implemented the five-file budget exactly:
-  `package.json`/`package-lock.json` (added `recharts@3.10.1`, `npm audit` clean), new
-  `src/components/DeathsChart.tsx` and `DeathsChart.module.css`, and a minimal `page.tsx` edit (one
-  import, one `<DeathsChart rows={result.rows} />` in the `ok` branch, above the table). No prop-name
-  substitutions were needed against the installed `recharts@3.10.1`. Colour is carried entirely by
-  the CSS module targeting Recharts' stable class names (`:global(.recharts-line-curve)` etc.) rather
-  than `currentColor` props — chosen because a single dot needs two different colours (fill vs. ring)
-  and CSS rules outrank Recharts' own default presentation attributes regardless of specificity.
-  Palette validator: both light (`#2a78d6`/`#ffffff`) and dark (`#3987e5`/`#0a0a0a`) checks PASS;
-  `--chart-ink` contrast independently computed at 7.94:1 (light) / 11.05:1 (dark), clearing AA's
-  4.5:1 floor. Build: First Load JS for `/` is **769,350 bytes uncompressed** (sourced from
-  `.next/diagnostics/route-bundle-stats.json` — Next 16 Turbopack no longer prints the old stdout
-  table), recorded for the deploy SPEC's NFR-1 budget, not reacted to. `node -v` throughout:
-  `v22.23.2`. `typecheck`/`lint`/`build` all exit 0; independently re-confirmed by the orchestrator
-  after Magnolia's report (`tsc --noEmit` clean under the same Node version).
-  **One finding for Cypress's audit, not a Magnolia defect:** `npm run test` is 63/64 — the failure
-  is a pre-existing bug in Cypress's own `DeathsChart.test.tsx` ("Constraint 1: no process.env
-  anywhere under src/components" test, and SPEC.md's acceptance-clause-9 grep as literally written)
-  — that one check scans `src/components` for the literal substrings `process.env`/`@/` without
-  excluding test files, unlike three sibling checks in the same file that correctly do
-  (`!isTestFile(f)`). It trips on the test file's own description strings about itself, not on the
-  real component. Magnolia independently confirmed the actual constraint holds by scoping the grep
-  to `DeathsChart.tsx`/`page.tsx` directly: zero hits on both `process.env` and `@/`. Cypress may
-  edit its own test file to add the same exclusion Constraint 3/4's checks already use; Magnolia
-  could not, being out of its write scope.
-- **Next: Phase D — Cypress audits.** Should confirm the 63/64 result and either fix the
-  test's missing `!isTestFile(f)` filter (matching its siblings) or explain why not, then emit the
-  `[COMPLIANCE-REPORT]`. Nothing is committed yet — `git status` shows the 5 files modified/untracked
-  from Phase C, pending Cypress's PASS before Redwood/Magnolia's work is merge-ready.
+- **Walking-skeleton Tasks 1 and 2 both CLOSED — the skeleton is feature-complete.** Full
+  phase-by-phase narrative for both (Task 1: `4e63717`→`503c239`→`9ca19e4`+`7fc0050`; Task 2:
+  `bc3d43e`→`503c239`→`1e67154`→`735bcfd`) is in `ARCHIVED_SESSIONS.md`; the completed SPECs
+  themselves are in `ARCHIVED_SPECS.md`. Docs task (`f77ae1c`, `c9e28b9`) also closed and archived.
 - **Prior-art finding (2026-08-05) — the subgroup-sum fallback is falsified; it must not be
   specced.** `docs/nyc-collision-analytics-deep-research.md:156` proposes, as the mitigation for
   the `number_of_persons_killed` dropout, "a synthetic fallback total (sum of the subgroup
@@ -99,26 +38,25 @@ Phase C (Magnolia implements) is done, uncommitted; **Phase D (Cypress audits) i
   into the fatality line. Their fix is the pattern worth copying: authoritative total field for the
   grand total, plus an explicit "Other/Unknown" category carrying `total − sum(categories)`.
   The same live query re-confirmed all 8 pinned deaths figures with zero drift.
-  **Cedar has SPEC'd the correction; it is queued in [`SPEC-QUEUED.md`](SPEC-QUEUED.md), and it is
-  NOT dispatchable as written** — see § Pending revision request at the top of that file. **Next
-  session's first action on this thread: send that revision request to Cedar** (respawns cold — it
-  needs the SPEC block *and* the revision section, since it will not remember authoring either).
+  **Cedar's SPEC now lives in `SPEC.md` itself (moved there verbatim on Task 2's close, per the
+  protocol that used to sit in the now-deleted `SPEC-QUEUED.md`), and it is still NOT dispatchable
+  as written** — see § Pending revision request at the top of `SPEC.md`. **Next session's first
+  action: send that revision request to Cedar** (respawns cold — it needs the SPEC block *and* the
+  revision section, since it will not remember authoring either).
   Two of three reviewed judgment calls were endorsed unchanged and must not be reopened; the one
   change asks Cedar to make `subtotal-gap.py` a checker with pinned expected gaps and exit 1 on
   drift, rather than a reporter, because the SPEC's own Tipping Point currently has no detector.
-  `SPEC.md` is occupied by Task 2, so the contract lives separately until Task 2 archives, then
-  moves into `SPEC.md` verbatim and `SPEC-QUEUED.md` is deleted. Cedar's
-  pass changed the blast radius in both directions: the falsified mitigation is live in **four**
-  places, not one — the research doc's table row (156), its strategic-recommendations bullet
-  (168–171), its trust note (40–48), and `nyc-collision-reporting-drift.md`'s Fix column (257),
-  which is the most dangerous because a reader of that table sees no hedging at all. Conversely
-  **the PRD is out of scope entirely** (FR-11 line 207 and the risk register line 262 already
-  specify fail-loud and never mention a fallback) and **`src/lib/deaths.ts` is correct twice
-  over** — `parseRow` rejects any non-numeric value, and `SELECT_CLAUSE` never selects the
+  Cedar's pass changed the blast radius in both directions: the falsified mitigation is live in
+  **four** places, not one — the research doc's table row (156), its strategic-recommendations
+  bullet (168–171), its trust note (40–48), and `nyc-collision-reporting-drift.md`'s Fix column
+  (257), which is the most dangerous because a reader of that table sees no hedging at all.
+  Conversely **the PRD is out of scope entirely** (FR-11 line 207 and the risk register line 262
+  already specify fail-loud and never mention a fallback) and **`src/lib/deaths.ts` is correct
+  twice over** — `parseRow` rejects any non-numeric value, and `SELECT_CLAUSE` never selects the
   subgroup fields, so the fallback is unreachable rather than merely unused. No source change is
   owed. Five files (two prose corrections, a `mvcc-data/SKILL.md` clause, ADR 0002, and
   `.claude/scripts/subtotal-gap.py`); per-file rationale, constraints, and acceptance commands are
-  in `SPEC-QUEUED.md` and are not restated here. One thing worth carrying: crashmapper's
+  in `SPEC.md` and are not restated here. One thing worth carrying: crashmapper's
   "Other/Unknown" residual pattern is recorded in the ADR but deliberately **not** adopted — it is
   a residual over *people within a record*, our PDO tier is a residual over *collision records*,
   and conflating them would be an error. Applying it needs its own SPEC.
@@ -162,14 +100,20 @@ Phase C (Magnolia implements) is done, uncommitted; **Phase D (Cypress audits) i
 
 ## History
 
-*(Empty — everything closed so far is archived; nothing has closed since Task 1.)*
+*(Empty — everything closed so far is archived; nothing has closed since Task 2.)*
 
-All entries are in `ARCHIVED_SESSIONS.md`: **Task 1 of the walking skeleton, 2026-08-06** — why the
-skeleton split in two at the agent boundary rather than spend a second file-cap exemption, why the
-page imports the fetch function instead of self-fetching its own Route Handler, the pinned-figure
-hook's deliberate three-digit blind spot, the `vi.hoisted` TDZ bug Redwood diagnosed but refused to
-fix because test files are Cypress's, and the `next dev` CLAUDE.md-dirtying side effect that is a
-standing clause rather than a bug. Before that (the 2026-08-05 audit of both kickoff SPECs — the
+All entries are in `ARCHIVED_SESSIONS.md`: **Task 2 of the walking skeleton, 2026-08-06** — why
+colour lives entirely in the CSS module targeting Recharts' own class names rather than
+`currentColor` props (a dot needs two colours at once, `currentColor` only carries one), why the
+zero-based y-axis was the single most important test in the file rather than a style choice, the
+`process.env`-grep test-authoring bug found by Magnolia and fixed by Cypress (same ownership
+boundary as Task 1's TDZ bug), and why the First Load JS figure was recorded with no threshold to
+react to. **Task 1 of the walking skeleton, 2026-08-06** — why the skeleton split in two at the
+agent boundary rather than spend a second file-cap exemption, why the page imports the fetch
+function instead of self-fetching its own Route Handler, the pinned-figure hook's deliberate
+three-digit blind spot, the `vi.hoisted` TDZ bug Redwood diagnosed but refused to fix because test
+files are Cypress's, and the `next dev` CLAUDE.md-dirtying side effect that is a standing clause
+rather than a bug. Before that (the 2026-08-05 audit of both kickoff SPECs — the
 scaffold's file bound proven by byte-comparison, the fake-green hook defect it found; the two-SPEC
 toolchain build-out — the bounded generator-output exemption, the Node 20 halt and the per-project
 platform raise, and `engine-strict`'s rejection on efficacy; README diagram rebuild and the

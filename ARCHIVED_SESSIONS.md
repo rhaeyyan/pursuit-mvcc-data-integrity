@@ -8,6 +8,48 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — Task 2 of the walking skeleton shipped: the deaths-per-year line chart
+
+Mounted a Recharts line chart over Task 1's accessible table — `src/components/DeathsChart.tsx`
+(`'use client'`) and `DeathsChart.module.css`, plus a two-line `page.tsx` edit. Standard order
+(Cypress tests first, then Magnolia implements, then Cypress audits). PASS: 64/64 tests, zero
+axe-core violations, all pinned-figure and client-boundary greps clean. Commits `bc3d43e` (SPEC) →
+`503c239` (Phase B tests) → `1e67154` (Phase C implementation) → `735bcfd` (Phase D test fix).
+
+- *Why colour lives entirely in the CSS module, targeting Recharts' own stable class names, rather
+  than `currentColor` props on the marks.* A single line-chart dot needs two different colours at
+  once — its fill (the series colour) and its 2px ring (the surface colour, so it reads as a hole
+  punched through the line rather than a solid disc). `currentColor` only carries one value per
+  element, so it can't express both; CSS rules targeting `.recharts-line-dot` etc. can, and they
+  outrank Recharts' own default presentation attributes in the cascade regardless of specificity.
+  This also kept the "no colour literal in the .tsx" constraint (Constraint 4) trivially true rather
+  than requiring a `currentColor` workaround per mark.
+- *Why the zero-based y-axis was treated as the single most important test in the file, not a style
+  preference.* The deaths series runs roughly 229–297 across eight years — auto-fitted, that reads
+  as a dramatic mountain range; zero-based, it reads as what it is, essentially flat. The product's
+  whole thesis is that deaths barely moved while recorded collisions fell 63%, so a truncated axis
+  would have the flagship chart visually contradict the page's own prose, and would do it through a
+  rendering default nobody consciously chose. This is NFR-5 (honesty of presentation) expressed as
+  geometry, which is why Cedar's SPEC forbade changing it "to make the chart more readable" and why
+  Cypress's zero-tick assertion is called out by name as the load-bearing test.
+- *A pre-existing test-authoring bug, found and owned the same way Task 1's TDZ bug was.* Cypress's
+  own "no `process.env` under `src/components`" grep-test scanned its own test file's source
+  (including the literal string in its own assertion code and comments) rather than excluding test
+  files the way its three sibling checks in the same block already did — a false positive against
+  the file testing itself, not a real client-boundary leak. Magnolia, implementing the component,
+  found the discrepancy but correctly declined to touch Cypress's test file; it independently
+  verified the real constraint held by scoping the grep to the actual component. The orchestrator
+  then dispatched Cypress for its Phase D audit, which diagnosed and fixed the one-line filter
+  itself — same ownership boundary Task 1 established (Redwood diagnoses, Cypress's file is
+  Cypress's to fix), same pattern, different task.
+- *Why the First Load JS figure was recorded without a threshold.* Next 16's Turbopack build no
+  longer prints the old stdout "First Load JS" table; Magnolia sourced 769,350 bytes uncompressed
+  from `.next/diagnostics/route-bundle-stats.json` instead. No budget exists yet to compare it
+  against — that's explicitly the deploy SPEC's job (NFR-1) — so this task recorded the number and
+  did not react to it, per Constraint 12's instruction not to add speculative optimization.
+
+---
+
 ## 2026-08-06 — Task 1 of the walking skeleton shipped: deaths per year, live from Socrata
 
 First application code in the repo — `src/lib/deaths.ts`, `src/app/api/deaths/route.ts`,
