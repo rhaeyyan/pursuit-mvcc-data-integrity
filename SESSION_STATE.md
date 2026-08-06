@@ -1,8 +1,8 @@
 # Sprint Ledger — MVCC Data
 
 **Current objective:** FR-2 (injuries per year) + the `src/lib/socrata.ts` extraction Task 1's own
-Tipping Point pre-committed to. Cedar's `[SPEC]` is human-approved (2026-08-06) and persisted to
-`SPEC.md`, ready to dispatch to Cypress (standard ordering, tests first).
+Tipping Point pre-committed to. Cypress's tests-first pass is done (uncommitted); **Redwood
+implements next.**
 
 ## Active
 
@@ -20,7 +20,18 @@ Tipping Point pre-committed to. Cedar's `[SPEC]` is human-approved (2026-08-06) 
   `page.tsx`, fetched in `Promise.all` not sequentially (NFR-1). Explicitly does **not** touch
   `DeathsChart.tsx` — injuries joining the chart is a deferred, separate Magnolia task, and is what
   will trip Task 2's chart Tipping Point. 5 files, standard ordering (Cypress tests-first).
-  **Next: dispatch Cypress.**
+  **Phase B done (2026-08-06), uncommitted.** New `src/lib/injuries.test.ts` (24 tests, mirroring
+  `deaths.test.ts`) and `src/app/api/injuries/route.test.ts` (6 tests, the status/body mapping
+  table); `page.test.tsx` extended with the two-metric-independence scenario (both directions),
+  injuries ok/error/empty, disclosure disambiguation, axe-core, and the verbatim intro-sentence
+  check. Confirmed red for the right reason: the two new test files fail on unresolved imports
+  (`./injuries`, `./route` — neither exists yet); `page.test.tsx` has exactly 8 new failing
+  assertions with all 64 prior tests, including every Task 1/2 assertion, still green. `git diff
+  --stat` on `deaths.test.ts`/`route.test.ts` (deaths) shows zero changes, satisfying acceptance
+  clause 5. Cypress caught and fixed two of its own tests that passed spuriously before
+  implementation existed. Deliberately did not write a stubbed pinned-figures diff test (would be
+  circular); that comparison happens against Redwood's live response during the audit instead.
+  **Next: Redwood implements.**
 - **Two hook defects the 2026-08-05 audit surfaced**, both in `.claude/hooks/stop-quality-gate.sh`
   and both
   **pre-existing** (they predate `4f396e1`), so neither is a regression from the platform SPEC:
