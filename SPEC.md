@@ -1,56 +1,35 @@
 # Active SPEC
 
-**Status:** not dispatchable as written — one revision request is owed to Cedar first (below)
-**Author:** Cedar (Tech Lead) · **Created:** 2026-08-05 · **Moved into `SPEC.md` verbatim:** 2026-08-06 (Task 2 closed, per `SPEC-QUEUED.md`'s protocol)
+**Status:** approved — ready to dispatch to Redwood
+**Author:** Cedar (Tech Lead) · **Created:** 2026-08-05 · **Revised:** 2026-08-06 (see below) ·
+**Moved into `SPEC.md` verbatim:** 2026-08-06 (Task 2 closed, per the now-deleted `SPEC-QUEUED.md`'s
+protocol)
 **Then:** Redwood (execution) → Cypress (audit)
 **Ordering:** deviates from Cypress-first by design; rationale is in the SPEC's § Ordering
 
-## Pending revision request — send to Cedar before this is dispatched
+## Revision history
 
-Raised by the orchestrator on 2026-08-05, human-approved. **Send to Cedar as a revision request,
-not a rewrite** — the SPEC is Cedar's contract, and Rule 9's halt-and-request discipline applies to
-the orchestrator too. Cedar's original invocation is gone with the session, so this respawns cold:
-give it the SPEC block below plus this section, since it will not remember authoring either.
-
-Two of the three flagged judgment calls were reviewed and **endorsed unchanged** — do not reopen
-them, and say so explicitly so Cedar does not re-litigate:
-
-1. **The `mvcc-data/SKILL.md` edit stands as specified.** The six subgroup fields are flagged
-   inline at the field list as *breakdown fields that do not reconcile*, not appended as peers of
-   `crash_date`/`borough`. That placement is the point: a bare field list reads as "safe to use,"
-   and shipping six new ones with the caveat three sections away in trap 1 would rebuild the exact
-   fields-here/warning-there split that caused the bug.
-2. **The Redwood-first ordering stands.** Precedent, not just argument: `.claude/scripts/` holds no
-   test files, and `verify-figures.py` — 212 lines, live-network, exit-code-bearing — shipped
-   without any. A pre-written red test over prose corrections would invent a convention this repo
-   has already declined twice.
-
-**The one change requested — `.claude/scripts/subtotal-gap.py` is specced as a reporter, but the
-house pattern it cites is a checker.** The SPEC names `verify-figures.py` as the style to copy,
-then diverges from it structurally:
-
-| | `verify-figures.py` (existing) | `subtotal-gap.py` (as specced) |
-|---|---|---|
-| Expected values | `PINNED` dict, in the file (line 36) | live only in the SPEC and ADR 0002 |
-| On drift | exits 1, names the drifted figure | prints a table, exits 0 |
-| Exit codes | 0 match / 1 drift / 2 fetch failed | 0 / non-zero only on an absent key |
-
-The cost lands on the SPEC's own **Tipping Point**, "the gap closes, or extends backward before
-2021," which as written has no detector: someone must run the script, open ADR 0002, and compare
-eight pairs of numbers by eye. That is a human performing a diff — the same failure the script
-exists to eliminate one level up, and the same NFR-4 argument Cedar used to justify the file in the
-first place, applied one step further.
-
-**Requested:** the script pins `PINNED_GAPS` for both series and exits 1 on any moved cell,
-mirroring `verify-figures.py`'s exit codes exactly (0 match / 1 drift / 2 fetch failure). ADR 0002
-then cites the script as the *detector* rather than as the *record*.
-
-- This is **not** a hardcoded displayed figure. These are reference values in a verification
-  script — the identical role `PINNED` plays today — and nothing renders them. NFR-4 is not in
-  play; `guard-data-integrity.sh` does not scan `.py` in any case (see the SPEC's Edge Case 6).
-- It does **not** widen the file budget. Same file, written to the pattern already chosen.
-- **One acceptance command should be added** with it: force a mismatch (edit one pinned cell, run,
-  confirm exit 1, revert). A passing green run never proves a detector detects.
+**2026-08-06 — revision applied, RESOLVED.** A human-approved review on 2026-08-05 flagged one
+substantive gap: `.claude/scripts/subtotal-gap.py` was specced as a *reporter* (prints a table,
+exits 0) even though the SPEC names `verify-figures.py` — a *checker* (pins `PINNED` values in the
+file, exits 1 on drift) — as the style to copy. The cost landed on this SPEC's own Tipping Point,
+"the gap closes, or extends backward before 2021," which as a reporter had no mechanical detector —
+a human would have to run the script, open ADR 0002, and eyeball-compare eight number pairs, the
+same failure the script exists to eliminate one level up. Cedar (respawned cold, since its
+authoring invocation was gone) revised **Output 1** and the **Acceptance** section below: the
+script now pins `PINNED_GAPS` for both series and exits 1 on any moved cell, mirroring
+`verify-figures.py`'s exit codes exactly (0 match / 1 drift / 2 fetch failure), and acceptance
+clause 3 forces a mismatch, confirms exit 1, and reverts — a green run alone never proves a
+detector detects. Two other flagged judgment calls were reviewed and **endorsed unchanged**: the
+`mvcc-data/SKILL.md` edit's placement (the six subgroup fields flagged inline at the field list as
+*breakdown fields that do not reconcile*, not appended as unflagged peers — a bare field list reads
+as "safe to use," and separating the fields from the caveat would rebuild the exact
+fields-here/warning-there split that caused the bug), and the Redwood-first ordering (precedent:
+`.claude/scripts/` holds no test files, and `verify-figures.py` — 212 lines, live-network,
+exit-code-bearing — shipped without any; a pre-written red test over prose corrections would invent
+a convention this repo has already declined twice). Neither the file budget (still 5) nor NFR-4
+(these are reference values in a verification script, the same role `PINNED` already plays, and
+nothing renders them) were implicated by the revision.
 
 ---
 
@@ -82,14 +61,26 @@ then cites the script as the *detector* rather than as the *record*.
 
   - *Output 1 — `.claude/scripts/subtotal-gap.py`* (**new**; port of the session script at
     `/tmp/claude-1000/-home-rayan-Documents-data-projects-pursuit-mvcc-data-integrity/8f8bde0b-ca03-43cb-a172-aaeaedcc4e73/scratchpad/subtotal_gap.py`).
-    Must match `verify-figures.py`'s house style exactly: **stdlib only** (`json`, `os`, `sys`,
-    `urllib.request`/`error`/`parse`), `from __future__ import annotations`, token read from
+    A **checker**, not a reporter — matches `verify-figures.py`'s house style and structure
+    exactly, not merely its import list: **stdlib only** (`json`, `os`, `sys`,
+    `urllib.request`/`error`/`parse`), `from __future__ import annotations`, a module-level
+    `PINNED_GAPS: dict[str, dict[int, int]]` literal holding both tables from the § Query section
+    below (`deaths` and `injuries`, 2018–2025 — the exact numbers already pinned there,
+    transcribed once and never re-derived), token read from
     `os.environ.get("SOCRATA_APP_TOKEN")` with an anonymous-but-rate-limited fallback and a
     `note:` line on stderr, `def main() -> int`. **No new pip dependency is authorized and none is
-    needed** — do not introduce `requests`. Prints the per-year table of
-    `authoritative_total − subgroup_sum` for both deaths and injuries, and exits non-zero if any
-    queried key is absent (the script must itself obey trap 1 rather than printing a gap of 0 for
-    a missing field — a silent 0 here would be the same failure one level up).
+    needed** — do not introduce `requests`. For each series and year the script computes the live
+    gap (`authoritative_total − subgroup_sum`) from one query, then diffs it against
+    `PINNED_GAPS[series][year]` and prints a per-year, per-series status table (`ok` / `DRIFT` /
+    `ABSENT`) — the same shape `verify-figures.py` prints, not a bare unlabeled table. **Exit
+    codes mirror `verify-figures.py` exactly**: `0` — every cell matches; `1` — at least one cell
+    drifted (the script names the series, the year, and the signed delta, e.g.
+    `deaths 2022: pinned 20, live 23 (+3)`) or any queried key is absent from the response for a
+    year that should have one (the script must itself obey trap 1 rather than printing a gap of 0
+    for a missing field — a silent 0 here would be the same failure one level up, which is also
+    why ABSENT is folded into the same non-zero exit as DRIFT rather than treated as a pass);
+    `2` — the fetch itself failed (network/HTTP/timeout), raised before any comparison is
+    attempted, exactly as `verify-figures.py`'s `fetch()` does with `SystemExit(2)`.
 
   - *Output 2 — the four prose corrections.* Content requirements are pinned below; wording is the
     executing agent's, except the two table cells given verbatim.
@@ -353,29 +344,35 @@ then cites the script as the *detector* rather than as the *record*.
   the task" governs. Redwood emits a `[COMPLETION-REPORT]`; Cypress then emits a
   `[COMPLIANCE-REPORT]` against the acceptance clauses below.
 
-- **Acceptance, by command** (Redwood runs each and records output; Cypress re-runs 2, 4, and 5):
+- **Acceptance, by command** (Redwood runs each and records output; Cypress re-runs 2, 3, 5, and 6):
 
   1. `./.claude/hooks/check-citations.sh` **before** any edit — baseline recorded (Step 0).
-  2. `python3 .claude/scripts/subtotal-gap.py` — full stdout recorded; every cell matches the
-     expected table above, or the run is a halt-and-report.
-  3. `ruff check .claude/scripts/subtotal-gap.py` exits 0 (or the `post-edit-lint.sh` equivalent
+  2. `python3 .claude/scripts/subtotal-gap.py` on the unedited script — exit code `0` recorded,
+     full stdout recorded, every row's status `ok`, matching the expected table above. Any other
+     exit code here is a **finding** under Edge Case 1: halt and report, write nothing to the docs.
+  3. **Detector proof — mandatory, not optional.** Temporarily edit exactly one cell of
+     `PINNED_GAPS` in the script (e.g. add `1` to the 2022 deaths entry), re-run, and confirm (a)
+     the exit code is `1` and (b) stdout names the mutated series, year, and signed delta. Then
+     **revert the edit** and re-run once more, confirming exit `0` is restored before proceeding.
+     A green run alone never proves a detector detects — this step is what proves it.
+  4. `ruff check .claude/scripts/subtotal-gap.py` exits 0 (or the `post-edit-lint.sh` equivalent
      already applied cleanly).
-  4. `./.claude/hooks/check-citations.sh` **after** — no failure that is not in the Step 0
+  5. `./.claude/hooks/check-citations.sh` **after** — no failure that is not in the Step 0
      baseline. Confirms both new ADR links resolve.
-  5. **The residual-mention grep**, expected to return only intentional, corrected text:
+  6. **The residual-mention grep**, expected to return only intentional, corrected text:
      `git grep -nEi 'synthetic (fallback|total)' -- docs .claude` → every remaining hit is either
      inside ADR 0002 or is a correction explicitly naming the remedy as falsified. **Zero hits that
      still recommend it.**
-  6. `git grep -n 'number_of_pedestrians_killed' -- src` → **zero hits** (proves the correction did
+  7. `git grep -n 'number_of_pedestrians_killed' -- src` → **zero hits** (proves the correction did
      not leak the subgroup fields into product code).
-  7. Confirm `git status` shows exactly the five files, and that none of Constraint 5's Task 2
+  8. Confirm `git status` shows exactly the five files, and that none of Constraint 5's Task 2
      paths appear.
 
 - **Background/reference resources (Constraint of Three)**:
   1. `docs/adr/0001-preserve-reasoning-when-condensing.md` — the structural template for 0002, and
      the standing argument for why the *why* is the payload.
   2. `.claude/scripts/verify-figures.py` — the house style the new script copies: stdlib-only
-     imports, token-optional fetch, `main() -> int`.
+     imports, token-optional fetch, `main() -> int`, `PINNED`-dict-plus-exit-code shape.
   3. `src/lib/deaths.ts` — **read-only**, to confirm rather than assume that fail-loud is already
      implemented correctly (`parseRow`, `RawRowSchema`, and a `SELECT_CLAUSE` that never fetches
      the subgroup fields). Cited so the "no source change owed" claim is verifiable, not asserted.
@@ -389,8 +386,9 @@ then cites the script as the *detector* rather than as the *record*.
    surviving in three other files has been relocated, not corrected.
 2. **Inoculating the file that gets read > inoculating the file that is right** — the skill is the
    mandatory pre-query load; the research docs are deliberately not routinely read.
-3. **A re-runnable script > a re-derivable number** — the finding is a difference, and a model
-   performing that subtraction to refresh a normative doc is the NFR-4 failure itself.
+3. **A re-runnable, self-checking script > a re-derivable number** — the finding is a difference,
+   and a model performing that subtraction to refresh a normative doc, or a human eyeballing eight
+   cells against stdout, is the same NFR-4 failure one level up.
 4. **Preserving why the remedy is wrong > recording that it is wrong** — "rejected" without its
    reasoning is the exact archive failure ADR 0001 was written about.
 5. **Three claims kept distinct > one tidy status line** — symptom confirmed, cause unconfirmed,

@@ -1,8 +1,10 @@
 # Sprint Ledger — MVCC Data
 
 **Current objective:** Walking skeleton is now feature-complete (Tasks 1 and 2, both CLOSED). The
-subgroup-sum-fallback correction is queued in `SPEC.md` but **not dispatchable as written** — a
-revision request is owed to Cedar first. **That is the next session's first action.**
+subgroup-sum-fallback correction in `SPEC.md` has been revised by Cedar and is **approved, ready to
+dispatch to Redwood.** No human re-approval step has happened yet on the revision itself — worth a
+quick confirm before dispatch, since the original SPEC went through plan-mode HITL approval and this
+revision hasn't explicitly.
 
 ## Active
 
@@ -38,15 +40,15 @@ revision request is owed to Cedar first. **That is the next session's first acti
   into the fatality line. Their fix is the pattern worth copying: authoritative total field for the
   grand total, plus an explicit "Other/Unknown" category carrying `total − sum(categories)`.
   The same live query re-confirmed all 8 pinned deaths figures with zero drift.
-  **Cedar's SPEC now lives in `SPEC.md` itself (moved there verbatim on Task 2's close, per the
-  protocol that used to sit in the now-deleted `SPEC-QUEUED.md`), and it is still NOT dispatchable
-  as written** — see § Pending revision request at the top of `SPEC.md`. **Next session's first
-  action: send that revision request to Cedar** (respawns cold — it needs the SPEC block *and* the
-  revision section, since it will not remember authoring either).
-  Two of three reviewed judgment calls were endorsed unchanged and must not be reopened; the one
-  change asks Cedar to make `subtotal-gap.py` a checker with pinned expected gaps and exit 1 on
-  drift, rather than a reporter, because the SPEC's own Tipping Point currently has no detector.
-  Cedar's pass changed the blast radius in both directions: the falsified mitigation is live in
+  **Cedar's SPEC now lives in `SPEC.md` itself (moved there verbatim on Task 2's close) and has
+  been revised (2026-08-06) — see § Revision history at the top of `SPEC.md`.** `subtotal-gap.py`
+  is now specced as a checker (pins `PINNED_GAPS`, exits 1 on drift, matching `verify-figures.py`'s
+  exit-code contract) rather than a reporter, closing the detector gap in this SPEC's own Tipping
+  Point. Two of three reviewed judgment calls were endorsed unchanged (the `SKILL.md` edit's
+  placement, the Redwood-first ordering). **Status: approved, ready to dispatch to Redwood** — the
+  revision itself hasn't had an explicit human sign-off pass the way the original SPEC did via plan
+  mode; confirm before dispatching. Cedar's original pass changed the blast radius in both
+  directions: the falsified mitigation is live in
   **four** places, not one — the research doc's table row (156), its strategic-recommendations
   bullet (168–171), its trust note (40–48), and `nyc-collision-reporting-drift.md`'s Fix column
   (257), which is the most dangerous because a reader of that table sees no hedging at all.
