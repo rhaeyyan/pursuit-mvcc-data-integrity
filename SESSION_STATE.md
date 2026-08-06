@@ -1,34 +1,22 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** FR-3's data half (collisions per year, no chart). Cypress's tests-first
-pass is done (uncommitted); **Redwood implements next.**
+**Current objective:** None active. FR-3's data half (collisions per year) closed. `SPEC.md` has
+no task pre-declared — the next task needs a fresh Cedar pass. See `SPEC.md` § No task
+pre-declared (FR-3's chart half, FR-4, FR-9, FR-12) and its new `page.tsx` line-count Tipping
+Point.
 
 ## Active
 
-- **FR-3's data half (collisions per year) SPEC dispatched, human-approved, ready for Cypress.**
-  Cedar re-evaluated fresh rather than picking FR-3 by elimination — no smaller alternative is
-  left on the backlog (FR-4 blocked on this, FR-9 has no query, FR-12 needs this task's series to
-  compare against) and this is the exact "third yearly metric, same shape" case FR-2's own Tipping
-  Point predicted `socrata.ts` would absorb with zero changes. New `src/lib/collisions.ts` (mirrors
-  `injuries.ts`) + `api/collisions/route.ts`; `page.tsx` gains a third independent table, a plain
-  inline sentence naming the 2020 reporting-policy change (the *label* half of FR-3's dashed-
-  stroke-plus-label requirement — the table structurally cannot carry a stroke), and its own
-  disclosure. **FR-3 is deliberately left open/partially-satisfied** — the dashed-stroke chart
-  treatment is a separate, deferred Magnolia SPEC that will trip `DeathsChart.tsx`'s own Tipping
-  Point. Does not extract the now-third near-duplicate table+disclosure block; instead a mandatory
-  acceptance clause requires reporting `page.tsx`'s new line count against its own ~150-line
-  Tipping Point rather than silently fixing or ignoring it. 3 files, standard ordering.
-  **Phase B done (2026-08-06), uncommitted.** New `src/lib/collisions.test.ts` (mirrors
-  `injuries.test.ts`) and `src/app/api/collisions/route.test.ts` (status/body mapping table);
-  `page.test.tsx` extended 21→30 tests with collisions ok/error/empty, the verbatim inline note,
-  its disclosure, axe-core, and three-way independence coverage (collisions ok while both others
-  error, the inverse, two mixed combinations). Confirmed red for the right reason: the two new
-  files fail on unresolved imports; `page.test.tsx` has 12 new/updated failing assertions (9 new
-  + 3 pre-existing `toHaveLength(2)`→`(3)` disclosure-count updates, since a third mock changes
-  the total) with the remaining tests unaffected. `git diff --stat` on all four protected sibling
-  test files (deaths/injuries × lib/route) empty — independently reconfirmed, not just trusted.
-  Cypress caught and fixed one of its own spuriously-passing tests before reporting.
-  **Next: Redwood implements.**
+- **FR-3's data half (collisions per year) CLOSED (2026-08-06).** Third one-line caller over
+  `socrata.ts` (unmodified); `page.tsx` gained an independent collisions table, the verbatim
+  reporting-policy inline note (the label half of FR-3's dashed-stroke-plus-label requirement),
+  and its disclosure. **FR-3 deliberately left open/partially-satisfied** — the dashed-stroke chart
+  treatment is a separate, still-undispatched Magnolia SPEC. Cypress PASS: 145/145 tests, zero
+  drift on all three live endpoints (independently re-fetched). **`page.tsx` landed at 162 lines,
+  over its own ~150-line Tipping Point** — reported per a mandatory acceptance clause, not acted
+  on; now a standing trigger recorded in `SPEC.md` for the next SPEC. Full narrative in
+  `ARCHIVED_SESSIONS.md`; closed SPEC in `ARCHIVED_SPECS.md`. Commits:
+  `06ef759`→`9ed9fb8`→`003e89f` → archival. `SPEC.md` reset — no task pre-declared.
 - **FR-2 (injuries per year) CLOSED (2026-08-06).** Extracted `src/lib/socrata.ts` (generic
   yearly-metric transport, per Task 1's own pre-committed Tipping Point trigger); `deaths.ts`
   reduced to a thin wrapper (byte-identical `DEATHS_SOQL`, `DeathsChart.tsx` untouched); added
@@ -106,9 +94,14 @@ pass is done (uncommitted); **Redwood implements next.**
 
 ## History
 
-*(Empty — everything closed so far is archived; nothing has closed since FR-2.)*
+*(Empty — everything closed so far is archived; nothing has closed since FR-3's data half.)*
 
-All entries are in `ARCHIVED_SESSIONS.md`: **FR-2 (injuries per year) shipped, 2026-08-06** — why
+All entries are in `ARCHIVED_SESSIONS.md`: **FR-3's data half (collisions per year) shipped,
+2026-08-06** — why Cedar re-evaluated fresh rather than assuming FR-3 by default, why FR-3 is
+recorded partially-satisfied rather than closed (a table cannot carry a stroke), why the inline
+note's wording departs from the PRD's own example phrase, why the third near-duplicate block still
+wasn't extracted, and why two Tipping Points tripping back to back on the two most recent SPECs is
+worth watching. **FR-2 (injuries per year) shipped, 2026-08-06** — why
 Cedar picked FR-2 over the more thesis-central FR-3 (a pre-committed refactor trigger beats a
 task that bundles three decisions into one shot), why `fetchYearlyMetric` stayed narrow on purpose,
 why `DeathsRow`/`DeathsResult`'s exact shape was the load-bearing acceptance criterion, and why a

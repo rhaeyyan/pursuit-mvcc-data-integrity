@@ -8,6 +8,52 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — FR-3's data half (collisions per year) shipped, FR-3 left deliberately open
+
+Added collisions per year as a third independently-fetched metric — the third one-line caller
+over `socrata.ts` FR-2's own Tipping Point predicted would need zero transport changes, and it
+didn't. Standard ordering; Cypress PASS both on Phase B and on auditing Redwood's work. Commits
+`06ef759` (SPEC) → `9ed9fb8` (tests) → `003e89f` (implementation) → archival.
+
+- *Why Cedar re-evaluated fresh rather than assuming FR-3 was next by default.* Last time (picking
+  FR-2), the deciding factor was a pre-committed refactor trigger, not FR-3's centrality to the
+  product thesis. That deferral was spent once the refactor landed, so this time there was no
+  equivalent smaller alternative sitting on the backlog to prefer instead — Cedar's SPEC says so
+  explicitly, framing the pick as "on its own merits, not by elimination" rather than treating
+  "nothing else is smaller" as the reason by itself.
+- *Why FR-3 is recorded as partially satisfied rather than closed, even though this task does
+  everything a Redwood-only task can do for it.* FR-3's PRD text requires a dashed stroke **and**
+  an inline label, conjunctively. A table cannot render a stroke — no amount of implementation care
+  changes that. Cedar's SPEC treats "claiming FR-3 done" as a category of dishonesty ADR 0001 was
+  written to prevent, and instead states plainly which half is done and which is deferred to a
+  named future SPEC. The alternative — silently treating the requirement as closed because "most of
+  it" is live — is exactly the kind of untracked drift the project's archival discipline exists to
+  catch before it happens rather than after.
+- *Why the inline note's wording departs from the PRD's own example phrase.* The PRD's "affected by
+  reporting decline — see caveats" is explicitly an example (`e.g.,`), and "see caveats" would
+  point at FR-9's caveats section, which doesn't exist. Cedar chose to state the documented cause
+  directly instead of leaving a forward reference to nothing, and named this as FR-9's decision to
+  revise later, not a decision pre-empted here — a small instance of not building for a requirement
+  that hasn't been specced yet.
+- *Why the third near-duplicate table+disclosure block was not extracted into a shared component,
+  even though "three of the same thing" is a common refactor trigger.* FR-2's own Tipping Point had
+  already named the actual trigger — `page.tsx` over ~150 lines, or a caveats section arriving — not
+  "a third block appears." Extracting a component here would have restructured two already-tested,
+  working blocks under cover of a data-addition task, which is a bigger and riskier diff than the
+  task's stated objective. Instead the SPEC made the line-count report a *mandatory* acceptance
+  clause, so the decision about when to extract stays visible and deliberate rather than either
+  happening prematurely or getting silently deferred with no trigger watching it.
+- *The Tipping Point fired during the task that reported it, for the second task running.* `page.tsx`
+  landed at 162 lines against its own ~150-line threshold — the same pattern `socrata.ts` showed at
+  FR-2's close. Both times, the responsible move was reporting the number as a finding rather than
+  either fixing it unauthorized or letting it pass unremarked, and both times an independent second
+  agent (Cypress) re-measured rather than trusting the number as reported. Two Tipping Points tripped
+  back to back on the two SPECs most recently executed suggests the project's growth is now
+  consistently landing right at the thresholds it names for itself — worth watching whether a third
+  in a row means the thresholds themselves need revisiting, not just the files they're attached to.
+
+---
+
 ## 2026-08-06 — FR-2 (injuries per year) shipped, executing Task 1's pre-committed refactor
 
 Added injuries per year as a second, independently-fetched metric, and — as the same task —
