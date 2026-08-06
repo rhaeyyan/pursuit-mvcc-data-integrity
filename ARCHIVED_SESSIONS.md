@@ -8,6 +8,46 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — `MetricSection` extracted, clearing page.tsx for the FR-3 chart redesign
+
+A Banyan mechanical refactor, not a feature task: `page.tsx`'s three near-duplicate metric blocks
+(deaths, injuries, collisions) became three calls into one generic `MetricSection` component;
+`page.tsx` dropped from 162 to 63 lines; the confirmed-dead `page.module.css` was deleted. Deviated
+ordering — Banyan executed first, Cypress audited after, since there was no new behavior for a red
+test to describe in advance. Cypress PASS. Commits `235347d` (SPEC) → `3f1cfc5` (execution) →
+`ca683e0` (ledger) → archival.
+
+- *Why this was sequenced as its own task before the FR-3 chart redesign, rather than folded in or
+  deferred again.* The chart-redesign task was already sized to trip `DeathsChart.tsx`'s own
+  Tipping Point on three counts at once (legend, tooltip, dashed stroke). Adding an unrelated
+  page-wide extraction to that diff would have mixed two different owners' concerns — Magnolia's
+  chart work and a structural refactor — in one changeset, and risked the 5-file cap once the
+  chart's own files were counted. The prior SPEC (FR-3's data half) had already declined to extract
+  the third near-duplicate block for exactly this reason — "a bigger, riskier diff than this task's
+  stated objective" — so doing it now, alone, with nothing else riding along, was the moment the
+  original objection stopped applying.
+- *Why the deaths chart was deliberately kept out of `MetricSection`'s contract, even though
+  `composition-patterns` generally favors children over render props for exactly this kind of
+  slot.* Only one of three callers needed anything before its table. Giving `MetricSection` a
+  children or render-prop slot for that one case would have been an abstraction with a single real
+  consumer — the same unearned-generality failure Rule 8 names for GoF patterns, applied to a
+  component's prop surface instead. The one-line duplicated `result.status === "ok"` check staying
+  in `page.tsx`, exactly where it already lived, was judged cheaper than the alternative generality.
+- *Why "the test suite passes with zero edits" was treated as the load-bearing acceptance clause,
+  above line count or diff size.* This task's entire justification was "nothing observable
+  changes." A shrinking line count or a clean-looking diff proves nothing about whether the
+  extraction actually preserved behavior — only an unmodified, pre-existing black-box test suite
+  passing does. Both Banyan and Cypress independently re-ran `git diff --stat` against all seven
+  protected test files rather than either trusting the other's report of "empty."
+- *Why the new `MetricSection.test.tsx` got the same "is this real coverage" scrutiny Cypress gives
+  tests-first work, even though this SPEC never went through a red phase.* Skipping tests-first
+  removes the one mechanical proof that a test can actually fail — nothing here was ever
+  demonstrated red for the right reason the way Phase B work always is. So the audit compensated by
+  reading the new test file specifically for whether it exercised real branches or was decorative,
+  rather than assuming characterization tests written after the fact are automatically trustworthy.
+
+---
+
 ## 2026-08-06 — FR-3's data half (collisions per year) shipped, FR-3 left deliberately open
 
 Added collisions per year as a third independently-fetched metric — the third one-line caller
