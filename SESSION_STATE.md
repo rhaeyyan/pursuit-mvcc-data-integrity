@@ -1,37 +1,22 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** FR-2 (injuries per year) + the `src/lib/socrata.ts` extraction Task 1's own
-Tipping Point pre-committed to. Cypress's tests-first pass is done (uncommitted); **Redwood
-implements next.**
+**Current objective:** None active. FR-2 (injuries per year) closed. `SPEC.md` has no task
+pre-declared — the next task needs a fresh Cedar pass. See `SPEC.md` § No task pre-declared
+(FR-3/4/9/12).
 
 ## Active
 
-- **FR-2 (injuries per year) SPEC dispatched, human-approved, ready for Cypress.** Cedar picked
-  this over FR-3 (collisions, dashed stroke) specifically because FR-3 inherently bundles a data
-  task and a Magnolia chart-redesign task, which combining was ruled out; FR-2 is smaller and was
-  Task 1's own Tipping Point's named next trigger ("second series → parameterize the fetch; second
-  Route Handler → extract `socrata.ts`"). Extracts `src/lib/socrata.ts` (generic yearly-metric
-  transport, parameterized only on aggregate expression + field alias — `$where`/`$group` stay
-  fixed constants, not parameters, until a third distinct query shape genuinely needs them), reduces
-  `deaths.ts` to a thin wrapper over it (byte-identical `DEATHS_SOQL`, structurally identical
-  `DeathsRow`/`DeathsResult` so `DeathsChart.tsx` and all existing tests are provably unaffected —
-  acceptance clause 5 requires `git diff --stat` show zero changes to the existing deaths test
-  files), adds `injuries.ts` + `api/injuries/route.ts` + an independent injuries table/disclosure on
-  `page.tsx`, fetched in `Promise.all` not sequentially (NFR-1). Explicitly does **not** touch
-  `DeathsChart.tsx` — injuries joining the chart is a deferred, separate Magnolia task, and is what
-  will trip Task 2's chart Tipping Point. 5 files, standard ordering (Cypress tests-first).
-  **Phase B done (2026-08-06), uncommitted.** New `src/lib/injuries.test.ts` (24 tests, mirroring
-  `deaths.test.ts`) and `src/app/api/injuries/route.test.ts` (6 tests, the status/body mapping
-  table); `page.test.tsx` extended with the two-metric-independence scenario (both directions),
-  injuries ok/error/empty, disclosure disambiguation, axe-core, and the verbatim intro-sentence
-  check. Confirmed red for the right reason: the two new test files fail on unresolved imports
-  (`./injuries`, `./route` — neither exists yet); `page.test.tsx` has exactly 8 new failing
-  assertions with all 64 prior tests, including every Task 1/2 assertion, still green. `git diff
-  --stat` on `deaths.test.ts`/`route.test.ts` (deaths) shows zero changes, satisfying acceptance
-  clause 5. Cypress caught and fixed two of its own tests that passed spuriously before
-  implementation existed. Deliberately did not write a stubbed pinned-figures diff test (would be
-  circular); that comparison happens against Redwood's live response during the audit instead.
-  **Next: Redwood implements.**
+- **FR-2 (injuries per year) CLOSED (2026-08-06).** Extracted `src/lib/socrata.ts` (generic
+  yearly-metric transport, per Task 1's own pre-committed Tipping Point trigger); `deaths.ts`
+  reduced to a thin wrapper (byte-identical `DEATHS_SOQL`, `DeathsChart.tsx` untouched); added
+  `injuries.ts` + `api/injuries/route.ts` + an independent injuries table/disclosure, fetched via
+  `Promise.all`. Cypress PASS: 104/104 tests, zero drift on live figures for either metric, `git
+  diff --stat` on the deaths test files and all three `DeathsChart` files empty. Two findings
+  (both non-blocking, independently judged by both Redwood and Cypress): `socrata.ts` already trips
+  its own ~120-line Tipping Point (judged inherent, not bloat); an acceptance clause's wording
+  ("token appears in one file") was imprecise vs. NFR-2's actual concern (reads). Full narrative in
+  `ARCHIVED_SESSIONS.md`; closed SPEC in `ARCHIVED_SPECS.md`. Commits: `c4e8602`→`c973beb`→`7e35715`
+  → archival. `SPEC.md` reset — no task pre-declared.
 - **Two hook defects the 2026-08-05 audit surfaced**, both in `.claude/hooks/stop-quality-gate.sh`
   and both
   **pre-existing** (they predate `4f396e1`), so neither is a regression from the platform SPEC:
@@ -98,10 +83,15 @@ implements next.**
 
 ## History
 
-*(Empty — everything closed so far is archived; nothing has closed since the subgroup-sum fix.)*
+*(Empty — everything closed so far is archived; nothing has closed since FR-2.)*
 
-All entries are in `ARCHIVED_SESSIONS.md`: **The falsified subgroup-sum fallback corrected,
-2026-08-06** — why the mid-flight revision request (reporter → checker) was worth blocking
+All entries are in `ARCHIVED_SESSIONS.md`: **FR-2 (injuries per year) shipped, 2026-08-06** — why
+Cedar picked FR-2 over the more thesis-central FR-3 (a pre-committed refactor trigger beats a
+task that bundles three decisions into one shot), why `fetchYearlyMetric` stayed narrow on purpose,
+why `DeathsRow`/`DeathsResult`'s exact shape was the load-bearing acceptance criterion, and why a
+file tripping its own Tipping Point on the task that wrote it was treated as information for the
+next SPEC rather than an emergency. **The falsified subgroup-sum fallback corrected, 2026-08-06** —
+why the mid-flight revision request (reporter → checker) was worth blocking
 dispatch over, why the detector proof was independently re-run by a second agent on a different
 cell rather than trusted from the first run, why two agents hand-verified links a hook was known
 not to cover, and why the script was rebuilt fresh rather than chasing a gone scratchpad path.

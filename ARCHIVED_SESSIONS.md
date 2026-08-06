@@ -8,6 +8,56 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — FR-2 (injuries per year) shipped, executing Task 1's pre-committed refactor
+
+Added injuries per year as a second, independently-fetched metric, and — as the same task —
+extracted `src/lib/socrata.ts` as a generic yearly-metric transport that `deaths.ts` and the new
+`injuries.ts` both call. Cedar picked FR-2 over the seemingly-more-central FR-3 (collisions) for
+this slot; standard ordering (Cypress tests-first); Cypress PASS both on Phase B's own tests and on
+auditing Redwood's implementation. Commits `c4e8602` (SPEC) → `c973beb` (tests) → `7e35715`
+(implementation) → archival.
+
+- *Why FR-2 was picked over FR-3, even though FR-3 carries more of the product's actual thesis.*
+  FR-3's text requires the chart's dashed-stroke-plus-label treatment, so it cannot be a
+  Redwood-only data slice the way FR-1 was — it inherently bundles a data task and a Magnolia
+  chart-redesign task, and Cedar was told not to combine tasks into one SPEC. More load-bearing:
+  Task 1's own SPEC had *already* named this exact trigger in its Tipping Point — "a second series
+  arrives → parameterize the fetch; a second Route Handler appears → extract socrata.ts" — written
+  before either FR-2 or FR-3 was chosen as the next task. Executing a refactor a past SPEC
+  pre-committed to, with the smallest available second caller, was judged lower-risk than jumping
+  straight to a task that would force three decisions (query parameterization, the chart's
+  Tipping-Point redesign, and the dashed-stroke choice) into one shot.
+- *Why `fetchYearlyMetric` takes only the aggregate expression and field alias, not the where/group
+  clauses too.* Widening the parameter surface now, before a caller needed a different `$where` or
+  group key, would have been the unearned-abstraction failure Rule 8 rejects — pre-building for
+  FR-12 or FR-6 before either SPEC exists to justify the shape. The fixed 2018–2025 window and
+  `date_extract_y` grouping stayed hardcoded constants inside `socrata.ts`, and the SPEC named the
+  actual trigger for widening further: a third distinct query *shape*, not a third caller with the
+  same shape.
+- *Why `DeathsRow`/`DeathsResult`'s exact structural shape was the load-bearing acceptance
+  criterion, not a nice-to-have.* `DeathsChart.tsx` reads `.deaths` by name and was explicitly
+  frozen — untouched by this task. The refactor's whole risk was silently changing what
+  `fetchDeathsPerYear()` returns without anyone noticing until the chart broke. Making "zero
+  changes to `deaths.test.ts`/the deaths route test/all three `DeathsChart` files" a mechanical
+  acceptance clause (`git diff --stat`, checked by both Redwood and independently by Cypress) turned
+  an invisible invariant into one a `git diff` could prove, rather than one resting on care alone.
+- *A file tripped its own Tipping Point on the same task that wrote it, and that was treated as
+  information, not a failure.* `socrata.ts` landed at 252 lines against its SPEC's own ~120-line
+  threshold — inherent to generalizing Task 1's already-substantial 10-branch validation pipeline
+  for two callers, not duplication (Cypress read it end to end to confirm). Nobody tried to split
+  it mid-task without a SPEC authorizing the decomposition; it was reported up as a finding for the
+  next SPEC that touches the file, with the Tipping Point's own stated trigger (a third distinct
+  query shape) named as the actual decision point rather than the line count in isolation.
+- *An acceptance clause's literal wording didn't match the requirement it was checking, and both
+  Redwood and Cypress caught it independently rather than gaming the letter of it.* The SPEC asked
+  that the token *name* appear in exactly one file; the token name legitimately appears in comments
+  and synthetic test fixtures elsewhere, while the actual `process.env` *read* — what NFR-2 cares
+  about — is in exactly one file. Both agents judged the requirement's substance satisfied and
+  flagged the clause's phrasing for correction, rather than either silently claiming literal
+  compliance or silently failing the task over an imprecise sentence.
+
+---
+
 ## 2026-08-06 — The falsified subgroup-sum fallback corrected across all four sites
 
 A prior-art finding (2026-08-05: GreenInfo-Network/nyc-crash-mapper's own issue #111) showed the
