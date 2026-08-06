@@ -1,11 +1,25 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** None active. FR-2 (injuries per year) closed. `SPEC.md` has no task
-pre-declared — the next task needs a fresh Cedar pass. See `SPEC.md` § No task pre-declared
-(FR-3/4/9/12).
+**Current objective:** FR-3's data half (collisions per year, no chart) — human-approved
+(2026-08-06), persisted to `SPEC.md`, ready to dispatch to Cypress (standard ordering, tests
+first).
 
 ## Active
 
+- **FR-3's data half (collisions per year) SPEC dispatched, human-approved, ready for Cypress.**
+  Cedar re-evaluated fresh rather than picking FR-3 by elimination — no smaller alternative is
+  left on the backlog (FR-4 blocked on this, FR-9 has no query, FR-12 needs this task's series to
+  compare against) and this is the exact "third yearly metric, same shape" case FR-2's own Tipping
+  Point predicted `socrata.ts` would absorb with zero changes. New `src/lib/collisions.ts` (mirrors
+  `injuries.ts`) + `api/collisions/route.ts`; `page.tsx` gains a third independent table, a plain
+  inline sentence naming the 2020 reporting-policy change (the *label* half of FR-3's dashed-
+  stroke-plus-label requirement — the table structurally cannot carry a stroke), and its own
+  disclosure. **FR-3 is deliberately left open/partially-satisfied** — the dashed-stroke chart
+  treatment is a separate, deferred Magnolia SPEC that will trip `DeathsChart.tsx`'s own Tipping
+  Point. Does not extract the now-third near-duplicate table+disclosure block; instead a mandatory
+  acceptance clause requires reporting `page.tsx`'s new line count against its own ~150-line
+  Tipping Point rather than silently fixing or ignoring it. 3 files, standard ordering.
+  **Next: dispatch Cypress.**
 - **FR-2 (injuries per year) CLOSED (2026-08-06).** Extracted `src/lib/socrata.ts` (generic
   yearly-metric transport, per Task 1's own pre-committed Tipping Point trigger); `deaths.ts`
   reduced to a thin wrapper (byte-identical `DEATHS_SOQL`, `DeathsChart.tsx` untouched); added
