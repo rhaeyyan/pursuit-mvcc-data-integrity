@@ -1,10 +1,8 @@
 # Sprint Ledger — MVCC Data
 
 **Current objective:** Walking skeleton is now feature-complete (Tasks 1 and 2, both CLOSED). The
-subgroup-sum-fallback correction in `SPEC.md` has been revised by Cedar and is **approved, ready to
-dispatch to Redwood.** No human re-approval step has happened yet on the revision itself — worth a
-quick confirm before dispatch, since the original SPEC went through plan-mode HITL approval and this
-revision hasn't explicitly.
+subgroup-sum-fallback correction in `SPEC.md` has been revised by Cedar, human-approved
+(2026-08-06), and is **ready to dispatch to Redwood — that's the next step.**
 
 ## Active
 
@@ -45,10 +43,8 @@ revision hasn't explicitly.
   is now specced as a checker (pins `PINNED_GAPS`, exits 1 on drift, matching `verify-figures.py`'s
   exit-code contract) rather than a reporter, closing the detector gap in this SPEC's own Tipping
   Point. Two of three reviewed judgment calls were endorsed unchanged (the `SKILL.md` edit's
-  placement, the Redwood-first ordering). **Status: approved, ready to dispatch to Redwood** — the
-  revision itself hasn't had an explicit human sign-off pass the way the original SPEC did via plan
-  mode; confirm before dispatching. Cedar's original pass changed the blast radius in both
-  directions: the falsified mitigation is live in
+  placement, the Redwood-first ordering). **Status: human-approved (2026-08-06), ready to dispatch
+  to Redwood.** Cedar's original pass changed the blast radius in both directions: the falsified mitigation is live in
   **four** places, not one — the research doc's table row (156), its strategic-recommendations
   bullet (168–171), its trust note (40–48), and `nyc-collision-reporting-drift.md`'s Fix column
   (257), which is the most dangerous because a reader of that table sees no hedging at all.

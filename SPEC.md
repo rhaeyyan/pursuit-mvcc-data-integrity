@@ -3,7 +3,7 @@
 **Status:** approved — ready to dispatch to Redwood
 **Author:** Cedar (Tech Lead) · **Created:** 2026-08-05 · **Revised:** 2026-08-06 (see below) ·
 **Moved into `SPEC.md` verbatim:** 2026-08-06 (Task 2 closed, per the now-deleted `SPEC-QUEUED.md`'s
-protocol)
+protocol) · **Revision human-approved (HITL):** 2026-08-06, Rayan
 **Then:** Redwood (execution) → Cypress (audit)
 **Ordering:** deviates from Cypress-first by design; rationale is in the SPEC's § Ordering
 
