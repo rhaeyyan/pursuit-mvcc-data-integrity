@@ -1,8 +1,7 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** FR-3's data half (collisions per year, no chart) — human-approved
-(2026-08-06), persisted to `SPEC.md`, ready to dispatch to Cypress (standard ordering, tests
-first).
+**Current objective:** FR-3's data half (collisions per year, no chart). Cypress's tests-first
+pass is done (uncommitted); **Redwood implements next.**
 
 ## Active
 
@@ -19,7 +18,17 @@ first).
   Point. Does not extract the now-third near-duplicate table+disclosure block; instead a mandatory
   acceptance clause requires reporting `page.tsx`'s new line count against its own ~150-line
   Tipping Point rather than silently fixing or ignoring it. 3 files, standard ordering.
-  **Next: dispatch Cypress.**
+  **Phase B done (2026-08-06), uncommitted.** New `src/lib/collisions.test.ts` (mirrors
+  `injuries.test.ts`) and `src/app/api/collisions/route.test.ts` (status/body mapping table);
+  `page.test.tsx` extended 21→30 tests with collisions ok/error/empty, the verbatim inline note,
+  its disclosure, axe-core, and three-way independence coverage (collisions ok while both others
+  error, the inverse, two mixed combinations). Confirmed red for the right reason: the two new
+  files fail on unresolved imports; `page.test.tsx` has 12 new/updated failing assertions (9 new
+  + 3 pre-existing `toHaveLength(2)`→`(3)` disclosure-count updates, since a third mock changes
+  the total) with the remaining tests unaffected. `git diff --stat` on all four protected sibling
+  test files (deaths/injuries × lib/route) empty — independently reconfirmed, not just trusted.
+  Cypress caught and fixed one of its own spuriously-passing tests before reporting.
+  **Next: Redwood implements.**
 - **FR-2 (injuries per year) CLOSED (2026-08-06).** Extracted `src/lib/socrata.ts` (generic
   yearly-metric transport, per Task 1's own pre-committed Tipping Point trigger); `deaths.ts`
   reduced to a thin wrapper (byte-identical `DEATHS_SOQL`, `DeathsChart.tsx` untouched); added
