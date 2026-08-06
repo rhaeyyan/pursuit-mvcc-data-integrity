@@ -43,8 +43,6 @@ When Cedar (Tech Lead) sets up a new assignment, derive tooling from these defau
    **CI audit steps follow the same mechanism, on-demand.** For L2/L3 frontend assignments that produce a live deploy preview URL (e.g. a Vercel preview), Cedar may add `treosh/lighthouse-ci-action` (performance/accessibility/SEO/best-practices budget gate) as a post-deploy CI step, recording the score/budget thresholds plus a one-line rationale in the assignment's `AGENTS.md` — the same per-assignment, recorded-rationale pattern used for ruff config above. Never add it as a Fellowship Stack default: assignments without a live URL have nothing to audit, and a blanket default creates dead CI weight (Rule 2's "match ceremony to the task"). It complements, not replaces, the `axe-core`/`eslint-plugin-jsx-a11y` checks under Quality Standards — those run pre-deploy on static/test-time JSX, Lighthouse audits the actual deployed artifact.
 
    **Security-isolation gate (per-assignment, recorded).** At kickoff Cedar assesses whether the assignment will (a) execute untrusted third-party code, (b) hold live production credentials in the agent's environment, or (c) process real user PII. If any is true, an ephemeral-sandbox + just-in-time-credential layer is in-scope and must be specced before Redwood executes code — prefer the cheapest control that meets the goal (an empty-env Git worktree + a restricted permission set) and escalate to an OS-level sandbox (seccomp / microVM / gVisor) only for genuinely untrusted third-party code. Record the assessment (and the chosen mechanism, or "none — first-party code, no live creds/PII") in the assignment's `AGENTS.md`. This is the recorded discharge of the Rule 5 security-isolation deferral (it complements the Zero-Trust mandate under Quality Standards).
-
-   **Test-quality gates (candidate, per-assignment, recorded — not yet adopted anywhere).** For an assignment with a real test suite/build pipeline (L1 product builds and up), Cedar may spec any of: (a) a session-end behavioral check that reviews whether typecheck/lint/coverage pass on changed files (see Gemini Hooks Equivalent); (b) a post-edit behavioral check flagging any new source file with no sibling test file, as a mechanical backstop to Rule 4's TDD-first ordering; (c) `commitlint` + a `commit-msg` hook enforcing Conventional Commits format mechanically, on top of Rule 10; (d) lightweight ADRs (`docs/adr/NNNN-slug.md`, Context/Decision/Consequences, per Michael Nygard's format) for consequential, hard-to-reverse tech choices (model/provider, hosting architecture) as a companion to that assignment's `SPEC.md` — SPECs capture what to build, ADRs capture why a choice was made. Record which were adopted, plus a one-line rationale each, in the assignment's `AGENTS.md` — same recorded-rationale pattern as ruff config above.
 10. **Git Protocol & Merge Strategy.** Work done in parallel Git Worktrees must follow Conventional Commits (e.g., `feat:`, `fix:`). Banyan acts as the merge coordinator—reviewing branches and resolving merge conflicts before they are merged into the main development branch. **Git Safety Protocol:** Before running `git push --force` (without `--force-with-lease`) or `git reset --hard`, always ask the human for confirmation — these commands can silently destroy work. A `commit-msg` git hook (tracked at `.githooks/commit-msg`) rejects any `Co-Authored-By` trailer naming an AI assistant — Rayan's commits carry no AI byline. Because installing it requires no `git config` change (agents never touch git config), it's already active in `.git/hooks/commit-msg` in this clone; a fresh clone needs one manual step: `cp .githooks/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg`.
 11. **Dependency & Schema Authority.** Only Cedar is authorized to introduce new NPM/PIP dependencies or propose database schema migrations. If Redwood or Magnolia requires a new library or table alteration during implementation, they must halt and request a `[SPEC]` update from Cedar. No "shadow IT."
 
@@ -341,10 +339,6 @@ define_subagent:
     Hard rules: never change observable behavior or public APIs unless explicitly acting to clear a blockage or perform an approved tree-wide refactor.
 ```
 
-    Hard rules: never delete originals in `raw/`, and never modify them other than moving them to `raw/archived-docs/` upon successful processing. Long content belongs in files, never in your reply — return only the `[ARCHIVE-REPORT]` block (plus proposal, if any); never paste transcripts, conversions, or full notes into the response, since a reply that exceeds output-token limits loses the whole session. Zero-Trust applies to people, not just code — do not copy sensitive personal data (ID/account numbers, salary figures, home addresses, signatures) into notes or the wiki; state that the detail exists and link to the raw file (at its new path under `raw/archived-docs/`) instead. If a conversion fails or a document is ambiguous, report it in Skipped/failed rather than guessing at its contents.
-```
-
-```
 
 ## The Orchestrator (the main session)
 Subagents cannot invoke other subagents — every arrow in the pipeline (Rule 2) is the main session relaying a handoff block between two agents that otherwise share no context. The main session therefore owns, and no subagent does:
@@ -376,9 +370,6 @@ Before ending any session or conversation:
 2. If changes exist but `SESSION_STATE.md` is not among them, **update `SESSION_STATE.md`** with: (1) what was accomplished, (2) what is unfinished or blocked, (3) explicit next steps.
 3. If `SESSION_STATE.md` exceeds 150 lines or contains more than 5 historical sessions, move older entries under `## History` to `ARCHIVED_SESSIONS.md`.
 
-### Citation integrity
-Before ending a session where normative docs were edited (`GEMINI.md`, session ledgers, `docs/adr/*.md`), verify that all Markdown links and `file://` URIs in those docs resolve. A rule citing a file that no longer exists has silently lost its justification.
-
 ## Handoff Schemas
 Every inter-agent handoff uses one of these blocks, verbatim.
 
@@ -403,25 +394,8 @@ Every inter-agent handoff uses one of these blocks, verbatim.
 2. Simplicity > Pattern purity   (always present unless explicitly overridden)
 ```
 
-### [COMPLIANCE-REPORT] — Cypress (SDET) → Cedar (Tech Lead) / Redwood (Software Engineer)
-```markdown
-[COMPLIANCE-REPORT]
-- **Status**: PASS | FAIL
-- **Critical violations**: <must fix before merge; empty if PASS>
-- **Recommendations**: <non-blocking improvements>
-- **Test results**: <command run + summary of output>
-```
-
-### [COMPLETION-REPORT] — Redwood (Software Engineer) → Cypress (SDET)
-```markdown
-[COMPLETION-REPORT]
-- **Files changed**: <list>
-- **Spec items satisfied**: <checklist against the SPEC>
-- **Complexity Justification**: <Prove that Jevon's Paradox was avoided; defend any lines of code added against bloat>
-- **Known gaps**: <anything deferred, or "none">
-- **Tipping Point Progress**: <Observation on how close the implementation is to the defined Tipping Point>
-```
-
+### [COMPLIANCE-REPORT] — Cypress (SDET)
+### [COMPLETION-REPORT] — Redwood (Software Engineer) / Magnolia (UI Engineer)
 ### [ROUTING-DECISION] — Pine (API Gateway)
 ### [CONTEXT-PACKET] — Birch (Systems Analyst)
 ### [HEALING-REPORT] — Banyan (Platform Engineer / Reviewer)
