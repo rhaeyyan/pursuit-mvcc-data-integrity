@@ -6,16 +6,8 @@ Cedar for a full `[SPEC]`.
 
 ## Active
 
-- **Both completed SPECs are audited and closed.** Cypress PASS on 2026-08-05, one pass covering
-  the scaffold (checklist a–f) and the platform guard (acceptance clause + constraints 1–8). No
-  critical violations; seven non-blocking recommendations, all recorded in `SPEC.md` § Carried
-  forward. `SPEC.md` is now reset and holds no active work.
-- **Committed and pushed** (2026-08-04) — `14b2960` scaffold, `4f396e1` platform guard, `d2cedb9`
-  SPECs + ledger. Split by concern rather than by edit order, so the guard's rationale isn't buried
-  in the scaffold commit. *Audit note:* this means SPEC 2's `@types/node` and lockfile changes
-  actually landed in `14b2960`, not `4f396e1` — all three file outputs are present and correct,
-  only the commit boundary differs from the SPEC's file list. Not a violation.
-- **Two hook defects the audit surfaced**, both in `.claude/hooks/stop-quality-gate.sh` and both
+- **Two hook defects the 2026-08-05 audit surfaced**, both in `.claude/hooks/stop-quality-gate.sh`
+  and both
   **pre-existing** (they predate `4f396e1`), so neither is a regression from the platform SPEC:
   1. **Fake-green when `node_modules/` exists but the binaries do not** (lines 81, 90) — the `[ -x ]`
      guards skip both checks, `failed` stays 0, and the gate prints "clean" having run nothing.
@@ -47,25 +39,34 @@ Cedar for a full `[SPEC]`.
   (a TDZ bug in Cypress's own test, and `next dev`/`build` auto-dirtying `CLAUDE.md`) are in
   `## History` below and in the archived SPEC. Commits: `4e63717` (SPEC) → `503c239` (tests) →
   `9ca19e4`+`7fc0050` (implementation + test fix) → this ledger update. All pushed.
-- **Next: Task 2 (the Recharts chart)** — pre-declared sketch in `SPEC.md`, needs a fresh Cedar
-  pass for a dispatch-ready `[SPEC]` before Magnolia builds it. Two standing gotchas Task 1 found,
-  now recorded in `SPEC.md`'s standing clauses so Task 2 doesn't rediscover them: `@/*` path-alias
-  imports don't resolve under Vitest (use relative imports in test-covered files), and `next dev`/
-  `build` auto-dirty `CLAUDE.md` (revert with `git checkout`, never commit or "fix").
+- **Task 2 (the Recharts chart) is in flight.** Cedar's fresh-pass `[SPEC]` dispatched and
+  human-approved via plan mode (`bc3d43e`) — supersedes the pre-Task-1 sketch in three places: 5
+  files not ~3, the `<figure>`/caption live inside the chart component not `page.tsx`, and
+  deliberately **no** table-view toggle (Task 1's permanent table already discharges NFR-3).
+  **Phase B done (Cypress, tests first):** new `src/components/DeathsChart.test.tsx` (pinned SVG
+  geometry — zero-based y-axis tick is called out in the SPEC and the tests as "the single most
+  important test in this file"; solid non-dashed stroke; category not numeric x-axis; source-level
+  greps standing in for the hook's uncovered constraints), `page.test.tsx` extended with a
+  `DeathsChart` mock to assert the mount position/props without re-testing the chart's own
+  rendering, and a `ResizeObserver`+dimension stub added to `vitest.setup.ts` (jsdom has no layout
+  engine, so `<ResponsiveContainer>` renders nothing without it — verified against a temporarily
+  installed `recharts@3.10.1`, never committed, including a text-measurement-span fix that fixed-size
+  stubbing broke by making every axis tick appear the same width). Confirmed red for the right
+  reason: `DeathsChart.test.tsx` fails to resolve `./DeathsChart` (doesn't exist yet); `page.test.tsx`
+  has exactly one new failing assertion (the mount test) with all 42 other tests, including every
+  Task 1 test, still green.
+- **Next: Phase C — Magnolia implements**, then Phase D — Cypress audits.
 - **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
   `v22.23.2` and `which node` resolves under the fnm v22 tree. Fix was `env.PATH` in
   **`.claude/settings.local.json`**, gitignored (machine-specific, absolute path under
   `/home/rhaeyyan`), so **a fresh clone must redo it**, alongside the fnm install and the
   `.git/hooks/commit-msg` guard. Reproducing the Node 20 failure path now takes deliberate effort —
   `env PATH=/usr/local/bin:/usr/bin:/bin`.
-- **Deploy `[SPEC]` obligation:** verify Vercel's project Node runtime matches `engines.node` and
-  record the result. Deferred rather than blocking because `jsdom`/`@testing-library/*` are dev deps
-  and `next build` doesn't run tests — a Vercel image on Node 20 would still build green, so the
-  divergence surfaces only as local-vs-deploy drift in Route Handler behavior.
+- **Deploy `[SPEC]` obligation** (full rationale in `SPEC.md` § Carried forward): verify Vercel's
+  Node runtime matches `engines.node`, now also recording `/`'s First Load JS after Task 2's chart.
 - **Machine changes outside the repo, needing re-doing on any other machine:**
-  `~/.config/fish/conf.d/fnm.fish` (new) and an appended block in `~/.bashrc` (existing file
-  edited). Both silence fnm's "Using Node" banner in non-interactive shells — it lands on **stdout**
-  and would contaminate parsed command output.
+  `~/.config/fish/conf.d/fnm.fish` (new) and an appended `~/.bashrc` block — both silence fnm's
+  "Using Node" banner in non-interactive shells, which lands on stdout and contaminates output.
 - `ARCHITECTURE.md` is **deferred by decision, not pending**; its absence is not a gap to close.
   Rationale and revisit trigger in `CLAUDE.md` § Project Layout.
 
