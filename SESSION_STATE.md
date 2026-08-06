@@ -1,8 +1,8 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Walking skeleton is now feature-complete (Tasks 1 and 2, both CLOSED). The
-subgroup-sum-fallback correction in `SPEC.md` has been revised by Cedar, human-approved
-(2026-08-06), and is **ready to dispatch to Redwood — that's the next step.**
+**Current objective:** Walking skeleton is feature-complete (Tasks 1 and 2, both CLOSED). The
+subgroup-sum-fallback correction: Redwood has executed the SPEC (uncommitted); **Cypress audit is
+next**, per the SPEC's own deviated ordering (Redwood-first, Cypress-after).
 
 ## Active
 
@@ -43,21 +43,33 @@ subgroup-sum-fallback correction in `SPEC.md` has been revised by Cedar, human-a
   is now specced as a checker (pins `PINNED_GAPS`, exits 1 on drift, matching `verify-figures.py`'s
   exit-code contract) rather than a reporter, closing the detector gap in this SPEC's own Tipping
   Point. Two of three reviewed judgment calls were endorsed unchanged (the `SKILL.md` edit's
-  placement, the Redwood-first ordering). **Status: human-approved (2026-08-06), ready to dispatch
-  to Redwood.** Cedar's original pass changed the blast radius in both directions: the falsified mitigation is live in
-  **four** places, not one — the research doc's table row (156), its strategic-recommendations
-  bullet (168–171), its trust note (40–48), and `nyc-collision-reporting-drift.md`'s Fix column
-  (257), which is the most dangerous because a reader of that table sees no hedging at all.
-  Conversely **the PRD is out of scope entirely** (FR-11 line 207 and the risk register line 262
-  already specify fail-loud and never mention a fallback) and **`src/lib/deaths.ts` is correct
-  twice over** — `parseRow` rejects any non-numeric value, and `SELECT_CLAUSE` never selects the
-  subgroup fields, so the fallback is unreachable rather than merely unused. No source change is
-  owed. Five files (two prose corrections, a `mvcc-data/SKILL.md` clause, ADR 0002, and
-  `.claude/scripts/subtotal-gap.py`); per-file rationale, constraints, and acceptance commands are
-  in `SPEC.md` and are not restated here. One thing worth carrying: crashmapper's
+  placement, the Redwood-first ordering). Cedar's original pass changed the blast radius in both
+  directions: the falsified mitigation is live in **four** places, not one — the research doc's
+  table row (156), its strategic-recommendations bullet (168–171), its trust note (40–48), and
+  `nyc-collision-reporting-drift.md`'s Fix column (257), which is the most dangerous because a
+  reader of that table sees no hedging at all. Conversely **the PRD is out of scope entirely**
+  (FR-11 line 207 and the risk register line 262 already specify fail-loud and never mention a
+  fallback) and **`src/lib/deaths.ts` is correct twice over** — `parseRow` rejects any non-numeric
+  value, and `SELECT_CLAUSE` never selects the subgroup fields, so the fallback is unreachable
+  rather than merely unused. No source change is owed. One thing worth carrying: crashmapper's
   "Other/Unknown" residual pattern is recorded in the ADR but deliberately **not** adopted — it is
   a residual over *people within a record*, our PDO tier is a residual over *collision records*,
   and conflating them would be an error. Applying it needs its own SPEC.
+  **Redwood EXECUTED (2026-08-06), uncommitted.** Exactly 5 files: new `.claude/scripts/subtotal-
+  gap.py` and `docs/adr/0002-no-synthetic-subtotal-fallback.md`; edited
+  `docs/nyc-collision-analytics-deep-research.md` (sites 1/2/4), `docs/nyc-collision-reporting-
+  drift.md` (site 3), `.claude/skills/mvcc-data/SKILL.md` (trap 1 + six subgroup fields). Since the
+  scratchpad script the SPEC referenced (session-scoped, from an earlier session) was gone, exactly
+  as its own Edge Case 5 anticipated, Redwood rebuilt it fresh from the pinned query. **Baseline
+  run: exit 0, all 16 cells (8 years × deaths/injuries) matched the pinned table with zero drift.**
+  **Detector proof passed**: mutating one `PINNED_GAPS` cell produced exit 1 naming the exact
+  series/year/delta; reverting restored exit 0. `ruff check` clean; citations hook clean before and
+  after (though it doesn't scan the three non-ADR edited files — the orchestrator independently
+  verified all `[ADR 0002]` links in those three resolve, since the hook's normative-doc target
+  list is narrower than this task's file list); residual-mention grep shows exactly one hit, inside
+  the corrected mitigation cell itself, explicitly naming the remedy as rejected.
+  **Next: Cypress audit** (re-runs acceptance clauses 2, 3, 5, 6 per the SPEC's own instruction),
+  then close out and archive this SPEC the same way Tasks 1 and 2 were closed.
 - **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
   `v22.23.2` and `which node` resolves under the fnm v22 tree. Fix was `env.PATH` in
   **`.claude/settings.local.json`**, gitignored (machine-specific, absolute path under
