@@ -1,8 +1,8 @@
 # Sprint Ledger — MVCC Data
 
 **Current objective:** Task 2 of the walking skeleton — mount a Recharts chart over the deaths-
-per-year table Task 1 already built and audited. Pre-declared in `SPEC.md`, not yet dispatched to
-Cedar for a full `[SPEC]`.
+per-year table Task 1 already built and audited. Cedar's `[SPEC]` is dispatched and human-approved;
+Phase C (Magnolia implements) is done, uncommitted; **Phase D (Cypress audits) is next.**
 
 ## Active
 
@@ -55,7 +55,35 @@ Cedar for a full `[SPEC]`.
   reason: `DeathsChart.test.tsx` fails to resolve `./DeathsChart` (doesn't exist yet); `page.test.tsx`
   has exactly one new failing assertion (the mount test) with all 42 other tests, including every
   Task 1 test, still green.
-- **Next: Phase C — Magnolia implements**, then Phase D — Cypress audits.
+- **Phase C done (2026-08-06), uncommitted.** Magnolia implemented the five-file budget exactly:
+  `package.json`/`package-lock.json` (added `recharts@3.10.1`, `npm audit` clean), new
+  `src/components/DeathsChart.tsx` and `DeathsChart.module.css`, and a minimal `page.tsx` edit (one
+  import, one `<DeathsChart rows={result.rows} />` in the `ok` branch, above the table). No prop-name
+  substitutions were needed against the installed `recharts@3.10.1`. Colour is carried entirely by
+  the CSS module targeting Recharts' stable class names (`:global(.recharts-line-curve)` etc.) rather
+  than `currentColor` props — chosen because a single dot needs two different colours (fill vs. ring)
+  and CSS rules outrank Recharts' own default presentation attributes regardless of specificity.
+  Palette validator: both light (`#2a78d6`/`#ffffff`) and dark (`#3987e5`/`#0a0a0a`) checks PASS;
+  `--chart-ink` contrast independently computed at 7.94:1 (light) / 11.05:1 (dark), clearing AA's
+  4.5:1 floor. Build: First Load JS for `/` is **769,350 bytes uncompressed** (sourced from
+  `.next/diagnostics/route-bundle-stats.json` — Next 16 Turbopack no longer prints the old stdout
+  table), recorded for the deploy SPEC's NFR-1 budget, not reacted to. `node -v` throughout:
+  `v22.23.2`. `typecheck`/`lint`/`build` all exit 0; independently re-confirmed by the orchestrator
+  after Magnolia's report (`tsc --noEmit` clean under the same Node version).
+  **One finding for Cypress's audit, not a Magnolia defect:** `npm run test` is 63/64 — the failure
+  is a pre-existing bug in Cypress's own `DeathsChart.test.tsx` ("Constraint 1: no process.env
+  anywhere under src/components" test, and SPEC.md's acceptance-clause-9 grep as literally written)
+  — that one check scans `src/components` for the literal substrings `process.env`/`@/` without
+  excluding test files, unlike three sibling checks in the same file that correctly do
+  (`!isTestFile(f)`). It trips on the test file's own description strings about itself, not on the
+  real component. Magnolia independently confirmed the actual constraint holds by scoping the grep
+  to `DeathsChart.tsx`/`page.tsx` directly: zero hits on both `process.env` and `@/`. Cypress may
+  edit its own test file to add the same exclusion Constraint 3/4's checks already use; Magnolia
+  could not, being out of its write scope.
+- **Next: Phase D — Cypress audits.** Should confirm the 63/64 result and either fix the
+  test's missing `!isTestFile(f)` filter (matching its siblings) or explain why not, then emit the
+  `[COMPLIANCE-REPORT]`. Nothing is committed yet — `git status` shows the 5 files modified/untracked
+  from Phase C, pending Cypress's PASS before Redwood/Magnolia's work is merge-ready.
 - **Prior-art finding (2026-08-05) — the subgroup-sum fallback is falsified; it must not be
   specced.** `docs/nyc-collision-analytics-deep-research.md:156` proposes, as the mitigation for
   the `number_of_persons_killed` dropout, "a synthetic fallback total (sum of the subgroup
