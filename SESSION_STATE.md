@@ -1,11 +1,25 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** None active. `MetricSection` extraction closed. `SPEC.md` has no task
-pre-declared — the next task needs a fresh Cedar pass. See `SPEC.md` § No task pre-declared
-(FR-3's chart half is now unblocked — `page.tsx` is clean territory for it — plus FR-4/9/12).
+**Current objective:** FR-3's remaining chart half — collisions as its own dashed-stroke line
+chart, small multiples (not merged onto `DeathsChart`'s axis). Human-approved (2026-08-06),
+persisted to `SPEC.md`, ready to dispatch to Cypress (standard ordering, tests first).
 
 ## Active
 
+- **FR-3's chart half (collisions dashed-stroke chart) SPEC dispatched, human-approved, ready for
+  Cypress.** Cedar caught and corrected a flawed premise in the dispatch brief: "merge collisions
+  onto `DeathsChart`'s axis" was rejected outright, not implemented — deaths (229–297) and
+  collisions (85,546–231,564) differ ~800×, so a shared zero-based axis would erase the exact
+  "deaths flat, collisions cratering" contrast the product exists to show (`dataviz`'s own
+  dual/shared-axis anti-pattern). Builds **small multiples** instead: `DeathsChart.tsx` generalizes
+  into `src/components/YearlyLineChart.tsx`, a single-series chart parameterized by
+  `fieldAlias`/`strokeStyle`/`colorSlot`/copy, called twice (deaths solid/blue, collisions
+  dashed/orange), each with its own independent zero-based axis. Because each panel stays
+  single-series, the legend and tooltip triggers flagged in earlier SPECs don't fire — those only
+  applied to a merged plot. Collisions chart reuses the *exact* reporting-policy sentence already
+  shipped on the table (shared constant, not reworded) so NFR-5's "in every rendering" can't drift
+  between surfaces. 5 files (deletes `DeathsChart.tsx`/`.module.css`, adds their replacements),
+  standard ordering. **Next: dispatch Cypress.**
 - **`MetricSection` extraction + `page.module.css` deletion CLOSED (2026-08-06).** `page.tsx`:
   162 → 63 lines. Cypress PASS: 155/155 tests, `git diff --stat` on `page.test.tsx` and six other
   protected test files empty (independently reconfirmed by both Banyan and Cypress) — the
