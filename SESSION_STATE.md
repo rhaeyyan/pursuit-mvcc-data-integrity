@@ -1,10 +1,7 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Extract `MetricSection` from `page.tsx`'s three near-duplicate blocks,
-delete orphaned `page.module.css` — a Banyan mechanical refactor, human-approved (2026-08-06),
-sequenced *before* the FR-3 chart redesign so that task doesn't compete for the same file.
-Persisted to `SPEC.md`, ready to dispatch to Banyan (deviated ordering: execute first, Cypress
-audits after — no new behavior for a red test to describe).
+**Current objective:** `MetricSection` extraction + `page.module.css` deletion. Banyan's execution
+is done (uncommitted); **Cypress audits next.**
 
 ## Active
 
@@ -19,7 +16,13 @@ audits after — no new behavior for a red test to describe).
   become three `<MetricSection>` calls; `page.module.css` deleted (gated on a zero-reference grep).
   **Zero behavioral change is the whole point** — the mechanical gate is `page.test.tsx` passing
   with zero edits. Deviated ordering: Banyan executes first, Cypress audits after (no new behavior
-  for a red test to describe). 4 files. **Next: dispatch Banyan.**
+  for a red test to describe). 4 files.
+  **Execution done (2026-08-06), uncommitted.** `page.tsx`: 162 → **63 lines** (61% reduction).
+  155/155 tests pass; `git diff --stat` on `page.test.tsx` and all six other protected sibling
+  test files empty — independently reconfirmed, not just trusted. `page.module.css` deleted after
+  a zero-reference grep confirmed it was safe. Dev-mode visual check: all three tables, the
+  collisions note, all three disclosures, and the chart render identically to before, same order.
+  `page.tsx` is now at 58% of its own Tipping Point. **Next: Cypress audits.**
 - **FR-3's data half (collisions per year) CLOSED (2026-08-06).** Third one-line caller over
   `socrata.ts` (unmodified); `page.tsx` gained an independent collisions table, the verbatim
   reporting-policy inline note (the label half of FR-3's dashed-stroke-plus-label requirement),
