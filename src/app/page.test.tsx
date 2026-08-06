@@ -11,21 +11,44 @@
 // module so this test is agnostic to whether page.tsx reads the query text
 // via the `soql` field on the DeathsResult or via a direct DEATHS_SOQL
 // import — either is a legitimate implementation choice under this SPEC.
+//
+// Task 2 addition: ../components/DeathsChart is also mocked, with a plain
+// vi.fn() standing in for the real component. This file's job is to prove
+// page.tsx's *mounting* decision (only in the ok branch, before the table,
+// receiving the same `rows` array) — the chart's own rendered geometry is
+// src/components/DeathsChart.test.tsx's job, against the real component. Two
+// vi.hoisted() bindings side by side is the same pattern this file already
+// got right the second time on Task 1 (see the TDZ-bug fix commit); the
+// `SYNTHETIC_SOQL` fix from that bug is why both bindings live in the same
+// vi.hoisted() call below rather than a bare top-level const.
 
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import axe from "axe-core";
 
-const { fetchDeathsPerYear, SYNTHETIC_SOQL } = vi.hoisted(() => ({
+import type { DeathsChartProps } from "../components/DeathsChart";
+
+const { fetchDeathsPerYear, SYNTHETIC_SOQL, DeathsChart } = vi.hoisted(() => ({
   fetchDeathsPerYear: vi.fn(),
   SYNTHETIC_SOQL:
     "SYNTHETIC SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
+  // A minimal stand-in, not the real chart — DeathsChart.test.tsx is where
+  // the real component's rendered SVG geometry is asserted against real
+  // recharts output. Here we only need something identifiable in the DOM
+  // and a vi.fn() we can inspect the call args of.
+  DeathsChart: vi.fn((props: DeathsChartProps) => (
+    <figure data-testid="deaths-chart-stub" data-row-count={props.rows.length}>
+      stubbed chart
+    </figure>
+  )),
 }));
 
 vi.mock("../lib/deaths", () => ({
   fetchDeathsPerYear,
   DEATHS_SOQL: SYNTHETIC_SOQL,
 }));
+
+vi.mock("../components/DeathsChart", () => ({ DeathsChart }));
 
 import Home from "./page";
 
@@ -49,6 +72,7 @@ async function renderHome() {
 
 afterEach(() => {
   fetchDeathsPerYear.mockReset();
+  DeathsChart.mockClear();
 });
 
 describe("/ (Home) — the ok path", () => {
@@ -115,6 +139,32 @@ describe("/ (Home) — the ok path", () => {
     const text = (document.body.textContent ?? "").toLowerCase();
     expect(text).not.toMatch(/\bcaused\b|\bcausing\b|\bcauses\b/);
   });
+
+  it("Task 2: mounts <DeathsChart> with the same rows array, positioned before the table", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    expect(DeathsChart).toHaveBeenCalledTimes(1);
+    const props = DeathsChart.mock.calls[0][0] as DeathsChartProps;
+    // Same array, not a copy — the chart and the table must provably plot
+    // and list the same objects, never two reads of one source that could
+    // drift (SPEC.md's Intellectual Control).
+    expect(props.rows).toBe(SYNTHETIC_ROWS);
+
+    const chartStub = screen.getByTestId("deaths-chart-stub");
+    const table = screen.getByRole("table");
+    const position = chartStub.compareDocumentPosition(table);
+    expect(Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+
+    // Sanity check that the stub actually landed inside the rendered tree,
+    // not merely constructed and discarded.
+    expect(container.contains(chartStub)).toBe(true);
+  });
 });
 
 describe("/ (Home) — the error path (FR-10)", () => {
@@ -132,6 +182,22 @@ describe("/ (Home) — the error path (FR-10)", () => {
     expect(
       screen.getByText(/no aggregate returned for 2024/i),
     ).toBeInTheDocument();
+  });
+
+  it("Task 2 Edge Case 1: renders no chart at all — no <figure>, no <svg>, DeathsChart never mounted", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "contract",
+      reason: "no aggregate returned for 2024 (synthetic test reason)",
+    });
+
+    const { container } = await renderHome();
+
+    expect(DeathsChart).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("deaths-chart-stub")).not.toBeInTheDocument();
+    expect(container.querySelector("figure")).not.toBeInTheDocument();
+    expect(container.querySelector("svg")).not.toBeInTheDocument();
   });
 
   it("still renders the FR-8 query disclosure on the error path", async () => {
@@ -191,5 +257,28 @@ describe("/ (Home) — the empty path (FR-10)", () => {
     const disclosure = container.querySelector("details");
     expect(disclosure).toBeInTheDocument();
     expect(disclosure).toHaveTextContent(SYNTHETIC_SOQL);
+  });
+
+  it("Task 2 Edge Case 1: renders no chart at all — no <figure>, no <svg>, DeathsChart never mounted", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: SYNTHETIC_SOQL,
+    });
+
+    const { container } = await renderHome();
+
+    expect(DeathsChart).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("deaths-chart-stub")).not.toBeInTheDocument();
+    expect(container.querySelector("figure")).not.toBeInTheDocument();
+    expect(container.querySelector("svg")).not.toBeInTheDocument();
+  });
+});
+
+describe("/ (Home) — source-level grep (standing clause: no @/ alias imports)", () => {
+  it("page.tsx contains no @/ path-alias import (Vitest cannot resolve it)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const source = readFileSync(join(__dirname, "page.tsx"), "utf8");
+    expect(source).not.toMatch(/from\s+["']@\//);
   });
 });
