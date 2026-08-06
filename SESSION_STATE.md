@@ -56,6 +56,44 @@ Cedar for a full `[SPEC]`.
   has exactly one new failing assertion (the mount test) with all 42 other tests, including every
   Task 1 test, still green.
 - **Next: Phase C — Magnolia implements**, then Phase D — Cypress audits.
+- **Prior-art finding (2026-08-05) — the subgroup-sum fallback is falsified; it must not be
+  specced.** `docs/nyc-collision-analytics-deep-research.md:156` proposes, as the mitigation for
+  the `number_of_persons_killed` dropout, "a synthetic fallback total (sum of the subgroup
+  fields)". GreenInfo-Network/nyc-crash-mapper (crashmapper.org, live, ~1M rows) shipped exactly
+  that and it produced a public discrepancy against NYC Open Data — their issue #111
+  ("Investigate sum discrepancies 2021-2024"): `number_of_pedestrians_* + _cyclist_* + _motorist_*`
+  does not equal `number_of_persons_*`, because some casualties carry no role. Measured live
+  against `h9gi-nx95` over our own window: the gap is exactly 0 for 2018–2020, then opens in 2021
+  and stays open — **deaths short by 12, 20, 19, 9, 6** (2021–2025) and injuries short by ~1.4k–2.4k
+  a year. So the "fallback" is not the same series; substituting it would understate 2022 deaths by
+  ~7% while looking healthy. **FR-11 fail-loud stays the only behavior.** If a fallback is ever
+  wanted it must render as a separate, labelled series with the residual shown, never backfilled
+  into the fatality line. Their fix is the pattern worth copying: authoritative total field for the
+  grand total, plus an explicit "Other/Unknown" category carrying `total − sum(categories)`.
+  The same live query re-confirmed all 8 pinned deaths figures with zero drift.
+  **Cedar has SPEC'd the correction; it is queued in [`SPEC-QUEUED.md`](SPEC-QUEUED.md), and it is
+  NOT dispatchable as written** — see § Pending revision request at the top of that file. **Next
+  session's first action on this thread: send that revision request to Cedar** (respawns cold — it
+  needs the SPEC block *and* the revision section, since it will not remember authoring either).
+  Two of three reviewed judgment calls were endorsed unchanged and must not be reopened; the one
+  change asks Cedar to make `subtotal-gap.py` a checker with pinned expected gaps and exit 1 on
+  drift, rather than a reporter, because the SPEC's own Tipping Point currently has no detector.
+  `SPEC.md` is occupied by Task 2, so the contract lives separately until Task 2 archives, then
+  moves into `SPEC.md` verbatim and `SPEC-QUEUED.md` is deleted. Cedar's
+  pass changed the blast radius in both directions: the falsified mitigation is live in **four**
+  places, not one — the research doc's table row (156), its strategic-recommendations bullet
+  (168–171), its trust note (40–48), and `nyc-collision-reporting-drift.md`'s Fix column (257),
+  which is the most dangerous because a reader of that table sees no hedging at all. Conversely
+  **the PRD is out of scope entirely** (FR-11 line 207 and the risk register line 262 already
+  specify fail-loud and never mention a fallback) and **`src/lib/deaths.ts` is correct twice
+  over** — `parseRow` rejects any non-numeric value, and `SELECT_CLAUSE` never selects the
+  subgroup fields, so the fallback is unreachable rather than merely unused. No source change is
+  owed. Five files (two prose corrections, a `mvcc-data/SKILL.md` clause, ADR 0002, and
+  `.claude/scripts/subtotal-gap.py`); per-file rationale, constraints, and acceptance commands are
+  in `SPEC-QUEUED.md` and are not restated here. One thing worth carrying: crashmapper's
+  "Other/Unknown" residual pattern is recorded in the ADR but deliberately **not** adopted — it is
+  a residual over *people within a record*, our PDO tier is a residual over *collision records*,
+  and conflating them would be an error. Applying it needs its own SPEC.
 - **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
   `v22.23.2` and `which node` resolves under the fnm v22 tree. Fix was `env.PATH` in
   **`.claude/settings.local.json`**, gitignored (machine-specific, absolute path under
