@@ -1,0 +1,88 @@
+/* Colour lives entirely here (SPEC.md Constraint 4) — DeathsChart.tsx
+   contains no colour literal at all. Every mode-dependent value is a custom
+   property scoped to .figure, light value first, dark second, mirroring the
+   :root / prefers-color-scheme pattern globals.css already uses (just
+   scoped to this component instead of :root, since these tokens have
+   exactly one consumer today — see SPEC.md's Tipping Point on when they
+   hoist to globals.css). */
+.figure {
+  --chart-series-1: #2a78d6;
+  --chart-grid: #e1e0d9;
+  --chart-rule: #c3c2b7;
+  --chart-ink: #52514e;
+
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .figure {
+    --chart-series-1: #3987e5;
+    --chart-grid: #2c2c2a;
+    --chart-rule: #383835;
+    --chart-ink: #c3c2b7;
+  }
+}
+
+/* min-width: 0 lets the flex/grid-agnostic wrapper shrink below its content's
+   natural width at narrow viewports (Edge Case 6, 320px) instead of forcing
+   a horizontal scrollbar — ResponsiveContainer's own width: 100% only works
+   if this ancestor is actually allowed to be narrow. */
+.plot {
+  min-width: 0;
+}
+
+.caption {
+  margin-top: 0.5rem;
+  color: var(--chart-ink);
+  font-size: 0.875rem;
+}
+
+/* The following target Recharts' own stable, unscoped class names (verified
+   against the installed recharts@3.10.1, and the same selectors
+   DeathsChart.test.tsx asserts against). CSS declarations — including these
+   descendant rules — always win over the SVG presentation attributes
+   Recharts sets by default, regardless of specificity, so no colour prop
+   needs to be passed from the component at all: geometry lives in props,
+   colour lives here. */
+
+.figure :global(.recharts-line-curve) {
+  stroke: var(--chart-series-1);
+}
+
+.figure :global(.recharts-line-dot) {
+  fill: var(--chart-series-1);
+  /* The marker's 2px ring is the page's own surface colour (globals.css),
+     not a second near-white — see SPEC.md Output 2. */
+  stroke: var(--background);
+}
+
+.figure :global(.recharts-cartesian-grid-horizontal) line {
+  stroke: var(--chart-grid);
+}
+
+.figure :global(.recharts-cartesian-axis-line) {
+  stroke: var(--chart-rule);
+}
+
+.figure :global(.recharts-cartesian-axis-tick-line) {
+  stroke: var(--chart-rule);
+}
+
+.figure :global(.recharts-cartesian-axis-tick-value) {
+  fill: var(--chart-ink);
+}
+
+/* The YAxis "Deaths" title renders through Recharts' own <Label>, which
+   always carries this class — targeted here rather than passed as a prop
+   for the same reason as the marks above. */
+.figure :global(.recharts-label) {
+  fill: var(--chart-ink);
+}
+
+/* The end-value label is a plain <text> this component renders itself
+   (not a Recharts-owned element), so it takes a normal, locally-scoped
+   module class. Text wears text tokens, never the series colour. */
+.endLabel {
+  fill: var(--chart-ink);
+  font-size: 0.8125rem;
+}
