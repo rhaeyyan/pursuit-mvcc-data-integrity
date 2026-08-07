@@ -78,10 +78,21 @@ fi
 report=""
 failed=0
 
-if [ -x "$appdir/node_modules/.bin/tsc" ] && [ -f "$appdir/tsconfig.json" ]; then
-  if ! out=$(cd "$appdir" && ./node_modules/.bin/tsc --noEmit 2>&1); then
-    report="${report}typecheck (tsc --noEmit) failed:
+# A missing/non-executable binary here is not a legitimate skip: node_modules
+# exists (checked above), so an expected binary being absent means a partial
+# or corrupted install, not "nothing to run against." That must fail loud,
+# same as the toolchain-mismatch case above -- a silent skip here is the same
+# fake-green bug in different words.
+if [ -f "$appdir/tsconfig.json" ]; then
+  if [ -x "$appdir/node_modules/.bin/tsc" ]; then
+    if ! out=$(cd "$appdir" && ./node_modules/.bin/tsc --noEmit 2>&1); then
+      report="${report}typecheck (tsc --noEmit) failed:
 $(printf '%s\n' "$out" | head -n 20)
+"
+      failed=$((failed + 1))
+    fi
+  else
+    report="${report}typecheck NOT RUN: tsconfig.json present but $appdir/node_modules/.bin/tsc is missing or not executable — incomplete or corrupted install, not a clean state.
 "
     failed=$((failed + 1))
   fi
@@ -94,6 +105,10 @@ $(printf '%s\n' "$out" | head -n 20)
 "
     failed=$((failed + 1))
   fi
+else
+  report="${report}lint NOT RUN: $appdir/node_modules/.bin/eslint is missing or not executable — incomplete or corrupted install, not a clean state.
+"
+  failed=$((failed + 1))
 fi
 
 if [ "$failed" -gt 0 ]; then
@@ -101,5 +116,6 @@ if [ "$failed" -gt 0 ]; then
   exit 2
 fi
 
-[ "$quiet" -eq 1 ] || echo "Quality gate clean: typecheck and lint pass (Node $(node -v))."
+node_version=$(node -v 2>/dev/null); [ -n "$node_version" ] || node_version="unknown"
+[ "$quiet" -eq 1 ] || echo "Quality gate clean: typecheck and lint pass (Node $node_version)."
 exit 0

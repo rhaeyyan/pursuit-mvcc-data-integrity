@@ -15,10 +15,9 @@ reset and empty — next task starts with Cedar.
   available in this environment; substituted this round with jsdom+axe-core assertions and a
   pinned-token cross-check. `YearlyLineChart.tsx` is 151 lines, past its own ~140-line Tipping
   Point by 11 — logged, not blocking. Full narrative and reasoning in `ARCHIVED_SESSIONS.md`;
-  closed SPEC in `ARCHIVED_SPECS.md`. `SPEC.md` reset — no task pre-declared. **Working tree has
-  the completed, uncommitted diff** (5 files: `DeathsChart.tsx`/`.module.css` deleted,
-  `YearlyLineChart.tsx`/`.module.css` + `page.tsx` added/edited, plus Cypress's two test files) —
-  **next: commit, if the human wants that now.**
+  closed SPEC in `ARCHIVED_SPECS.md`. `SPEC.md` reset — no task pre-declared. Committed as three
+  commits (test → feat → docs, matching established convention) and pushed:
+  `6f4b945`→`46b0d46`→`4e8fefe`, `origin/main` now at `4e8fefe`.
 - **`MetricSection` extraction + `page.module.css` deletion CLOSED (2026-08-06).** `page.tsx`:
   162 → 63 lines. Cypress PASS: 155/155 tests, `git diff --stat` on `page.test.tsx` and six other
   protected test files empty (independently reconfirmed by both Banyan and Cypress) — the
@@ -26,10 +25,15 @@ reset and empty — next task starts with Cedar.
   redesign so that task gets clean territory instead of competing for the same file. Full
   narrative in `ARCHIVED_SESSIONS.md`; closed SPEC in `ARCHIVED_SPECS.md`. Commits:
   `235347d`→`3f1cfc5`→`ca683e0` → archival. `SPEC.md` reset — no task pre-declared.
-- **Two hook defects the 2026-08-05 audit surfaced**, both in `.claude/hooks/stop-quality-gate.sh`,
-  both **pre-existing**, neither a regression: (1) fake-green when `node_modules/` exists but the
-  binaries do not (lines 81, 90); (2) the all-clear line can print an empty version (line 104).
-  Belong to the next SPEC that touches that file — Cypress may not edit it, Redwood or Banyan must.
+- **Both `stop-quality-gate.sh` fake-green defects FIXED (2026-08-06), Redwood, no SPEC (simple
+  bug, routed directly per Pine's rules).** (1) A missing/non-executable `tsc`/`eslint` binary now
+  fails loud (`failed=$((failed+1))`, explicit "incomplete or corrupted install" message) instead
+  of silently skipping the check while still reporting clean — verified by renaming each binary in
+  turn and confirming exit 2, then restoring and reconfirming exit 0. (2) The all-clear message now
+  captures `node -v` defensively into a variable with an `"unknown"` fallback, so it can no longer
+  print an empty version. `--hook` mode and the `stop_hook_active` escalation short-circuit
+  reconfirmed untouched. Independently re-verified (not just trusting Redwood's report): re-ran the
+  script standalone post-fix, clean with `Node v22.23.2`.
 - **Harness platform fix CONFIRMED LIVE** (2026-08-05): `node -v` in the Bash tool now prints
   `v22.23.2` and `which node` resolves under the fnm v22 tree. Fix was `env.PATH` in
   **`.claude/settings.local.json`**, gitignored (machine-specific, absolute path under
