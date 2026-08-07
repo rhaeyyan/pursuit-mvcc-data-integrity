@@ -12,13 +12,21 @@
 // work, not owed by this task). The accessible tables (NFR-3) and the FR-8
 // query disclosures are built by the shared MetricSection component
 // (extracted per the page.tsx decomposition SPEC, 2026-08-06); this file
-// composes the four MetricSection calls plus the two chart sibling mounts,
+// composes the five MetricSection calls plus the three chart sibling mounts,
 // which stay here rather than inside MetricSection (see that component's
 // file header).
+//
+// FR-5 addition (SPEC.md, "traffic-enforcement arrest counts per year"): a
+// fifth, independently-scaled small-multiples panel (chart + table), sourced
+// from src/lib/arrests.ts — a deliberately self-contained sibling module,
+// not a socrata.ts caller (see that file's header). No inline note: the
+// correlation-only framing this series needs already lives in Caveats,
+// page-wide (SPEC.md Intellectual Control point 5).
 
 import { Caveats } from "../components/Caveats";
 import { MetricSection } from "../components/MetricSection";
 import { YearlyLineChart } from "../components/YearlyLineChart";
+import { ARRESTS_SOQL, fetchArrestsPerYear } from "../lib/arrests";
 import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../lib/collisions";
 import { DEATHS_SOQL, fetchDeathsPerYear } from "../lib/deaths";
 import { INJURIES_SOQL, fetchInjuriesPerYear } from "../lib/injuries";
@@ -53,13 +61,19 @@ const REPAIRED_COLLISIONS_NOTE =
   SEE_CAVEATS_POINTER;
 
 export default async function Home() {
-  const [result, injuriesResult, collisionsResult, repairedResult] =
-    await Promise.all([
-      fetchDeathsPerYear(),
-      fetchInjuriesPerYear(),
-      fetchCollisionsPerYear(),
-      fetchRepairedCollisionsPerYear(),
-    ]);
+  const [
+    result,
+    injuriesResult,
+    collisionsResult,
+    repairedResult,
+    arrestsResult,
+  ] = await Promise.all([
+    fetchDeathsPerYear(),
+    fetchInjuriesPerYear(),
+    fetchCollisionsPerYear(),
+    fetchRepairedCollisionsPerYear(),
+    fetchArrestsPerYear(),
+  ]);
 
   return (
     <main>
@@ -127,6 +141,25 @@ export default async function Home() {
         result={repairedResult}
         soql={REPAIRED_COLLISIONS_SOQL}
         note={REPAIRED_COLLISIONS_NOTE}
+      />
+
+      {arrestsResult.status === "ok" && (
+        <YearlyLineChart
+          rows={arrestsResult.rows}
+          fieldAlias="arrests"
+          seriesLabel="Arrests"
+          strokeStyle="solid"
+          colorSlot={1}
+          ariaLabel="Line chart of NYC traffic-enforcement arrest counts per year from 2018 to 2025."
+          captionText="NYC traffic-enforcement arrests per year, 2018–2025. Every plotted figure is listed in the table below."
+        />
+      )}
+      <MetricSection
+        fieldAlias="arrests"
+        columnLabel="Arrests"
+        captionText="NYC traffic-enforcement arrests per year, 2018–2025 (five offense categories)"
+        result={arrestsResult}
+        soql={ARRESTS_SOQL}
       />
 
       <Caveats />
