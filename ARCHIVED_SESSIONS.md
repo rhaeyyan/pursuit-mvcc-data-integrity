@@ -8,6 +8,80 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — FR-3 closed: collisions chart as small multiples, not a merged two-series plot
+
+`DeathsChart.tsx` generalized into `src/components/YearlyLineChart.tsx`, a single-series chart
+parameterized by `fieldAlias`/`strokeStyle`/`colorSlot`/copy, called twice (deaths solid/blue,
+collisions dashed/orange), each with its own independent zero-based axis — two small multiples,
+never one shared plot. Standard ordering (Cedar → Cypress → Magnolia → Cypress), Cypress PASS on
+both the Phase 1 red-test check and the Phase 3 audit — no rejection loop spent. FR-3 (dashed
+stroke + inline label, conjunctively) is now fully satisfied; the prior session had only closed
+its table half. Full SPEC in `ARCHIVED_SPECS.md`, "Archived 2026-08-06 — FR-3's chart half."
+
+- *Why a shared y-axis was rejected outright rather than implemented as originally briefed.* The
+  dispatch brief framed this as "mount collisions as a second series on `DeathsChart.tsx`'s axis."
+  Deaths (229–297) and collisions (85,546–231,564) differ ~800×; on one zero-based linear axis the
+  deaths line would sit within ~0.15% of the axis height from zero — visually indistinguishable
+  from flat-at-zero. That would erase the exact "deaths flat, collisions cratering" contrast the
+  product exists to show, and it's `dataviz`'s own named anti-pattern #1. Indexing both series to
+  a common base (=100 at 2018) was the one alternative that stays on one axis — deliberately not
+  taken, because it changes the claim from "here are the two literal series" to "here is relative
+  change," which is FR-4's territory (still blocked) and would require a new computed transform
+  rather than plotting the arrays as fetched. This is the kind of correction Cedar is supposed to
+  make rather than build the literal (harmful) framing it's handed.
+- *Why the legend/tooltip half of the prior Tipping Point never fired here.* Those two triggers
+  were written against a merged two-series plot. Small multiples keep each panel single-series, so
+  `dataviz`'s "single series needs no legend" rule applies to both panels independently, and the
+  tooltip's original deferral reasoning (every value already sits in the table below; nothing on
+  the chart can ever visually cross since the two lines never share a plot) held without
+  modification. Only the dashed-stroke trigger — the one actually about the collisions series
+  itself — fired this task.
+- *Why `colorSlot` is a prop independent of `fieldAlias`, not derived from it.* Coupling colour to
+  the data key would make the component silently assume it only ever plots exactly two known
+  fields. A future third chart (e.g. a casualty-filtered repair under FR-12) should be free to take
+  slot 3 without the component needing a field-name-to-colour lookup table baked in.
+  `composition-patterns`' `patterns-explicit-variants` guidance backed this: colour assignment is a
+  design decision independent of which field is plotted, not something to infer implicitly.
+- *Why the collisions chart's caveat text is a shared constant (`COLLISIONS_REPORTING_NOTE`), not
+  restated per surface.* NFR-5 requires the dashed-stroke-plus-label treatment "in every
+  rendering." Two independently-typed copies of the same claim is exactly the drift ADR 0001 was
+  written about — one wrong edit later and the table and the chart would disagree about *why* the
+  series differs, which is worse than either alone.
+- *Why Cypress's audit re-derived every Constraint from source rather than trusting Magnolia's
+  self-reported PASS.* Consistent with the `MetricSection` precedent below: a self-report proves
+  what an agent believes it did, not what the code does. The audit re-ran all four gate commands
+  independently, greeped the client-boundary and no-authored-figure rules itself, and read the two
+  chart-mount conditionals directly to confirm cross-metric independence, rather than accepting
+  "tests pass" as sufficient — tests can be well-intentioned and still miss a constraint the SPEC
+  cared about.
+- *A prompt-injection attempt, caught and named rather than silently avoided.* `next dev` had
+  auto-appended a block to `CLAUDE.md` (a known, SPEC-anticipated artifact — its own acceptance
+  clause 3 prescribes reverting it via `git checkout -- CLAUDE.md`). The injected block's text
+  itself contained a line reading "committing it with your work keeps the tree clean" — an
+  instruction embedded in file content, directly contradicting the SPEC's explicit revert
+  directive. Treated as untrusted content (a file's own diff is not a legitimate instruction
+  channel, regardless of how procedural it reads) and reverted anyway; flagged to the human rather
+  than silently overridden or silently complied with. Worth remembering as a concrete example of
+  what this class of injection looks like in practice, since it read as boring tooling
+  documentation rather than an obvious attack.
+- *Why the 151-line Tipping Point overage on `YearlyLineChart.tsx` (vs. the SPEC's own ~140-line
+  trigger) was logged rather than treated as a blocking finding.* The SPEC's Tipping Points are
+  explicitly named as revisit signals, not hard caps — Rule 8's "patterns are earned" logic applies
+  symmetrically to *not* over-refactoring on a first small overage. Recorded here so the next task
+  touching this file starts from an accurate baseline instead of re-discovering the overage cold.
+- *Why the live-browser visual QA (dashed rendering, dark-mode swap, 320px no-scroll) is recorded
+  as an open, non-blocking gap rather than either faked or treated as a blocker.* No Chromium
+  binary was available in either Magnolia's or the orchestrating session's sandbox
+  (`mcp__playwright__browser_navigate` failed outright). Both substituted the jsdom+axe-core suite
+  (which does assert the dashed `stroke-dasharray` and the `--chart-series` token selection
+  mechanically) plus a byte-for-byte cross-check of the shipped hex values against the SPEC's
+  pinned token table. That is real coverage of the mechanism, just not a literal rendered
+  screenshot — judged sufficient to close the SPEC rather than block on tooling neither sandbox
+  had, especially since the underlying CSS-custom-property pattern was already shipped and
+  eyeballed once before (Task 2's `DeathsChart`).
+
+---
+
 ## 2026-08-06 — `MetricSection` extracted, clearing page.tsx for the FR-3 chart redesign
 
 A Banyan mechanical refactor, not a feature task: `page.tsx`'s three near-duplicate metric blocks

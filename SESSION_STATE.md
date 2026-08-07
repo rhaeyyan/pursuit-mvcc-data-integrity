@@ -1,25 +1,24 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** FR-3's remaining chart half — collisions as its own dashed-stroke line
-chart, small multiples (not merged onto `DeathsChart`'s axis). Human-approved (2026-08-06),
-persisted to `SPEC.md`, ready to dispatch to Cypress (standard ordering, tests first).
+**Current objective:** none pre-declared. FR-3 closed this session (see Active). `SPEC.md` is
+reset and empty — next task starts with Cedar.
 
 ## Active
 
-- **FR-3's chart half (collisions dashed-stroke chart) SPEC dispatched, human-approved, ready for
-  Cypress.** Cedar caught and corrected a flawed premise in the dispatch brief: "merge collisions
-  onto `DeathsChart`'s axis" was rejected outright, not implemented — deaths (229–297) and
-  collisions (85,546–231,564) differ ~800×, so a shared zero-based axis would erase the exact
-  "deaths flat, collisions cratering" contrast the product exists to show (`dataviz`'s own
-  dual/shared-axis anti-pattern). Builds **small multiples** instead: `DeathsChart.tsx` generalizes
-  into `src/components/YearlyLineChart.tsx`, a single-series chart parameterized by
-  `fieldAlias`/`strokeStyle`/`colorSlot`/copy, called twice (deaths solid/blue, collisions
-  dashed/orange), each with its own independent zero-based axis. Because each panel stays
-  single-series, the legend and tooltip triggers flagged in earlier SPECs don't fire — those only
-  applied to a merged plot. Collisions chart reuses the *exact* reporting-policy sentence already
-  shipped on the table (shared constant, not reworded) so NFR-5's "in every rendering" can't drift
-  between surfaces. 5 files (deletes `DeathsChart.tsx`/`.module.css`, adds their replacements),
-  standard ordering. **Next: dispatch Cypress.**
+- **FR-3's chart half (collisions dashed-stroke chart, small multiples) CLOSED (2026-08-06).**
+  Standard ordering throughout; Cypress PASS on both the Phase 1 red-test check and the Phase 3
+  audit — no rejection loop spent. FR-3 (dashed stroke + inline label, conjunctively) is now
+  **fully satisfied**. One non-blocking finding logged and handled: a `next dev`-injected
+  `CLAUDE.md` block was reverted (its own text tried to argue for committing it instead — an
+  injection attempt, disregarded and flagged, not followed). One open non-blocker: live-browser
+  visual QA (dashed rendering, dark-mode swap, 320px) is still owed whenever a Chromium binary is
+  available in this environment; substituted this round with jsdom+axe-core assertions and a
+  pinned-token cross-check. `YearlyLineChart.tsx` is 151 lines, past its own ~140-line Tipping
+  Point by 11 — logged, not blocking. Full narrative and reasoning in `ARCHIVED_SESSIONS.md`;
+  closed SPEC in `ARCHIVED_SPECS.md`. `SPEC.md` reset — no task pre-declared. **Working tree has
+  the completed, uncommitted diff** (5 files: `DeathsChart.tsx`/`.module.css` deleted,
+  `YearlyLineChart.tsx`/`.module.css` + `page.tsx` added/edited, plus Cypress's two test files) —
+  **next: commit, if the human wants that now.**
 - **`MetricSection` extraction + `page.module.css` deletion CLOSED (2026-08-06).** `page.tsx`:
   162 → 63 lines. Cypress PASS: 155/155 tests, `git diff --stat` on `page.test.tsx` and six other
   protected test files empty (independently reconfirmed by both Banyan and Cypress) — the
@@ -73,12 +72,14 @@ persisted to `SPEC.md`, ready to dispatch to Cypress (standard ordering, tests f
 
 *(Empty — everything closed so far is archived; nothing has closed since MetricSection.)*
 
-Six entries are now in `ARCHIVED_SESSIONS.md`, newest first: **`MetricSection` extraction**
-(2026-08-06, why the deaths-chart slot was deliberately kept out of its contract); **FR-3's data
-half** (2026-08-06, why FR-3 is recorded partially-satisfied rather than closed); **FR-2 /
-`socrata.ts` extraction** (2026-08-06, why Cedar picked it over the more thesis-central FR-3); **the
-subgroup-sum fallback correction** (2026-08-06, why the mid-flight revision request mattered); **Task
-2 of the walking skeleton** (2026-08-06, the chart); **Task 1 of the walking skeleton** (2026-08-06,
-the data path) plus the pre-Task-1 platform/scaffold work before it. Read that file directly for the
-full reasoning behind any of these — this pointer is deliberately terse now that six entries live
-there, per the archive threshold.
+Seven entries are now in `ARCHIVED_SESSIONS.md`, newest first: **FR-3 closed — small-multiples
+chart** (2026-08-06, why the shared-axis framing was rejected and rebuilt, plus a caught
+prompt-injection attempt); **`MetricSection` extraction** (2026-08-06, why the deaths-chart slot
+was deliberately kept out of its contract); **FR-3's data half** (2026-08-06, why FR-3 was recorded
+partially-satisfied rather than closed at the time); **FR-2 / `socrata.ts` extraction** (2026-08-06,
+why Cedar picked it over the more thesis-central FR-3); **the subgroup-sum fallback correction**
+(2026-08-06, why the mid-flight revision request mattered); **Task 2 of the walking skeleton**
+(2026-08-06, the chart); **Task 1 of the walking skeleton** (2026-08-06, the data path) plus the
+pre-Task-1 platform/scaffold work before it. Read that file directly for the full reasoning behind
+any of these — this pointer is deliberately terse now that seven entries live there, per the
+archive threshold.
