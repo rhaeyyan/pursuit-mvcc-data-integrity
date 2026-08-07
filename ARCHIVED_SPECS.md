@@ -4463,3 +4463,236 @@ becoming Magnolia work.
    was written about.
 3. Simplicity > Pattern purity (always present).
 ```
+
+---
+
+## Archived 2026-08-07 — FR-13: policy-date reference markers, both charts (COMPLETE)
+
+**Outcome:** delivered 5 of 5 budgeted files (`policyDates.ts` new, `YearlyLineChart.tsx`/
+`.module.css`/`.test.tsx` edited, `policyDates.test.ts` new); standard ordering throughout,
+Cypress PASS on both the Phase 1 red-test check and the Phase 3 audit. One retry-adjacent event,
+not a rejection-loop cycle: Magnolia's implementation was correct against the SPEC (318/319 tests)
+but surfaced a stale pre-existing test in Cypress's own file (a Task-2-era "no paragraph when note
+absent" assertion that FR-13's new unconditional caption paragraph legitimately violated) — the
+same bug class Cypress had already caught once on a different file during FR-4. Routed back to
+Cypress to fix its own test rather than treated as a Magnolia defect; 319/319 after the fix, full
+audit PASS on the same pass. Magnolia's session was also interrupted mid-verification by a usage
+limit and resumed from transcript rather than respawned, catching and fixing one genuine bug
+(`isFront` isn't a valid Recharts `ReferenceLine` prop) before the interruption. FR-13 fully
+closed — the product now visually locates the 2019/2020 reporting-policy break on both the deaths
+and collisions charts, not just in FR-9's prose. Full narrative in `ARCHIVED_SESSIONS.md`.
+
+
+# Active SPEC
+
+**Status:** approved — ready to dispatch to Cypress (tests first, standard ordering)
+**Author:** Cedar (Tech Lead) · **Created:** 2026-08-06 · **Human-approved (HITL):** 2026-08-06, Rayan
+**Then:** Cypress (failing tests first) → Magnolia (execution) → Cypress (audit)
+**Ordering:** standard, no deviation — Cypress writes failing tests first per Rule 4
+
+## Why FR-13, and the deploy-SPEC question resolved to a plain ask (Cedar's reasoning, recorded)
+
+Checked the deploy-SPEC question fresh rather than declining it on inherited faith a fourth time:
+there is no `.vercel/` directory, no `vercel.json`, and no `vercel` entry anywhere in
+`package.json` — nothing in this repo shows a locally-linked Vercel project. But that check is
+necessarily inconclusive: a Vercel project imported through the dashboard from the GitHub remote
+(`github.com/rhaeyyan/pursuit-mvcc-data-integrity`, confirmed in `.git/config`) leaves **no trace
+in the repo at all** unless someone has run `vercel link` locally — so absence of `.vercel/` proves
+"not linked from this machine," not "not linked." This is genuinely external state Cedar cannot
+resolve by reading files. Not spending a task slot on it, but it no longer needs re-flagging as
+unattempted — it's now a one-line factual question for the human ("is a Vercel project connected to
+this GitHub repo?"), not a standing mystery.
+
+FR-5–7 stays out this round on the same grounds three straight sessions have named: it bundles a
+new dataset fetch, the borough-code trap, a dual-axis chart, and the "enforcement caused deaths"
+misreading NFR-5 explicitly warns against — real design risk (PRD §7 rates it Med/Med and names
+"default the enforcement series off" as a live mitigation option), not a single 5-file task. It
+stays queued, not because it's unimportant, but because nothing forces it ahead of a cleanly-scoped
+P1 that's sitting ready.
+
+The repaired-vs-raw chart overlay stays declined for the same reason it was declined when FR-12
+named it: no FR's literal text requires it, FR-12 is already fully closed by two side-by-side
+tables, and Rule 8 doesn't let it get built just because it would look nice. The live-browser QA
+gap is confirmed environment-blocked (`sudo` required, no password in this sandbox) and isn't
+spec-shaped — noted, not picked.
+
+FR-13 is the one candidate that's both well-motivated *now* (FR-9 shipped and already pins these
+exact two dates as prose, and FR-9's own closing SPEC named "FR-13 gets specced" as the explicit
+trigger to stop deferring a shared `policyDates.ts` module) and cleanly scoped: no new SoQL (both
+dates are already-verified static facts, not a query result — NFR-4 doesn't apply), touches only
+`YearlyLineChart.tsx`/its CSS/a new tiny data module, and fits in 5 files including tests without
+touching `page.tsx` at all. The one real design question — Recharts' category x-axis
+(`type="category"`, one tick per year) can't express a day-level date position, only a year — is
+resolvable with a defensible engineering call rather than a `/grill-me` round: snap each marker to
+its containing year's category tick, and carry the actual day-level precision in the marker's text
+label instead of its position, which is the same "never encode meaning by position/color alone,
+always pair it with explicit text" discipline NFR-5 already establishes for the dashed collisions
+stroke.
+
+---
+
+```markdown
+[SPEC]
+- **Objective**: Mark the two documented NYPD reporting-policy dates as labelled vertical reference
+  lines on every `YearlyLineChart` instance, and extract the two dates into a shared, reusable data
+  module — closing the deferred extraction FR-9's own closing SPEC named as FR-13's trigger.
+- **Requirement**: **FR-13 [P1]** (PRD §5.3 item 13) — "The system shall mark the two documented
+  policy dates on the time axis — 2019-03-18 (Staten Island pilot) and 2020-04-06 (citywide) — as
+  labelled reference markers, so the structural break is located visually rather than only
+  described in prose."
+- **Inputs/Outputs**:
+  - `src/lib/policyDates.ts` (new) — the single source of truth both the visual markers and the
+    accessible caption sentence below are generated from, so the two can never independently drift:
+    ```ts
+    export type PolicyDateMarker = {
+      year: number;      // the category-axis tick this marker snaps to
+      isoDate: string;   // the actual day, carried in text only — the axis cannot express it
+      label: string;     // pinned verbatim below, asserted by Cypress with toBe
+    };
+
+    export const POLICY_DATE_MARKERS: readonly PolicyDateMarker[] = [
+      { year: 2019, isoDate: "2019-03-18", label: "Staten Island pilot begins" },
+      { year: 2020, isoDate: "2020-04-06", label: "Citywide policy takes effect" },
+    ];
+    ```
+  - `src/components/YearlyLineChart.tsx` (edit) — import `ReferenceLine` from `recharts` and
+    `POLICY_DATE_MARKERS`/`PolicyDateMarker` (type) from `../lib/policyDates`. Add:
+    - A pure helper (same posture as the existing `makeEndLabelRenderer`) that filters
+      `POLICY_DATE_MARKERS` to markers whose `year` appears in `rows` (defensive — a future
+      narrower panel, e.g. a Staten-Island-only story, may not cover both years) and returns
+      that filtered list.
+    - One `<ReferenceLine>` per surviving marker, `x={marker.year}`, rendered inside `<LineChart>`
+      alongside the existing `<Line>` — **unconditional**, not behind a new prop. No boolean prop is
+      introduced (`composition-patterns` — `architecture-avoid-boolean-props`): every current and
+      foreseeable call site (deaths, collisions, and any future single-series chart over the same
+      fixed 2018–2025 window) wants the same two markers, so there is no real variance to gate.
+    - A new pure function generating the accessible caption sentence from the same filtered marker
+      list:
+      ```ts
+      function buildPolicyMarkerCaption(markers: PolicyDateMarker[]): string {
+        const parts = markers.map((m) => `${m.isoDate} (${m.label})`).join(" and ");
+        return `Vertical reference lines mark ${parts} — see Caveats, below, for details.`;
+      }
+      ```
+      For the current full 2018–2025 window (both markers present), this renders verbatim as:
+      `"Vertical reference lines mark 2019-03-18 (Staten Island pilot begins) and 2020-04-06
+      (Citywide policy takes effect) — see Caveats, below, for details."`
+      Rendered as an unconditional third `<p>` inside `<figcaption>` (after `captionText` and the
+      optional `note`), present on **every** instantiation (deaths and collisions both), not gated
+      by the `note` prop — the deaths chart currently has no `note` and must still carry this
+      sentence, since the marker text is the only place a screen-reader user (who cannot see the
+      vertical lines) learns the markers exist at all. When the filtered marker list is empty,
+      render nothing (no empty `<p>`).
+  - `src/components/YearlyLineChart.module.css` (edit) — a new token pair, same `.figure`-scoped /
+    `prefers-color-scheme: dark` pattern already used for `--chart-series-1`/`-2`:
+    ```css
+    .figure {
+      --chart-annotation: <light value, AA-contrast-validated>;
+    }
+    @media (prefers-color-scheme: dark) {
+      .figure { --chart-annotation: <dark value, AA-contrast-validated>; }
+    }
+    .figure :global(.recharts-reference-line line) {
+      stroke: var(--chart-annotation);
+    }
+    .figure :global(.recharts-reference-line .recharts-text) {
+      fill: var(--chart-annotation);
+    }
+    ```
+    `--chart-annotation` must be visually and numerically distinct from both `--chart-series-1` and
+    `--chart-series-2` in both modes (a reference line must never be mistakable for a third data
+    series), and its `stroke-dasharray` must be a real, non-empty pattern **different from** the
+    `"8 6"` pattern `DASH_PATTERN` already spends on the reporting-affected collisions line — pick a
+    finer pattern (e.g. a short dot/dash) so an annotation is visually distinguishable from a dashed
+    *series* on sight, not just by a legend that doesn't exist here.
+- **Query**: None. No SoQL, no new fetch. Both dates are static, already-verified historical facts —
+  the same pinned values `Caveats.tsx`/FR-9 already renders as prose and the `mvcc-data` skill
+  carries under "The documented cause." Nothing here is a Socrata-derived figure, so NFR-4 governs
+  only in the negative sense: these two literals may be hardcoded (they are not aggregates), unlike
+  a deaths/injuries/collisions count.
+- **Design Pattern**: none — simple case. Two fixed markers, applied identically at every call site;
+  no interchangeable behavior, no per-caller customization needed. The `policyDates.ts` extraction is
+  duplication avoidance (single source of truth for the marker data), not a GoF pattern.
+- **UI Scope**: structural — the chart's DOM gains two `<ReferenceLine>` elements, their label text,
+  and a new always-rendered `<figcaption>` paragraph; this is new content, not a style-only change to
+  the existing layout. Assigned to **Magnolia**.
+- **Intellectual Control**:
+  - **The categorical-axis compromise, stated rather than hidden.** `XAxis` is `type="category"`
+    over discrete year values (`YearlyLineChart.tsx:118`) — there is no continuous time scale a
+    day-precision date could sit on. Snapping `x={marker.year}` to the containing year's tick is the
+    only geometrically honest placement available; day-level precision is preserved in the label text
+    (`isoDate`) instead of implied by pixel position. This mirrors NFR-5's existing rule for the
+    dashed collisions stroke: never let a visual encoding alone carry more precision than it actually
+    has — pair it with exact text.
+  - **Why markers render on both the deaths and the collisions chart, not collisions alone.** FR-13's
+    stated purpose is locating the structural break "visually rather than only in prose." The
+    product's whole small-multiples design (FR-3) exists to let a reader compare a discretionary
+    metric against a non-discretionary one across the same window — showing the same two markers on
+    the deaths panel lets a reader see, directly, that deaths didn't move across the exact boundary
+    where collisions did. Omitting it from one panel would be an arbitrary asymmetry the requirement
+    text gives no reason for.
+  - **Why `policyDates.ts` is built now and not before.** FR-9's closing SPEC explicitly declined this
+    extraction, naming "FR-13 has no SPEC yet to define what shape it needs" as the reason (Rule 8 —
+    unearned generality). FR-13 now defines that shape precisely: `{ year, isoDate, label }`, a
+    coordinate-shaped need distinct from FR-9's prose-shaped need. Building it now is the trigger
+    firing, not a preemptive build.
+  - **Why `Caveats.tsx` is deliberately *not* touched to import from this new module.** It would
+    remove one instance of literal-date duplication, but `Caveats.tsx`'s five items are under a
+    verbatim-prose test contract (`Caveats.test.tsx` diffs the shipped text character-for-character
+    against `SPEC.md`'s pinned strings) — editing it for an unrelated task risks that contract for a
+    cosmetic DRY gain on two fixed historical-fact literals, which is not the kind of duplication
+    Rule 4 (query-as-contract) or ADR 0001 was written about: these are dates, not a SoQL clause that
+    could silently diverge in meaning. Named here as a considered, bounded duplication, not an
+    oversight — revisit only if `Caveats.tsx` is touched for its own reasons.
+  - **Why the accessible sentence is generated from `POLICY_DATE_MARKERS`, not hand-typed per call
+    site.** Two independently-authored copies of "the markers say X and Y" — one in the visual layer,
+    one in text — is exactly the drift ADR 0001 exists to prevent. Deriving both from one array makes
+    that drift structurally impossible rather than a matter of remembering to keep them in sync.
+- **Constraints**:
+  - No new NPM/PIP dependency — `ReferenceLine` ships in the already-installed `recharts@^3.10.1`.
+  - No colour literal (`#rrggbb`/`rgb()`/`hsl()`) in `YearlyLineChart.tsx` — unchanged Constraint 4,
+    extended to cover the new annotation code path.
+  - No literal `"2019-03-18"`/`"2020-04-06"`/`"2019"`/`"2020"` date string in `YearlyLineChart.tsx`
+    itself — both values must be read from `POLICY_DATE_MARKERS`, never re-typed.
+  - `--chart-annotation`'s light and dark values must independently clear WCAG 2.2 AA contrast
+    against `--background` in both modes — computed via the `dataviz` skill's validator, not
+    eyeballed, matching the precedent set on the README diagram's palette work.
+  - `prefers-reduced-motion` — unaffected; `isAnimationActive={false}` already applies chart-wide and
+    reference lines introduce no new animation.
+- **Edge Cases**:
+  - A `rows` array that doesn't include one or both marker years (a hypothetical narrower future
+    panel) must render only the markers whose year is present — never throw, never render a marker at
+    an undefined position. The accessible caption sentence must reflect exactly the markers actually
+    rendered (0, 1, or 2), never claim a marker that isn't drawn.
+  - The existing "renders 2018 and 2025 as category ticks" / "never invents a fractional-year tick"
+    tests in `YearlyLineChart.test.tsx` must still pass unmodified — reference lines must not add or
+    alter any XAxis tick.
+  - The existing end-value label and series-axis-label tests must still pass unmodified — the two new
+    marker `<text>` label nodes must be distinguishable from both by content (marker `label` text
+    never collides with a fixture's numeric last-value string or the `seriesLabel` word).
+  - `guard-data-integrity.sh`'s pinned-figure grep must stay green — `2019`/`2020`/the two ISO date
+    strings are not on its pinned-literal list (verify by running the hook standalone post-edit, same
+    discipline as FR-9's close-out).
+- **Files** (5, at the cap):
+  1. `src/lib/policyDates.ts` (new)
+  2. `src/lib/policyDates.test.ts` (new — Cypress: exact shape, exact pinned label/isoDate strings)
+  3. `src/components/YearlyLineChart.tsx` (edit)
+  4. `src/components/YearlyLineChart.module.css` (edit)
+  5. `src/components/YearlyLineChart.test.tsx` (edit — extend `runSharedContract` with marker-count,
+     marker-position-relative-to-XAxis-tick, dash-pattern-distinct-from-8-6, caption-sentence, and
+     axe-core assertions for both configurations, plus a new fixture exercising the "marker year
+     absent from rows" edge case)
+- **Tipping Point**: `YearlyLineChart.tsx` was already logged over its own ~140-line threshold at 151
+  lines after the FR-3 chart-half task; this task adds a second, larger increment on top of that
+  (expect ~190–210 lines). Per Rule 8, a second small overage is still not itself a refactor trigger.
+  The named trigger for extracting chart annotations (end-label + policy markers) into a dedicated
+  module is: **a third annotation layer arrives** (e.g. per-borough shading under FR-6, or an
+  indexed/percent secondary view) — not a line count in isolation.
+
+[FORCES]
+1. Text-carried precision over position-implied precision — a categorical axis cannot express a day,
+   so the label carries the date and the tick carries only the year, honestly.
+2. Single source of truth (`policyDates.ts`) over two independently-typed copies of the same two
+   dates in the chart's visual and accessible layers.
+3. Simplicity > Pattern purity (always present).
+```

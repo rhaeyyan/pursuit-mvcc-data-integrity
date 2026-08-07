@@ -8,6 +8,74 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-07 — FR-13 closed: policy-date markers, and a bug class caught twice on two files
+
+Added two vertical `<ReferenceLine>` markers (2019-03-18 Staten Island pilot, 2020-04-06 citywide)
+to both the deaths and collisions charts, plus an unconditional accessible caption sentence, both
+derived from a new `src/lib/policyDates.ts` so the visual and text layers can't drift apart.
+Standard ordering, Cypress PASS on the Phase 1 red-test check and, after one self-fix, the Phase 3
+audit — no true rejection-loop cycle spent, though the path there was less linear than most closed
+tasks this session. Full SPEC in `ARCHIVED_SPECS.md`, "Archived 2026-08-07 — FR-13."
+
+- *Why markers render on both charts, not the collisions panel alone, even though FR-13's PRD text
+  never explicitly says "both."* The product's whole small-multiples design (FR-3) exists so a
+  reader can compare a discretionary metric (collisions, an officer's filing decision) against a
+  non-discretionary one (deaths) across the identical window. Showing the same two markers on the
+  deaths panel is what lets a reader see, directly and without re-reading prose, that deaths didn't
+  move at the exact boundary where collisions did — that comparison *is* the point of the marker,
+  not an incidental nice-to-have. Omitting it from one panel would have been an arbitrary asymmetry
+  nothing in the requirement's stated purpose ("locate the structural break visually") justified.
+- *The categorical-axis compromise, and why it was solved with an engineering call instead of a
+  `/grill-me` round.* Recharts' `XAxis type="category"` has one tick per year; there is no
+  continuous timeline a day-precision date can sit on. Snapping each marker to its containing
+  year's tick and carrying the actual day in the label text instead of the pixel position is the
+  same "never let a visual encoding alone carry more precision than it has" rule NFR-5 already
+  established for the dashed collisions stroke — an existing project precedent made this a
+  resolvable design decision, not a genuinely open question requiring the human.
+- *Why `policyDates.ts` was built this session and not earlier, despite the same two dates already
+  existing as prose in `Caveats.tsx`.* FR-9's own closing SPEC had explicitly declined the
+  extraction, naming "no SPEC yet defines what shape FR-13 needs" as the reason under Rule 8's
+  unearned-generality discipline. This session's SPEC is that shape landing: `{ year, isoDate,
+  label }`, a coordinate-shaped need genuinely different from FR-9's prose-shaped one. Deliberately
+  did *not* retrofit `Caveats.tsx` to import from the new module — editing a file under a
+  verbatim-prose test contract for a cosmetic dedup on two fixed historical-fact literals wasn't
+  worth the risk, and named explicitly as a bounded, considered duplication rather than an
+  oversight, revisitable only if `Caveats.tsx` is touched for its own reasons later.
+- *A session-usage-limit interruption, and why resuming beat respawning.* Magnolia's Phase 2
+  invocation cut out mid-verification after already writing the real implementation
+  (`policyDates.ts`, both `YearlyLineChart.tsx`/`.module.css` edits complete) — only the acceptance
+  checklist was interrupted, not the build. The orchestrating session resumed the same agent from
+  its transcript rather than dispatching a fresh one, preserving its implementation context; a
+  cold respawn would have either redone finished work or lost the reasoning behind decisions
+  already made (e.g. why `"2 3"` was chosen as the marker dash pattern, distinct from `"8 6"`).
+- *A genuine bug caught in Magnolia's own draft before it ever reached Cypress.* `isFront` isn't a
+  valid `ReferenceLine` prop in this Recharts version — `tsc` caught it the moment the resumed
+  Magnolia invocation ran typecheck, and it was fixed within the same task, the ordinary Rule-4
+  path, not an escalation. Worth noting only because the orchestrating session initially saw this
+  error via a Stop-hook notification and correctly treated it as categorically different from the
+  "module doesn't exist yet" red state that had shown up in every prior mid-TDD task this
+  session — a real type error in *written* code needs a different response (let the agent holding
+  the file fix it) than an absent module does (wait for the agent to finish writing it). Conflating
+  the two would have meant either editing a file mid-flight under a background agent (a race) or
+  wrongly treating a real bug as an expected, ignorable red.
+- *The second bug — a stale test in Cypress's own Phase 1 file — and why it was routed back to
+  Cypress rather than treated as a Magnolia failure or silently patched by whoever found it.*
+  `YearlyLineChart.test.tsx` had a pre-existing Task-2-era assertion checking for "any `<p>`" in
+  `figcaption` as a proxy for "no note" — a proxy that was only ever safe because the note used to
+  be the sole possible paragraph. FR-13's new, legitimate, unconditional marker-caption paragraph
+  broke that coincidental equivalence, exactly the same bug class Cypress had already caught once
+  before, on a *different* file, during FR-4 (`MetricSection.test.tsx`'s identical "any paragraph"
+  proxy). Magnolia correctly declined to fix it itself — it can't edit test files, and 318/319
+  passing with one stale assertion failing is a materially different signal than a real
+  implementation defect. Routing it back to Cypress, using the FR-4 fix as precedent, kept file
+  ownership boundaries intact and let the same rescoping pattern (assert the note's own content and
+  an exact count, not "zero paragraphs total") get reapplied consistently rather than reinvented.
+  Worth remembering as a recurring shape: any test that encodes "the only thing that could be here"
+  as its check is fragile the moment a second legitimate thing arrives, and this project has now
+  hit that exact failure twice on two different components in three sessions.
+
+---
+
 ## 2026-08-06 — FR-9 closed: the caveats section, and the sole remaining P0 requirement
 
 Added a standalone `Caveats.tsx` — a static Server Component with five items (the two reporting-
