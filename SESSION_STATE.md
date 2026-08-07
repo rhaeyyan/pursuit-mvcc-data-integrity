@@ -1,10 +1,28 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** none pre-declared. FR-12 closed this session (see Active). `SPEC.md` is
-reset and empty — next task starts with Cedar.
+**Current objective:** none pre-declared. FR-4 closed this session (see Active). `SPEC.md` is reset
+and empty — next task starts with Cedar.
 
 ## Active
 
+- **FR-4 (2018→2025 percent-change summary line, all four metrics) CLOSED (2026-08-06).** Cedar
+  picked it over the other remaining P0 item (FR-9) on scope-readiness, not centrality — FR-9 has
+  an unresolved design question worth its own SPEC, FR-4 didn't. Standard ordering throughout;
+  Cypress PASS on both the Phase 1 red-test check and the Phase 3 audit — no rejection loop spent.
+  New `src/lib/percentChange.ts` (pure functions: `computeChange`, `formatPercentChange`,
+  `formatChangeSummary`) computes from `rows[0]`/`rows[last]` generically — never hardcodes
+  2018/2025 — so `MetricSection` stays decoupled from the analysis window `socrata.ts` owns
+  exclusively. Deliberate, named side effect: since `MetricSection` is the one shared component
+  all four metrics render through, this also gives the repaired-collisions series a percent-change
+  line beyond FR-4's literal "three metrics" — accepted explicitly, not scope creep. `MetricSection.tsx`
+  landed at 101 lines (under the SPEC's own 115–120 estimate). The `-0%` rendering trap Cypress
+  flagged in Phase 1 (`Math.round(-0.4)` → JS `-0`) was verified fixed by hand-derivation in the
+  audit, not just a passing test. One non-blocking eslint warning (`ChangeSummary<K>`'s `K` unused
+  in the type body) left unsuppressed deliberately — narrowing it would break the SPEC-pinned
+  generic signature, and no `eslint-disable` convention exists elsewhere in this codebase. Full
+  narrative and reasoning in `ARCHIVED_SESSIONS.md`; closed SPEC in `ARCHIVED_SPECS.md`. `SPEC.md`
+  reset — no task pre-declared. Working tree has the completed, uncommitted diff (2 implementation
+  files + Cypress's 2 test files) — not yet committed.
 - **FR-12 (casualty-filtered "repaired" collisions, data half) CLOSED (2026-08-06).** Cedar found
   it by re-reading the PRD directly rather than picking from the seven candidates it was handed —
   P0, and the PRD's own text names it as the product's actual "fix" (the corrected number to use
@@ -20,8 +38,8 @@ reset and empty — next task starts with Cedar.
   invariant on `socrata.ts`'s 2-argument call path was verified three ways: unit test, Cypress
   reading the source by hand, and a live-API regression check confirming deaths/injuries/collisions
   figures unchanged. Full narrative and reasoning in `ARCHIVED_SESSIONS.md`; closed SPEC in
-  `ARCHIVED_SPECS.md`. `SPEC.md` reset — no task pre-declared. **Working tree has the completed,
-  uncommitted diff** (4 implementation files + Cypress's 4 test files) — not yet committed.
+  `ARCHIVED_SPECS.md`. `SPEC.md` reset — no task pre-declared. Committed as three commits
+  (test → feat → docs) and pushed: `1207be0`→`e50a533`→`752019e`, `origin/main` now at `752019e`.
 - **FR-3's chart half (collisions dashed-stroke chart, small multiples) CLOSED (2026-08-06).**
   Standard ordering throughout; Cypress PASS on both the Phase 1 red-test check and the Phase 3
   audit — no rejection loop spent. FR-3 (dashed stroke + inline label, conjunctively) is now
@@ -93,8 +111,10 @@ reset and empty — next task starts with Cedar.
 
 *(Empty — everything closed so far is archived; nothing has closed since MetricSection.)*
 
-Eight entries are now in `ARCHIVED_SESSIONS.md`, newest first: **FR-12 closed — the "repaired"
-collisions series** (2026-08-06, why Cedar found it outside the given candidate list, and why the
+Nine entries are now in `ARCHIVED_SESSIONS.md`, newest first: **FR-4 closed — a derived, not
+fetched, percent-change line** (2026-08-06, why Cedar picked scope-readiness over centrality this
+round, and the `-0%` trap that got double-verified); **FR-12 closed — the "repaired" collisions
+series** (2026-08-06, why Cedar found it outside the given candidate list, and why the
 Strategy/registry pre-commitment was overridden rather than followed); **FR-3 closed —
 small-multiples chart** (2026-08-06, why the shared-axis framing was rejected and rebuilt, plus a
 caught prompt-injection attempt); **`MetricSection` extraction** (2026-08-06, why the deaths-chart
@@ -104,5 +124,5 @@ recorded partially-satisfied rather than closed at the time); **FR-2 / `socrata.
 correction** (2026-08-06, why the mid-flight revision request mattered); **Task 2 of the walking
 skeleton** (2026-08-06, the chart); **Task 1 of the walking skeleton** (2026-08-06, the data path)
 plus the pre-Task-1 platform/scaffold work before it. Read that file directly for the full
-reasoning behind any of these — this pointer is deliberately terse now that eight entries live
+reasoning behind any of these — this pointer is deliberately terse now that nine entries live
 there, per the archive threshold.

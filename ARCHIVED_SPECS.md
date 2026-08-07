@@ -4103,3 +4103,162 @@ as unexamined fact by the next session.
 2. Honoring a four-times-repeated pre-commitment by engaging with it explicitly > either silently ignoring it or silently over-building a Strategy pattern the concrete case doesn't warrant.
 3. Simplicity > Pattern purity (one optional parameter, not a config object or registry, for one data value that varies).
 ```
+
+---
+
+## Archived 2026-08-06 — FR-4: 2018→2025 percent-change summary line (COMPLETE)
+
+**Outcome:** delivered 2 of 2 Redwood-budgeted files (`percentChange.ts` new,
+`MetricSection.tsx` edited, +5 lines net, landed at 101 lines vs. the SPEC's own 115–120
+estimate); standard ordering throughout, Cypress PASS on both the Phase 1 red-test check and the
+Phase 3 audit — no rejection loop spent. FR-4 fully closed for all four metrics (the three named
+by the requirement's text plus repaired collisions, a deliberate, named side effect of
+`MetricSection`'s shared-component design, not scope creep). The `-0%` rendering trap Cypress
+flagged in advance was verified fixed by hand-derivation, not just a passing test. Full narrative
+in `ARCHIVED_SESSIONS.md`.
+
+
+# Active SPEC
+
+**Status:** approved — ready to dispatch to Cypress (tests first, standard ordering)
+**Author:** Cedar (Tech Lead) · **Created:** 2026-08-06 · **Human-approved (HITL):** 2026-08-06, Rayan
+**Then:** Cypress (failing tests first) → Redwood (execution) → Cypress (audit)
+**Ordering:** standard, no deviation — Cypress writes failing tests first per Rule 4
+
+## Why FR-4 over FR-9, and the two P1 candidates (Cedar's reasoning, recorded)
+
+Re-reading the PRD directly rather than trusting the six-item candidate list handed to it, Cedar
+confirmed deaths (FR-1), injuries (FR-2), collisions (FR-3, both halves), the SoQL disclosure
+(FR-8), the error/empty state (FR-10), the fail-loud absent-aggregate guard (FR-11), and the
+repaired-collisions "fix" (FR-12) are all closed. Two **P0** requirements remain: **FR-4**
+(percent-change 2018→2025 for each metric) and **FR-9** (the caveats section). FR-4 was picked
+over FR-9 this round on scope-readiness grounds, not centrality — FR-9 is also P0 and arguably
+more thesis-central, but the ledger itself flags an unresolved design question on it (whether the
+two existing inline notes, `COLLISIONS_REPORTING_NOTE` and `REPAIRED_COLLISIONS_NOTE`, should
+become cross-references once FR-9 lands), which is a real judgment call worth its own dedicated
+SPEC rather than folding in now. FR-4 has no such open question: it's a derived value computed
+entirely from data already fetched and already validated by `socrata.ts` (no new query, no new
+dataset access), it's mechanically enforceable as a pure, tested function (satisfying Rule 1/NFR-4
+directly — the same "compute deterministically" pattern the project already uses everywhere else),
+and it fits cleanly in 4 files, under the 5-file cap. FR-13 and FR-5–7 (both P1) and the deploy
+obligation (a genuine open question about whether a Vercel project is even connected) were all
+weighed and declined in favor of the two remaining P0 items.
+
+The design deliberately computes from the first/last row of whatever array `MetricSection` is
+given, never hardcoding 2018/2025 as a second copy of the analysis window `socrata.ts` already owns
+exclusively per Rule 4. As a named, deliberate side effect, this also gives the already-shipped
+repaired-collisions series (FR-12) a percent-change line, beyond FR-4's literal "three metrics," at
+zero extra cost — accepted explicitly below, not snuck in.
+
+This is a Redwood-owned task, not a Magnolia one: no chart, no layout restructuring, no styling —
+a derived number rendered as text next to an existing table, the same category of work as the
+FR-2/FR-3-data-half/FR-12 tasks that came before it.
+
+---
+
+```markdown
+[SPEC]
+- **Objective**: Compute and display the 2018→2025 percentage change for each yearly metric
+  currently rendered by `MetricSection`, derived entirely from data already fetched and validated
+  — no new query.
+- **Requirement**: FR-4 [P0] — "The system shall compute and display the percentage change from
+  2018 to 2025 for each of the three metrics independently."
+- **Inputs/Outputs**:
+  - `src/lib/percentChange.ts` exports:
+    - `type ChangeSummary<K extends string> = { startYear: number; endYear: number; startValue: number; endValue: number; percentChange: number }` (percentChange is the unrounded float)
+    - `computeChange<K extends string>(rows: YearlyMetricRow<K>[], fieldAlias: K): ChangeSummary<K> | null` — uses `rows[0]` as the start point and `rows[rows.length - 1]` as the end point (never hardcodes 2018/2025 — see Intellectual Control). Returns `null` if `rows.length < 2` or if the start value is `0` (division undefined).
+    - `formatPercentChange(percentChange: number): string` — `Math.round`, whole-percent precision (matches PRD Appendix A's own "−63%"/"−20%"/"−1%" precision), a leading `+` only when the rounded value is strictly positive, no leading `+`/`-` glyph substitution beyond JS's native negative sign.
+    - `formatChangeSummary<K extends string>(change: ChangeSummary<K>): string` — exact template: `` `${startYear}–${endYear} change: ${formatPercentChange(percentChange)} (${startValue} → ${endValue})` ``. No thousands separators — matches the existing table cells' unformatted-number convention (`page.tsx`/`MetricSection.tsx` render raw numbers today; introducing `Intl.NumberFormat` here would make this line inconsistent with the table two lines above it).
+  - `MetricSection` (ok branch only): after the table, before the optional `note`, calls
+    `computeChange(result.rows, fieldAlias)`; if non-null, renders
+    `<p>{formatChangeSummary(change)}</p>`; if `null`, renders nothing (same "omitted entirely,
+    not an empty paragraph" convention `note` already uses).
+- **Query**: None. This task adds no new SoQL, fetch, or dataset access, and touches no
+  `$select`/`$where`/`$group` clause or the analysis window — all of which stay exclusively owned
+  by `src/lib/socrata.ts` per Rule 4. It operates purely on `result.rows`, the same
+  already-fetched, already-validated array `MetricSection` already renders into its `<table>`
+  (sourced from `DEATHS_SOQL`/`INJURIES_SOQL`/`COLLISIONS_SOQL`, and — see Accepted Scope below —
+  incidentally `REPAIRED_COLLISIONS_SOQL` too).
+- **Design Pattern**: none — simple case. One pure function, reused generically through
+  `MetricSection`'s existing `<K extends string>` type parameter — the same generic-transport shape
+  `socrata.ts` and `MetricSection` already established. No interchangeable behavior to encapsulate.
+- **UI Scope**: N/A — not chart/layout/styling work. A derived text value appended to an existing
+  presentational component, same category as FR-2/FR-3-data-half/FR-12 (Redwood-owned, no chart or
+  layout change). One new `<p>` element is added to the DOM, but the layout it's added to is
+  unchanged.
+- **Intellectual Control**: `computeChange` takes the *first and last row of whatever array it's
+  given* rather than parameterized `startYear=2018`/`endYear=2025` literals. This keeps
+  `MetricSection` fully decoupled from the specific analysis window — which `socrata.ts` already
+  owns exclusively per Rule 4 — and avoids a second, driftable copy of "2018"/"2025" living in a
+  presentation component. It also means zero changes are needed to `MetricSection.test.tsx`'s
+  existing 2-row synthetic fixture's *year values* (2018/2019) to exercise this feature — a smaller,
+  more honest diff than hardcoding boundary years would have produced. Because `MetricSection` is
+  called identically for all four current metrics, this fires for the repaired-collisions series
+  too, not just the three FR-4 names by number — named and accepted explicitly below rather than
+  either silently building it or silently declining it.
+- **Accepted scope beyond FR-4's literal text**: FR-4 names "the three metrics" (deaths, injuries,
+  collisions — FR-1–3). Because `MetricSection` is the single shared component all four current
+  metrics render through, the repaired-collisions series (FR-12) gets a percent-change line too, at
+  zero extra implementation cost. This is accepted deliberately: it reinforces FR-12's own claim (the
+  PRD's Appendix A already states the repaired series' change as −18.2%, independently re-derivable
+  here from live-fetched rows, never a hardcoded copy of that figure) and costs nothing beyond what
+  the generic design already produces. If a future reviewer wants it *suppressed* for repaired
+  collisions specifically, that's a one-line follow-up, not a re-architecture.
+- **Constraints**:
+  - No new NPM/PIP dependency — native `Math`/template strings suffice; no `Intl.NumberFormat`.
+  - No PRD Appendix A figure (real or otherwise) appears as a literal in `percentChange.ts` or
+    `MetricSection.tsx` — `guard-data-integrity.sh` enforces the known pinned list mechanically;
+    Cypress's audit additionally confirms no *unlisted* real figure (e.g. any deaths-column value,
+    which the guard's list omits) was pasted in either.
+  - `percentChange.test.ts` uses synthetic, non-pinned fixture values only, matching
+    `MetricSection.test.tsx`'s existing "no real deaths/injuries/collisions figures anywhere in this
+    file" convention.
+  - `formatPercentChange`/`formatChangeSummary` must not throw or render `NaN%`/`Infinity%`/`-0%`
+    under any input `computeChange` can legally produce (it cannot produce a `0`-division case since
+    that path returns `null` upstream, but `formatPercentChange` is tested standalone against `-0`
+    and `0` regardless, since it is a separately exported, separately testable unit).
+- **Edge Cases**:
+  - `rows.length < 2` → `computeChange` returns `null` → nothing rendered. (Cannot occur for any of
+    today's four real ok-status results, since `socrata.ts`'s `validateYearCoverage` guarantees
+    exactly 8 rows before status can be `"ok"` — this branch exists for `MetricSection`'s own
+    generic/synthetic test coverage and future callers, not today's real data.)
+  - `rows[0][fieldAlias] === 0` → `computeChange` returns `null` (division undefined) → nothing
+    rendered, never `Infinity%`.
+  - Multiple `MetricSection` instances on one page (today: deaths, injuries, collisions, repaired
+    collisions) each compute and render their own change line independently — proven once
+    generically in `MetricSection.test.tsx`, not re-proven per real metric in `page.test.tsx` (no
+    change expected/needed there; see Files).
+  - This is *not* a Rule 4 / FR-11 fail-loud case: FR-11's absent-key-as-zero mandate is scoped to
+    "the core yearly aggregates" (deaths/injuries/collisions/arrests), already protected upstream by
+    `socrata.ts` before `MetricSection` ever sees an `"ok"` result. A missing/undefined-baseline
+    percent-change is a secondary, derived summary line — omitting it silently loses nothing the
+    full table beneath it doesn't already show in full.
+- **Files** (4, under the 5-file cap):
+  1. `src/lib/percentChange.ts` (new)
+  2. `src/lib/percentChange.test.ts` (new)
+  3. `src/components/MetricSection.tsx` (edit)
+  4. `src/components/MetricSection.test.tsx` (edit — extend fixtures/assertions; note in particular
+     that the existing "does not render a `<p>` note element at all when note is absent" test
+     currently asserts via `container.querySelector("table + p")` and **will now find the new
+     change-summary `<p>`** if it renders immediately after the table — that test's *original
+     intent* (no *note* paragraph without a `note` prop) must be preserved by scoping it to the note
+     text/element specifically, not "no `<p>` anywhere after the table." This is a necessary,
+     in-scope update, not scope creep — same category as the disclosure-count bumps in prior SPECs.)
+  - `src/app/page.tsx` and `src/app/page.test.tsx` are **not** touched: `MetricSection` computes
+    internally from the `result` it already receives, so no new prop needs threading from `page.tsx`,
+    and no existing `page.test.tsx` assertion does exact-equality text/child-count matching that a
+    new sibling paragraph would break (verified by reading the file: all body-text assertions use
+    `.toContain`/`.toBeGreaterThan`, never exact match; table-scoped row-count assertions are scoped
+    to `within(table)`, unaffected by a sibling `<p>`).
+- **Tipping Point**: `MetricSection.tsx` is 96 lines today; this task is expected to land it around
+  115–120. Revisit (extract the change-line rendering into its own small component, or reconsider
+  `MetricSection`'s single-file shape) at ~140 lines, or if a second independent computed-derivative
+  feature (beyond percent-change) needs its own render branch — whichever comes first.
+
+[FORCES]
+1. Derive from already-fetched data > add a new query — the figure is arithmetic on data the page
+   already trusts, not a new Socrata round-trip.
+2. Generic (first/last row) > window-specific (hardcoded 2018/2025) — keeps the analysis-window
+   contract owned solely by `socrata.ts`, per Rule 4.
+3. Simplicity > Pattern purity (always present).
+```

@@ -8,6 +8,66 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — FR-4 closed: a 2018→2025 percent-change line, derived not fetched
+
+Added a percent-change summary line under each metric's table — `src/lib/percentChange.ts`'s
+three pure functions (`computeChange`, `formatPercentChange`, `formatChangeSummary`), wired into
+`MetricSection.tsx` between the table and the optional note. No new query: it's arithmetic on
+`result.rows`, the array `MetricSection` already receives. Standard ordering, Cypress PASS on both
+the Phase 1 red-test check and the Phase 3 audit — no rejection loop spent. Full SPEC in
+`ARCHIVED_SPECS.md`, "Archived 2026-08-06 — FR-4."
+
+- *Why Cedar picked FR-4 over FR-9, the other remaining P0 requirement, and how that differs from
+  the FR-12 pick two sessions earlier.* At FR-12, Cedar found a requirement that *wasn't* on the
+  candidate list it was handed and argued for it on thesis-centrality grounds. Here, both remaining
+  P0 candidates (FR-4, FR-9) were already visible, and Cedar picked the *less* thesis-central one —
+  deliberately, on scope-readiness rather than importance. FR-9 (the caveats section) carries a real
+  unresolved design question the ledger already flags (should the two existing inline notes become
+  cross-references once it lands?), and Cedar treated that as reason enough to defer it to its own
+  dedicated SPEC rather than force an answer inside this task. Worth remembering as the general
+  shape of the choice: centrality and readiness are different axes, and a P0 requirement with an
+  open question is not automatically the right thing to build next just because it's more central.
+- *Why `computeChange` takes the first and last row of whatever array it's given, rather than
+  parameterized `startYear=2018`/`endYear=2025` constants — and why this was scrutinized as the
+  single most load-bearing design decision in an otherwise small task.* `socrata.ts` already owns
+  the analysis window exclusively (Rule 4). A second, hardcoded copy of "2018"/"2025" living in a
+  presentation component would be exactly the kind of driftable duplicate contract Rule 4 exists to
+  prevent — if the window ever moved, this component could silently disagree with the one that
+  actually fetches the data. The generic design costs nothing extra to write and removes the
+  possibility of that drift by construction, not by discipline.
+- *Why giving the repaired-collisions series (FR-12) a percent-change line too — beyond FR-4's
+  literal "three metrics" — was named and accepted explicitly rather than either silently built or
+  silently suppressed.* Because `MetricSection` is the one shared component all four current metrics
+  render through, the generic first/last-row design fires identically for all four call sites; there
+  was no extra code path to add or skip for the fourth metric specifically. Cedar chose to record
+  this as a deliberate scope decision with its own justification (it reinforces FR-12's own claim,
+  and the PRD's Appendix A already independently states the repaired series' change) rather than
+  either quietly shipping it unremarked or engineering a special case to hold it back to exactly
+  three. An unplanned but harmless consequence of a generic design is still worth naming, not just
+  allowing to happen.
+- *Why the `-0%` rendering trap got real weight in this session, not just a passing test.* Cypress
+  flagged in its Phase 1 report, before implementation existed, that `Math.round(-0.4)` produces JS
+  `-0`, and that a naive sign-concatenation (`value > 0 ? "+" : ""`) could render `"-0%"` depending
+  on exactly how the branching was written. Redwood's fix (`rounded === 0` loose equality, which
+  catches both `+0` and `-0`) was verified twice independently — once by Redwood's own report, once
+  by Cypress's audit hand-deriving four specific inputs and reading the actual implementation rather
+  than trusting the green test. A trap this narrow and this easy to introduce silently is exactly
+  the kind of thing that's cheap to catch in review and expensive to catch after ship — worth the
+  extra verification pass even on a two-file task.
+- *Why the pre-existing "no paragraph when note is absent" test needed rescoping, and why that
+  rescoping was treated as in-scope rather than a workaround.* The old test happened to work by
+  checking "no `<p>` anywhere after the table" — which was only ever a proxy for "no note paragraph,"
+  true only because the note used to be the sole possible sibling. FR-4 correctly invalidates that
+  coincidental equivalence by adding a second, legitimate paragraph. Cypress rescoped the test to
+  check the note's own text specifically and separately assert the paragraph count is exactly one
+  (the change-summary line) — preserving the original protection (no stray/empty note paragraph)
+  without weakening it to accommodate the new feature. This is the same category of judgment Cypress
+  exercised in FR-3's chart-half task and FR-12's ambiguous-caption-text finding: tests occasionally
+  encode assumptions narrower than what they're meant to protect, and recognizing which assumption
+  is load-bearing versus incidental is real audit work, not busywork.
+
+---
+
 ## 2026-08-06 — FR-12 closed: the "repaired" collisions series, the product's actual fix
 
 Added a fourth, independently-fetched yearly metric — collisions with a recorded injury or death
