@@ -14,15 +14,23 @@
 // the result or via a direct *_SOQL import — either is a legitimate
 // implementation choice under this SPEC.
 //
-// Task 2 addition: ../components/DeathsChart is also mocked, with a plain
-// vi.fn() standing in for the real component. This file's job is to prove
-// page.tsx's *mounting* decision (only in the ok branch, before the table,
-// receiving the same `rows` array) — the chart's own rendered geometry is
-// src/components/DeathsChart.test.tsx's job, against the real component. Two
-// vi.hoisted() bindings side by side is the same pattern this file already
-// got right the second time on Task 1 (see the TDZ-bug fix commit); the
-// `SYNTHETIC_SOQL` fix from that bug is why both bindings live in the same
-// vi.hoisted() call below rather than a bare top-level const.
+// Task 2 addition, generalized by this SPEC ("Close FR-3's remaining chart
+// half"): ../components/DeathsChart is renamed to ../components/
+// YearlyLineChart and generalized to a single component used at two call
+// sites (deaths, collisions). One plain vi.fn() stands in for the real
+// component at both call sites, differentiated by `props.fieldAlias` via
+// `data-testid={`yearly-chart-${props.fieldAlias}`}` — never by call order,
+// mirroring the discrimination discipline already established for the three
+// fetch mocks below. This file's job is to prove page.tsx's *mounting*
+// decisions (only in each metric's own ok branch, before that metric's
+// table, receiving that metric's own `rows` array, and — this task's new
+// guarantee — one chart's failure never suppresses the other's mount) — the
+// chart's own rendered geometry is src/components/YearlyLineChart.test.tsx's
+// job, against the real component. Multiple vi.hoisted() bindings side by
+// side is the same pattern this file already got right the second time on
+// Task 1 (see the TDZ-bug fix commit); the `SYNTHETIC_SOQL` fix from that bug
+// is why all bindings live in the same vi.hoisted() call below rather than a
+// bare top-level const.
 //
 // Task 3 addition (SPEC.md "Injuries per year: parameterize the data layer
 // for a second series", FR-2): ../lib/injuries is mocked the same way as
@@ -78,7 +86,7 @@ import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axe from "axe-core";
 
-import type { DeathsChartProps } from "../components/DeathsChart";
+import type { YearlyLineChartProps } from "../components/YearlyLineChart";
 
 const {
   fetchDeathsPerYear,
@@ -87,7 +95,7 @@ const {
   SYNTHETIC_SOQL,
   INJURIES_SYNTHETIC_SOQL,
   COLLISIONS_SYNTHETIC_SOQL,
-  DeathsChart,
+  YearlyLineChart,
 } = vi.hoisted(() => ({
   fetchDeathsPerYear: vi.fn(),
   fetchInjuriesPerYear: vi.fn(),
@@ -98,12 +106,17 @@ const {
     "SYNTHETIC INJURIES SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   COLLISIONS_SYNTHETIC_SOQL:
     "SYNTHETIC COLLISIONS SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
-  // A minimal stand-in, not the real chart — DeathsChart.test.tsx is where
-  // the real component's rendered SVG geometry is asserted against real
-  // recharts output. Here we only need something identifiable in the DOM
-  // and a vi.fn() we can inspect the call args of.
-  DeathsChart: vi.fn((props: DeathsChartProps) => (
-    <figure data-testid="deaths-chart-stub" data-row-count={props.rows.length}>
+  // A minimal stand-in, not the real chart — YearlyLineChart.test.tsx is
+  // where the real component's rendered SVG geometry is asserted against
+  // real recharts output. Here we only need something identifiable in the
+  // DOM, discriminated by `fieldAlias` so the same stub serves both the
+  // deaths and collisions call sites, and a vi.fn() we can inspect the call
+  // args of (filtered by fieldAlias, never by call order).
+  YearlyLineChart: vi.fn((props: YearlyLineChartProps<string>) => (
+    <figure
+      data-testid={`yearly-chart-${props.fieldAlias}`}
+      data-row-count={props.rows.length}
+    >
       stubbed chart
     </figure>
   )),
@@ -124,7 +137,7 @@ vi.mock("../lib/collisions", () => ({
   COLLISIONS_SOQL: COLLISIONS_SYNTHETIC_SOQL,
 }));
 
-vi.mock("../components/DeathsChart", () => ({ DeathsChart }));
+vi.mock("../components/YearlyLineChart", () => ({ YearlyLineChart }));
 
 import Home from "./page";
 
@@ -170,6 +183,18 @@ const COLLISIONS_SYNTHETIC_ROWS = [
 const COLLISIONS_NOTE_TEXT =
   "This series is affected by a 2020 NYPD reporting-policy change that reduced how many minor collisions are recorded; it is not evidence of a comparable drop in real collisions.";
 
+// `YearlyLineChart` is one shared mock serving both the deaths and
+// collisions call sites (this SPEC's generalization) — every assertion that
+// used to read `DeathsChart.mock.calls` directly must now filter by
+// `fieldAlias` first, never rely on call order, since the two call sites can
+// resolve in either order and either one can be absent independently.
+function callsFor(fieldAlias: string) {
+  return YearlyLineChart.mock.calls.filter(
+    (call) =>
+      (call[0] as YearlyLineChartProps<string>).fieldAlias === fieldAlias,
+  );
+}
+
 async function renderHome() {
   // Home() is an async function component; calling and awaiting it directly
   // resolves the JSX tree the Server Component would have streamed.
@@ -199,7 +224,7 @@ afterEach(() => {
   fetchDeathsPerYear.mockReset();
   fetchInjuriesPerYear.mockReset();
   fetchCollisionsPerYear.mockReset();
-  DeathsChart.mockClear();
+  YearlyLineChart.mockClear();
 });
 
 describe("/ (Home) — the ok path", () => {
@@ -284,7 +309,7 @@ describe("/ (Home) — the ok path", () => {
     );
   });
 
-  it("Task 2: mounts <DeathsChart> with the same rows array, positioned before the table", async () => {
+  it("Task 2: mounts the deaths <YearlyLineChart> with the same rows array, positioned before the deaths table", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
@@ -293,20 +318,43 @@ describe("/ (Home) — the ok path", () => {
 
     const { container } = await renderHome();
 
-    expect(DeathsChart).toHaveBeenCalledTimes(1);
-    const props = DeathsChart.mock.calls[0][0] as DeathsChartProps;
+    const deathsCalls = callsFor("deaths");
+    expect(deathsCalls).toHaveLength(1);
+    const props = deathsCalls[0][0] as YearlyLineChartProps<"deaths">;
     // Same array, not a copy — the chart and the table must provably plot
     // and list the same objects, never two reads of one source that could
     // drift (SPEC.md's Intellectual Control).
     expect(props.rows).toBe(SYNTHETIC_ROWS);
 
-    const chartStub = screen.getByTestId("deaths-chart-stub");
+    const chartStub = screen.getByTestId("yearly-chart-deaths");
     const table = screen.getByRole("table", { name: /deaths/i });
     const position = chartStub.compareDocumentPosition(table);
     expect(Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
 
     // Sanity check that the stub actually landed inside the rendered tree,
     // not merely constructed and discarded.
+    expect(container.contains(chartStub)).toBe(true);
+  });
+
+  it('this SPEC: mounts the collisions <YearlyLineChart> with the same rows array, positioned before the collisions table, when collisionsResult.status is "ok"', async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    // Collisions' default "ok" beforeEach value applies here unmodified.
+
+    const { container } = await renderHome();
+
+    const collisionsCalls = callsFor("collisions");
+    expect(collisionsCalls).toHaveLength(1);
+    const props = collisionsCalls[0][0] as YearlyLineChartProps<"collisions">;
+    expect(props.rows).toBe(COLLISIONS_SYNTHETIC_ROWS);
+
+    const chartStub = screen.getByTestId("yearly-chart-collisions");
+    const table = screen.getByRole("table", { name: /collisions/i });
+    const position = chartStub.compareDocumentPosition(table);
+    expect(Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
     expect(container.contains(chartStub)).toBe(true);
   });
 });
@@ -333,7 +381,7 @@ describe("/ (Home) — the error path (FR-10)", () => {
     ).toBeInTheDocument();
   });
 
-  it("Task 2 Edge Case 1: renders no chart at all — no <figure>, no <svg>, DeathsChart never mounted", async () => {
+  it("Task 2 Edge Case 1 (generalized): renders no deaths chart at all — the deaths YearlyLineChart is never mounted, independent of collisions' own (default-ok) chart still rendering", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "error",
       soql: SYNTHETIC_SOQL,
@@ -341,12 +389,16 @@ describe("/ (Home) — the error path (FR-10)", () => {
       reason: "no aggregate returned for 2024 (synthetic test reason)",
     });
 
-    const { container } = await renderHome();
+    await renderHome();
 
-    expect(DeathsChart).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("deaths-chart-stub")).not.toBeInTheDocument();
-    expect(container.querySelector("figure")).not.toBeInTheDocument();
-    expect(container.querySelector("svg")).not.toBeInTheDocument();
+    expect(callsFor("deaths")).toHaveLength(0);
+    expect(screen.queryByTestId("yearly-chart-deaths")).not.toBeInTheDocument();
+    // Not a blanket "no <figure> anywhere" check: the collisions beforeEach
+    // default is "ok", so its own independent chart legitimately renders a
+    // <figure> here too — proving this test actually exercises the deaths
+    // branch specifically, not an incidental absence of every chart.
+    expect(callsFor("collisions")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-collisions")).toBeInTheDocument();
   });
 
   it("still renders the FR-8 query disclosure on the error path", async () => {
@@ -410,18 +462,18 @@ describe("/ (Home) — the empty path (FR-10)", () => {
     expect(disclosure).toHaveTextContent(SYNTHETIC_SOQL);
   });
 
-  it("Task 2 Edge Case 1: renders no chart at all — no <figure>, no <svg>, DeathsChart never mounted", async () => {
+  it("Task 2 Edge Case 1 (generalized): renders no deaths chart at all — the deaths YearlyLineChart is never mounted, independent of collisions' own (default-ok) chart still rendering", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "empty",
       soql: SYNTHETIC_SOQL,
     });
 
-    const { container } = await renderHome();
+    await renderHome();
 
-    expect(DeathsChart).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("deaths-chart-stub")).not.toBeInTheDocument();
-    expect(container.querySelector("figure")).not.toBeInTheDocument();
-    expect(container.querySelector("svg")).not.toBeInTheDocument();
+    expect(callsFor("deaths")).toHaveLength(0);
+    expect(screen.queryByTestId("yearly-chart-deaths")).not.toBeInTheDocument();
+    expect(callsFor("collisions")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-collisions")).toBeInTheDocument();
   });
 });
 
@@ -534,7 +586,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     await renderHome();
 
     // Deaths renders fully: chart + table.
-    expect(DeathsChart).toHaveBeenCalledTimes(1);
+    expect(callsFor("deaths")).toHaveLength(1);
     expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
 
     // Injuries shows its own error, never a table, and deaths is unaffected.
@@ -565,7 +617,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
 
     // Deaths shows its own error, no chart, no deaths table — and this must
     // not be suppressed or altered by injuries having succeeded.
-    expect(DeathsChart).not.toHaveBeenCalled();
+    expect(callsFor("deaths")).toHaveLength(0);
     expect(
       screen.queryByRole("table", { name: /deaths/i }),
     ).not.toBeInTheDocument();
@@ -903,7 +955,7 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
     expect(
       screen.getByRole("table", { name: /injuries/i }),
     ).toBeInTheDocument();
-    expect(DeathsChart).toHaveBeenCalledTimes(1);
+    expect(callsFor("deaths")).toHaveLength(1);
 
     expect(
       screen.queryByRole("table", { name: /collisions/i }),
@@ -969,7 +1021,7 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
 
     const { container } = await renderHome();
 
-    expect(DeathsChart).not.toHaveBeenCalled();
+    expect(callsFor("deaths")).toHaveLength(0);
     expect(
       screen.queryByRole("table", { name: /deaths/i }),
     ).not.toBeInTheDocument();
@@ -987,6 +1039,132 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
     expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
 
     expect(container.querySelectorAll("details")).toHaveLength(3);
+  });
+});
+
+describe("/ (Home) — this SPEC: chart independence (a collisions chart failure must never suppress the deaths chart, and vice versa)", () => {
+  // Table-level independence between deaths/injuries/collisions was already
+  // established above (Task 3 Edge Case 9, this SPEC's three-way block).
+  // This block is the chart-specific extension SPEC.md's Output 3/Inputs-
+  // Outputs section names explicitly: each of the two YearlyLineChart call
+  // sites must mount or not mount purely as a function of its *own*
+  // metric's status, never the other's.
+
+  it("both charts mount, each exactly once, when both metrics are ok", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    // Collisions' default-"ok" beforeEach value applies unmodified.
+
+    await renderHome();
+
+    expect(callsFor("deaths")).toHaveLength(1);
+    expect(callsFor("collisions")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-deaths")).toBeInTheDocument();
+    expect(screen.getByTestId("yearly-chart-collisions")).toBeInTheDocument();
+  });
+
+  it("collisions empty: the collisions chart never mounts, but the deaths chart still does", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+    });
+
+    await renderHome();
+
+    expect(callsFor("collisions")).toHaveLength(0);
+    expect(
+      screen.queryByTestId("yearly-chart-collisions"),
+    ).not.toBeInTheDocument();
+    expect(callsFor("deaths")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-deaths")).toBeInTheDocument();
+  });
+
+  it("collisions error: the collisions chart never mounts, but the deaths chart still does", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (chart-independence test, collisions)",
+    });
+
+    await renderHome();
+
+    expect(callsFor("collisions")).toHaveLength(0);
+    expect(
+      screen.queryByTestId("yearly-chart-collisions"),
+    ).not.toBeInTheDocument();
+    expect(callsFor("deaths")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-deaths")).toBeInTheDocument();
+  });
+
+  it("deaths error while collisions ok (the inverse): the deaths chart never mounts, but the collisions chart still does", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (chart-independence test, deaths)",
+    });
+    // Collisions' default-"ok" beforeEach value applies unmodified.
+
+    await renderHome();
+
+    expect(callsFor("deaths")).toHaveLength(0);
+    expect(screen.queryByTestId("yearly-chart-deaths")).not.toBeInTheDocument();
+    expect(callsFor("collisions")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-collisions")).toBeInTheDocument();
+  });
+
+  it("deaths empty while collisions ok (the inverse): the deaths chart never mounts, but the collisions chart still does", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: SYNTHETIC_SOQL,
+    });
+
+    await renderHome();
+
+    expect(callsFor("deaths")).toHaveLength(0);
+    expect(screen.queryByTestId("yearly-chart-deaths")).not.toBeInTheDocument();
+    expect(callsFor("collisions")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-collisions")).toBeInTheDocument();
+  });
+
+  it("both charts are absent when both metrics fail together", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason:
+        "Socrata responded 503 (chart-independence test, both-fail deaths)",
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason:
+        "Socrata responded 503 (chart-independence test, both-fail collisions)",
+    });
+
+    await renderHome();
+
+    expect(callsFor("deaths")).toHaveLength(0);
+    expect(callsFor("collisions")).toHaveLength(0);
+    expect(screen.queryByTestId("yearly-chart-deaths")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("yearly-chart-collisions"),
+    ).not.toBeInTheDocument();
   });
 });
 
