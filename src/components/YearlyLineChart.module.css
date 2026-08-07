@@ -1,12 +1,17 @@
-/* Colour lives entirely here (SPEC.md Constraint 4) — DeathsChart.tsx
-   contains no colour literal at all. Every mode-dependent value is a custom
+/* Colour lives entirely here (SPEC.md Constraint 4) — YearlyLineChart.tsx
+   contains no colour literal at all. Both series' tokens are declared
+   together (still one component, two instantiations — the Tipping Point's
+   "second component" trigger for hoisting to globals.css has not fired).
+   The component selects between them by setting an inline custom property,
+   --chart-series, whose *value* is a var() reference to the chosen slot
+   (--chart-series-1 or --chart-series-2) — a reference to a named token, not
+   a hex/rgb/hsl value, so every paint rule below reads var(--chart-series)
+   rather than a slot token directly. Every mode-dependent value is a custom
    property scoped to .figure, light value first, dark second, mirroring the
-   :root / prefers-color-scheme pattern globals.css already uses (just
-   scoped to this component instead of :root, since these tokens have
-   exactly one consumer today — see SPEC.md's Tipping Point on when they
-   hoist to globals.css). */
+   :root / prefers-color-scheme pattern globals.css already uses. */
 .figure {
   --chart-series-1: #2a78d6;
+  --chart-series-2: #eb6834;
   --chart-grid: #e1e0d9;
   --chart-rule: #c3c2b7;
   --chart-ink: #52514e;
@@ -17,6 +22,7 @@
 @media (prefers-color-scheme: dark) {
   .figure {
     --chart-series-1: #3987e5;
+    --chart-series-2: #d95926;
     --chart-grid: #2c2c2a;
     --chart-rule: #383835;
     --chart-ink: #c3c2b7;
@@ -24,7 +30,7 @@
 }
 
 /* min-width: 0 lets the flex/grid-agnostic wrapper shrink below its content's
-   natural width at narrow viewports (Edge Case 6, 320px) instead of forcing
+   natural width at narrow viewports (Edge Case 5, 320px) instead of forcing
    a horizontal scrollbar — ResponsiveContainer's own width: 100% only works
    if this ancestor is actually allowed to be narrow. */
 .plot {
@@ -39,18 +45,19 @@
 
 /* The following target Recharts' own stable, unscoped class names (verified
    against the installed recharts@3.10.1, and the same selectors
-   DeathsChart.test.tsx asserts against). CSS declarations — including these
-   descendant rules — always win over the SVG presentation attributes
+   YearlyLineChart.test.tsx asserts against). CSS declarations — including
+   these descendant rules — always win over the SVG presentation attributes
    Recharts sets by default, regardless of specificity, so no colour prop
    needs to be passed from the component at all: geometry lives in props,
-   colour lives here. */
+   colour lives here. Every rule below reads var(--chart-series), the
+   component-selected indirection, never var(--chart-series-1)/-2 directly. */
 
 .figure :global(.recharts-line-curve) {
-  stroke: var(--chart-series-1);
+  stroke: var(--chart-series);
 }
 
 .figure :global(.recharts-line-dot) {
-  fill: var(--chart-series-1);
+  fill: var(--chart-series);
   /* The marker's 2px ring is the page's own surface colour (globals.css),
      not a second near-white — see SPEC.md Output 2. */
   stroke: var(--background);
@@ -72,7 +79,7 @@
   fill: var(--chart-ink);
 }
 
-/* The YAxis "Deaths" title renders through Recharts' own <Label>, which
+/* The YAxis series-label title renders through Recharts' own <Label>, which
    always carries this class — targeted here rather than passed as a prop
    for the same reason as the marks above. */
 .figure :global(.recharts-label) {
