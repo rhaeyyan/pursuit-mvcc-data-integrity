@@ -4696,3 +4696,241 @@ stroke.
    dates in the chart's visual and accessible layers.
 3. Simplicity > Pattern purity (always present).
 ```
+
+---
+
+## Archived 2026-08-07 — FR-5: arrests as a fifth small-multiples panel (COMPLETE)
+
+**Outcome:** delivered 3 of 3 budgeted files (`arrests.ts` new — self-contained transport for the
+`8h9b-rp9u` dataset, `api/arrests/route.ts` new, `page.tsx` edited to a fifth independent panel);
+standard ordering throughout, Cypress PASS on the Phase 1 red-test check and, after one self-fix,
+the Phase 3 audit. This is the first task this session to go through a `/grill-me` interview
+before Cedar, given FR-5–7's flagged design risk across three prior planning rounds — the
+interview resolved the small-multiples-vs-secondary-axis tension and explicitly deferred FR-6/FR-7
+to their own future round. One retry-adjacent event, not a rejection-loop cycle: Redwood's
+implementation was correct against the SPEC (373/374 tests) but surfaced a stale pre-existing
+confinement test in `repairedCollisions.test.ts` (asserting only `socrata.ts` reads the token, an
+assumption FR-5's own SPEC-approved exception legitimately violated) — the third occurrence this
+session of the same bug shape (an old test's absolute claim invalidated by new, legitimate
+behavior; see FR-4 and FR-13 for the first two). Routed back to Cypress, which had already written
+the correct generalized pattern once in its own Phase 1 file and ported it; 374/374 after the fix,
+full audit PASS on the same pass. FR-5 fully closed — the product now shows a fifth independent
+witness (arrest counts) alongside deaths/injuries/collisions/repaired-collisions, without touching
+`socrata.ts` or any of the four existing metrics. Full narrative in `ARCHIVED_SESSIONS.md`.
+
+
+# Active SPEC
+
+**Status:** approved — ready to dispatch to Cypress (tests first, standard ordering)
+**Author:** Cedar (Tech Lead) · **Created:** 2026-08-07 · **Human-approved (HITL):** 2026-08-07, Rayan
+**Then:** Cypress (failing tests first) → Redwood (execution) → Cypress (audit)
+**Ordering:** standard, no deviation — Cypress writes failing tests first per Rule 4
+
+## How the `/grill-me` interview shaped this SPEC (Cedar's reasoning, recorded)
+
+The interview locked in small multiples over the PRD's literal FR-5 text ("second series on a
+secondary axis") — the right call, and one this codebase already has direct precedent for: FR-3's
+chart-half rejected an identical dual-axis framing for the identical reason (deaths ~229–297 vs.
+arrests ~8,330–29,007 is the same order-of-magnitude mismatch as deaths vs. collisions was), citing
+the same risk-register line (§5.4, "a two-line dual-axis chart invites the 'enforcement caused
+deaths' misreading") and the same `dataviz` anti-pattern. FR-6/FR-7 are out of scope entirely per
+the human's explicit choice, and their eventual shape (a global filter across all five series) is
+recorded in the ledger, not restated here.
+
+Where this deviated from the two-SPEC FR-3 template: FR-3 needed a data-half *and* a chart-half
+because the chart-half built a brand-new generic component from scratch (`YearlyLineChart`, its
+CSS module, a color-token decision) — a real 5-file task on its own. Here, `YearlyLineChart<K>` and
+`MetricSection<K>` are already fully generic; mounting arrests as a fifth panel costs zero new
+component/CSS work if it reuses an existing color slot rather than earning a third one. So this
+ships as **one combined SPEC**, three files total (`arrests.ts`, `api/arrests/route.ts`,
+`page.tsx`), well under the cap — splitting it just to mirror FR-3's precedent would be
+pattern-purity over simplicity (Rule 8's own default force).
+
+The one non-obvious build decision: **don't widen `socrata.ts`**. It hardcodes `h9gi-nx95`/
+`crash_date`, and a prior SPEC already declined to make `$group`/`$order` parameters ("that
+generality remains unearned"). Widening the one file every P0 metric depends on, to serve a
+feature the PRD explicitly names as *droppable* (§5.2: "dropping FR-5–7 shrinks the product
+without breaking it"), is the wrong trade — it would make severability a documentation claim
+instead of a code fact. `arrests.ts` ships self-contained, duplicating socrata.ts's fetch/validate
+scaffold (~130 lines) rather than sharing it; the Tipping Point below names exactly when that
+duplication should be resolved instead.
+
+---
+
+```markdown
+[SPEC]
+- **Objective**: Ship FR-5 — traffic-enforcement arrest counts per year (2018–2025), filtered to
+  the PRD §5.2 five-category offense list, as a fifth independently-scaled small-multiples panel
+  (chart + accessible table), reusing the already-generic `YearlyLineChart<K>` and
+  `MetricSection<K>` components with zero changes to either.
+- **Requirement**: FR-5 [P1, severable — PRD §5.2/§5.3]. FR-6 (borough filter) and FR-7 (its
+  contingent coverage warning) are explicitly **not** part of this SPEC — deferred per the
+  human's interview answer, to be planned as their own dedicated SPEC (likely needing its own
+  `/grill-me` pass on implementation shape, per the requirements block's recorded assumption).
+- **UI Scope**: structural — a new chart panel and a new table enter the page.
+
+- **Query** (dataset `8h9b-rp9u`, NYPD Arrests Data Historic):
+  ```
+  $select=date_extract_y(arrest_date) AS year, count(*) AS arrests
+  $where=arrest_date >= '2018-01-01T00:00:00' AND arrest_date < '2026-01-01T00:00:00'
+    AND (ofns_desc = 'VEHICLE AND TRAFFIC LAWS'
+      OR ofns_desc = 'OTHER TRAFFIC INFRACTION'
+      OR ofns_desc = 'INTOXICATED & IMPAIRED DRIVING'
+      OR ofns_desc = 'INTOXICATED/IMPAIRED DRIVING'
+      OR ofns_desc = 'HOMICIDE-NEGLIGENT-VEHICLE')
+  $group=date_extract_y(arrest_date)
+  $order=year
+  ```
+  Both `ofns_desc` spellings are required (Trap 4 — losing either loses ~10% of the series).
+  Vehicle-theft categories (`GRAND LARCENY OF MOTOR VEHICLE`, `UNAUTHORIZED USE OF A VEHICLE`) are
+  deliberately absent — already settled, PRD §5.2, not open. `arrest_boro` does not appear
+  anywhere in this query or this task's code; FR-6 is out of scope, not merely unused.
+  **Expected response shape**: a JSON array of up to 8 objects, each
+  `{ year: string | number, arrests: string }` (Socrata numeric-as-string convention, `count(*)`
+  included — same asymmetric-strictness casting socrata.ts's `ValueSchema` already applies). This
+  is a pinned contract: if Socrata rejects `count(*)` or any clause above, that is a halt and a
+  request for a revised SPEC (Rule 4), never a silent substitution.
+
+- **Inputs/Outputs**:
+  - `fetchArrestsPerYear(): Promise<YearlyMetricResult<"arrests">>` — zero-arg, matching
+    `fetchDeathsPerYear()`'s signature. Reuses `YearlyMetricRow<K>`/`YearlyMetricResult<K>` from
+    `src/lib/socrata.ts` via `import type` only (generic, dataset-agnostic types; zero coupling,
+    zero edit to that file).
+  - `ARRESTS_SOQL: string` — the exact SoQL above, built once as a module constant so the
+    displayed query (FR-8) and the sent request can never drift apart, mirroring
+    `REPAIRED_COLLISIONS_SOQL`'s pattern in `repairedCollisions.ts`.
+  - `GET /api/arrests` — identical three-way status→HTTP mapping as the four existing routes:
+    `ok`/`empty` → 200, `error` with `kind: "upstream"` → 502, `error` with `kind: "contract"` →
+    422. Same JSON body shape as `src/app/api/collisions/route.ts`.
+  - `page.tsx` additions: `fetchArrestsPerYear()` added to the existing `Promise.all`; one
+    `<YearlyLineChart>` mount and one `<MetricSection>` call, inserted after the repaired-
+    collisions `MetricSection` and before `<Caveats />`.
+  - Pinned strings (byte-exact, Cypress tests against these verbatim — ADR 0001 discipline):
+    - `columnLabel`: `"Arrests"`
+    - table `captionText`: `"NYC traffic-enforcement arrests per year, 2018–2025 (five offense categories)"`
+    - chart `captionText`: `"NYC traffic-enforcement arrests per year, 2018–2025. Every plotted figure is listed in the table below."`
+    - `ariaLabel`: `"Line chart of NYC traffic-enforcement arrest counts per year from 2018 to 2025."`
+    - `seriesLabel` (Y axis): `"Arrests"`
+    - `fieldAlias`: `"arrests"`
+    - `strokeStyle`: `"solid"` (arrests carry no reporting-decline artifact — the dash pattern is
+      reserved for that specific semantic, per `YearlyLineChart.tsx`'s own header comment; using
+      it here would falsely imply the same caveat)
+    - `colorSlot`: `1` (reuse — see Intellectual Control)
+    - No `note` prop passed to either the chart or the table — see Intellectual Control.
+
+- **Design Pattern**: none — simple case. The genuine variance (which series render) was already
+  encapsulated by `MetricSection<K>` and `YearlyLineChart<K>` across the four prior metrics; this
+  task is a fifth instantiation of an already-earned generic, not a new pattern decision.
+
+- **Intellectual Control**:
+  1. **Why small multiples, not a secondary axis, overriding the PRD's literal FR-5 text.**
+     Arrests range ~8,330–29,007; deaths range 229–297 — a ~30–100× spread, the same class of
+     problem FR-3's chart-half already solved for deaths (229–297) vs. collisions (85,546–
+     231,564). A shared zero-based linear axis would flatten the deaths line to visual noise, and
+     `dataviz`'s own anti-pattern #1 names dual/shared axes across incompatible scales as
+     inventing a correlation the data doesn't support. The risk register (PRD §5.4) names exactly
+     this misreading as Med/Med; small multiples on an independently-scaled panel is the
+     mitigation, matching FR-3's own precedent rather than a fresh decision.
+  2. **Why `arrests.ts` is a self-contained sibling module, not a widened `socrata.ts`.**
+     `socrata.ts` hardcodes `BASE_URL` (`h9gi-nx95`) and `crash_date`-keyed `$group`/`$order` as
+     fixed constants — its own header states this was a deliberate prior decision ("that
+     generality remains unearned"). Widening it to accept a dataset ID and date-field parameter
+     would touch the one file every P0 metric (deaths, injuries, collisions, repaired) depends on,
+     for the benefit of a feature PRD §5.2 explicitly marks droppable. Severability should be a
+     code fact, not just a requirements-doc claim: with `arrests.ts` self-contained, dropping
+     FR-5 later means deleting one lib file, one route, and reverting three `page.tsx` additions —
+     `socrata.ts` and the four P0 metrics are never at risk. The cost is real duplication (~130
+     lines of fetch/parse/coverage-validation logic reimplemented) — named honestly, not hidden,
+     with a Tipping Point below for when to stop paying it.
+  3. **Why this ships as one SPEC, not a data-half/chart-half split like FR-3.** FR-3's chart-half
+     was substantial on its own (new `YearlyLineChart` component, new CSS module, a validated
+     color-token pair) — a genuine 5-file task. Here, `YearlyLineChart<K>` already exists and
+     `colorSlot: 1` is a reuse, not a new token; the entire task is 3 files. Splitting it to mirror
+     FR-3's shape would be ceremony without a corresponding risk to sequence around.
+  4. **Why `colorSlot: 1` (reuse), not a new `colorSlot: 3`.** Color reuse is a comprehension risk
+     only when two elements sharing meaning must be visually distinguished in the same context
+     (a legend, a merged chart). These are five separate `<figure>` elements, never juxtaposed in
+     one plot, each with its own caption and axis label — reusing deaths' blue costs nothing here.
+     A new `--chart-series-3` token would require re-running `dataviz`'s CVD-separation validator
+     against both existing tokens, the annotation token, and both light/dark surfaces (see
+     `YearlyLineChart.module.css`'s own comment on why the FR-13 marker got a *separate* token
+     instead of a third series slot) — real, avoidable scope for zero comprehension benefit.
+  5. **Why no new inline `note` and no `Caveats.tsx` edit.** `Caveats.tsx`'s `ITEM_3` already
+     states, page-wide: "This page does not attribute the 2020–2021 rise, or any later change, to
+     enforcement activity or its absence — it shows the series moving together." That sentence
+     already covers arrests without modification. Deaths and injuries — two of the four existing
+     metrics — carry no bespoke inline `note` either; only collisions and repaired-collisions do,
+     because their caveat (the reporting-policy artifact) is specific and non-obvious. Arrests'
+     relevant caveat (NFR-5's correlation-only framing) is general and already covered page-wide,
+     so following the deaths/injuries precedent — no inline note — is the honest reading of
+     "matching the independence guarantee already established," not a gap.
+
+- **Constraints**:
+  1. No secondary/dual axis, no merged chart with any other metric.
+  2. `arrest_boro`, `perp_race`, `perp_sex`, `age_group` excluded entirely — no reference in code,
+     comments, or query (PRD §6, permanent, not open here).
+  3. `src/lib/socrata.ts` is not edited. Its file-header comment ("the only file in the repo that
+     reads `SOCRATA_APP_TOKEN`") becomes imprecise once `arrests.ts` also reads it — accepted,
+     non-blocking; `arrests.ts`'s own header states it explicitly and points back to this SPEC's
+     severability reasoning, so the record stays honest without touching the frozen file.
+  4. NFR-1 caching/timeout values copied exactly from `socrata.ts`: `next: { revalidate: 86400 }`,
+     `AbortSignal.timeout(10_000)`.
+  5. No new dependency — `zod` and `recharts` are already installed; nothing else may be added.
+  6. Query is a frozen contract (Rule 4): a Socrata rejection of any clause is a halt and a
+     request for a revised SPEC, never a local substitution.
+  7. NFR-5: `captionText`/`ariaLabel`/`seriesLabel` above are purely descriptive — no causal or
+     even correlational language in this task's own copy; the confounder framing lives in
+     `Caveats.tsx` per Intellectual Control point 5.
+  8. **Files not to touch**: `src/lib/socrata.ts`, `src/lib/deaths.ts`, `src/lib/injuries.ts`,
+     `src/lib/collisions.ts`, `src/lib/repairedCollisions.ts`, `src/components/YearlyLineChart.tsx`,
+     `src/components/YearlyLineChart.module.css`, `src/components/MetricSection.tsx`,
+     `src/components/Caveats.tsx`, the four existing route handlers, `vitest.config.mts`,
+     `vitest.setup.ts`, `tsconfig.json`, `eslint.config.mjs`, `next.config.ts`,
+     `src/app/layout.tsx`, `src/app/globals.css`, `.claude/**`, `CLAUDE.md`, `docs/**`,
+     `SESSION_STATE.md`.
+  9. Amendment 3(b) and `npm audit` reporting, as standing clauses.
+
+- **Edge Cases**:
+  1. **Absent or invalid `arrests` aggregate for any of the 8 expected years** → `error` status,
+     never a defaulted zero (Trap 1, FR-11) — same `validateYearCoverage`-shaped check as
+     `socrata.ts`, reimplemented in `arrests.ts`.
+  2. **Zero rows returned** → `empty` status (FR-10), rendered via `MetricSection`'s existing
+     empty-state paragraph, unmodified.
+  3. **Upstream failure** (network error, timeout, non-2xx, non-JSON body) → `error`/`upstream` →
+     502 in the route.
+  4. **Malformed row, duplicate year, or a year outside 2018–2025** → `error`/`contract` → 422.
+  5. **Arrests fetch failing must not affect deaths/injuries/collisions/repaired rendering**, and
+     vice versa — `Promise.all` plus fully independent per-branch rendering, unchanged from the
+     existing four-metric pattern.
+  6. **Both `ofns_desc` spellings must independently appear and both be tested** — Cypress asserts
+     both literal strings are present in `ARRESTS_SOQL`'s `$where`, not just one.
+
+- **Files** (max 5 — three used):
+  1. `src/lib/arrests.ts` — *new.* Self-contained transport: SoQL builders, fetch, Zod validation,
+     8-year coverage check, mirroring `socrata.ts`'s internal shape but scoped to `8h9b-rp9u`.
+  2. `src/app/api/arrests/route.ts` — *new.* Same union-to-HTTP mapping as the four existing
+     routes.
+  3. `src/app/page.tsx` — *edited.* `fetchArrestsPerYear()` added to `Promise.all`; one
+     `<YearlyLineChart>` mount and one `<MetricSection>` call added after the repaired-collisions
+     section, before `<Caveats />`.
+
+  **Not in this budget**: `src/lib/arrests.test.ts`, `src/app/api/arrests/route.test.ts`, and the
+  `page.test.tsx` diff for the fifth metric are Cypress's Phase 1 work, dispatched first — test
+  files are Cypress's own budget, not counted here, per this project's established precedent
+  (FR-3's chart-half SPEC).
+
+- **Tipping Point**: `arrests.ts`'s self-contained duplication of `socrata.ts`'s fetch/validate
+  scaffold is deliberate, not an oversight — but it is a one-time exception, not a pattern to
+  repeat. Re-open when a **second** `8h9b-rp9u` caller needs its own yearly-aggregate query (the
+  most plausible trigger: a future FR-6 implementation that turns out to need a per-borough SoQL
+  variant rather than a client-side re-scope filter — note the interview's recorded default
+  expectation is a *global client-side* filter re-scoping all five series at once, which would
+  never fire this trigger at all). At that point, extract a shared generic transport parameterized
+  by base URL + date field + `$group`/`$order`, mirroring `socrata.ts`'s own extraction history
+  (Task 1 → Task 3's `fetchYearlyMetric`). Do not duplicate a third time.
+
+[FORCES]
+1. Severability of the FR-5–7 group (PRD §5.2: "dropping FR-5–7 shrinks the product without breaking it") > code reuse via widening socrata.ts
+2. Matching FR-3's small-multiples precedent (avoiding the scale-mismatch misreading the risk register names) > the PRD's literal FR-5 "secondary axis" text
+3. Simplicity > Pattern purity
+```

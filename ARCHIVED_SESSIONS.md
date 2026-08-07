@@ -8,6 +8,67 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-07 — FR-5 closed: arrests as a fifth witness, and the first `/grill-me` round this project ran
+
+Added traffic-enforcement arrest counts (2018–2025, five offense categories) as a fifth
+independent metric — its own small-multiples panel plus table, from a second Socrata dataset
+(`8h9b-rp9u`) via a deliberately self-contained transport that never touches `socrata.ts`. Standard
+ordering, Cypress PASS on the Phase 1 red-test check and, after one self-fix, the Phase 3 audit.
+Full SPEC in `ARCHIVED_SPECS.md`, "Archived 2026-08-07 — FR-5."
+
+- *Why this was the first task this session routed through `/grill-me` before Cedar, rather than
+  going straight to a SPEC.* FR-5–7 had been flagged as real design risk across three separate
+  Cedar planning rounds (dual-axis misreading, the borough-code trap, the "enforcement caused
+  deaths" framing NFR-5 explicitly warns against) — genuine product-judgment calls, not
+  engineering ones, and exactly the category Rule 1 says should go to a human rather than be
+  guessed at. The interview surfaced (and let the human resolve) two decisions that would have
+  produced materially different SPECs depending on the answer: how arrests relate visually to the
+  other series, and how large FR-6's borough filter should actually be. Getting these settled
+  before Cedar ever wrote a SPEC meant zero mid-flight scope renegotiation this time, unlike the
+  FR-3 chart-half task where Cedar had to catch and correct a flawed premise *after* being
+  dispatched. Worth remembering as the actual trigger for `/grill-me`: not "this is hard," but
+  "the ambiguity is about what the human wants, not about what's technically correct."
+- *Why the PRD's literal "secondary axis" text was overridden again, and why this time it happened
+  in the interview rather than as a Cedar correction.* The human chose small multiples directly,
+  informed by FR-3's precedent (same ~30–100× scale mismatch, same risk-register line, same
+  `dataviz` anti-pattern) laid out as one of four concrete options rather than a binary yes/no.
+  Presenting the real alternatives — secondary axis as specced, small multiples, secondary-axis-
+  defaulted-off (the risk register's own named mitigation), or table-only — let the human make an
+  informed product call instead of either rubber-stamping risky PRD text or having Cedar quietly
+  override it a third time running.
+- *Why `arrests.ts` duplicates ~130 lines of `socrata.ts`'s fetch/validate scaffold instead of
+  sharing it, and why that was the right call even though it's real, visible duplication.* PRD §5.2
+  states plainly that "dropping FR-5–7 shrinks the product without breaking it" — severability is a
+  named design goal, not an afterthought. `socrata.ts` is the one file every P0 metric depends on;
+  widening it with a dataset-id parameter to serve a feature the PRD explicitly marks droppable
+  would make that severability a documentation claim instead of a code fact — dropping FR-5 later
+  would mean untangling a shared file instead of deleting three self-contained ones. The
+  duplication cost was named honestly in the SPEC rather than hidden behind a DRY-sounding
+  refactor, with an explicit Tipping Point (a second `8h9b-rp9u` caller) for when to stop paying it.
+- *Why `colorSlot: 1` was reused rather than a new slot earned.* Five independent `<figure>`
+  elements that are never juxtaposed in one plot don't create the visual-collision risk color
+  reuse exists to prevent — that risk only fires inside a shared legend or a merged chart, neither
+  of which this task has. Earning a third color token would have meant re-running the CVD-
+  separation validator against every existing token and both light/dark surfaces for zero
+  comprehension benefit — a cost with no corresponding payoff, so it wasn't paid.
+- *The third occurrence of the same test-bug shape this session, and why it's worth naming as a
+  pattern rather than three unrelated incidents.* A stale confinement check in
+  `repairedCollisions.test.ts` — "no file besides `socrata.ts` reads `process.env`" — broke the
+  moment `arrests.ts`'s SPEC-approved exception made it false. This is the identical shape to
+  FR-4's `MetricSection` note-paragraph test and FR-13's `YearlyLineChart` note-paragraph test: an
+  old test encodes "the only thing that could be true right now" as its check, and the moment a
+  second legitimate case arrives, the test breaks for a reason that has nothing to do with a real
+  regression. All three times, Cypress (never Redwood or Magnolia, which correctly can't touch test
+  files) caught and fixed it — and this time, Cypress had *already written the correct generalized
+  version once*, in `arrests.test.ts`'s own confinement check, and simply ported that pattern to
+  the older file rather than re-deriving it. Three occurrences in one session across three
+  different files (`MetricSection.test.tsx`, `YearlyLineChart.test.tsx`, `repairedCollisions.test.ts`)
+  is enough to call this a known failure mode of "exactly one of X" tests in a codebase that keeps
+  adding legitimate second/third instances of X — worth watching for proactively in future test
+  authoring, not just reactively fixing each time it recurs.
+
+---
+
 ## 2026-08-07 — FR-13 closed: policy-date markers, and a bug class caught twice on two files
 
 Added two vertical `<ReferenceLine>` markers (2019-03-18 Staten Island pilot, 2020-04-06 citywide)
