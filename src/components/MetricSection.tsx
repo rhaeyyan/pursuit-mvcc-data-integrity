@@ -20,6 +20,7 @@
 
 import type { JSX } from "react";
 
+import { computeChange, formatChangeSummary } from "../lib/percentChange";
 import type { YearlyMetricResult } from "../lib/socrata";
 
 export type MetricSectionProps<K extends string> = {
@@ -49,6 +50,9 @@ export function MetricSection<K extends string>({
   soql,
   note,
 }: MetricSectionProps<K>): JSX.Element {
+  const change =
+    result.status === "ok" ? computeChange(result.rows, fieldAlias) : null;
+
   return (
     <>
       {result.status === "ok" && (
@@ -70,6 +74,7 @@ export function MetricSection<K extends string>({
               ))}
             </tbody>
           </table>
+          {change !== null && <p>{formatChangeSummary(change)}</p>}
           {note !== undefined && <p>{note}</p>}
         </>
       )}
