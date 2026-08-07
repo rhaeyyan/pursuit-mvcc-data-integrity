@@ -119,6 +119,7 @@ const {
   COLLISIONS_SYNTHETIC_SOQL,
   REPAIRED_SYNTHETIC_SOQL,
   YearlyLineChart,
+  Caveats,
 } = vi.hoisted(() => ({
   fetchDeathsPerYear: vi.fn(),
   fetchInjuriesPerYear: vi.fn(),
@@ -146,6 +147,28 @@ const {
       stubbed chart
     </figure>
   )),
+  // This-SPEC addition (FR-9, "Add a standalone caveats section"): a minimal
+  // stand-in, not the real component — Caveats.test.tsx is where the real
+  // component's own five-item structure and verbatim prose are asserted
+  // against real rendered output. Here we only need something identifiable
+  // in the DOM (a heading + testid) and a vi.fn() whose call count/args we
+  // can inspect, to prove page.tsx's *mounting* decision: rendered exactly
+  // once, unconditionally, independent of all four metrics' fetch status.
+  // Typed with an explicit props parameter, rather than a bare `() => ...`,
+  // purely so `Caveats.mock.calls[0][0]` below has a real tuple index to
+  // read at the type level — the real Caveats component still takes zero
+  // props (SPEC.md's Inputs/Outputs section); this mock is invoked as
+  // <Caveats /> exactly like the real one. `data-props-key-count` surfaces
+  // the received props object's own key count into the DOM so the "called
+  // with zero props" assertion has a use for the parameter beyond typing.
+  Caveats: vi.fn((props: Record<string, never>) => (
+    <section
+      data-testid="caveats-stub"
+      data-props-key-count={Object.keys(props).length}
+    >
+      <h2>Caveats</h2>
+    </section>
+  )),
 }));
 
 vi.mock("../lib/deaths", () => ({
@@ -169,6 +192,7 @@ vi.mock("../lib/repairedCollisions", () => ({
 }));
 
 vi.mock("../components/YearlyLineChart", () => ({ YearlyLineChart }));
+vi.mock("../components/Caveats", () => ({ Caveats }));
 
 import Home from "./page";
 
@@ -233,6 +257,17 @@ const REPAIRED_SYNTHETIC_ROWS = [
 const REPAIRED_NOTE_TEXT =
   "This series counts only collisions with a recorded injury or death — records that still required an officer response after the 2020 policy change, unlike the property-damage-only collisions the raw count above stopped capturing. It tracks close to the injuries trend and is the more reliable figure for judging whether collisions actually declined.";
 
+// This-SPEC addition (FR-9) — verbatim per SPEC.md's page.tsx Output section,
+// copied exactly, not paraphrased. Appended (string concatenation, not a
+// rewrite) to the end of both COLLISIONS_NOTE_TEXT and REPAIRED_NOTE_TEXT
+// above. Deliberately declared as its own constant, not inlined into the two
+// assertions below, so a future re-read of this file can see at a glance
+// that both notes are expected to share one identical trailing sentence
+// (ADR 0001's "don't let two copies of the same string drift apart"
+// discipline, applied at test level too).
+const SEE_CAVEATS_POINTER =
+  " See Caveats, below, for the two policy dates and other limits on this figure.";
+
 // Disambiguating <table> accessible-name matchers. Once the repaired-
 // collisions block renders by default (this SPEC's beforeEach), a bare
 // `/collisions/i` table-name matcher becomes ambiguous: the raw collisions
@@ -295,6 +330,7 @@ afterEach(() => {
   fetchCollisionsPerYear.mockReset();
   fetchRepairedCollisionsPerYear.mockReset();
   YearlyLineChart.mockClear();
+  Caveats.mockClear();
 });
 
 describe("/ (Home) — the ok path", () => {
@@ -1598,6 +1634,265 @@ describe("/ (Home) — four independent metrics on one page (this SPEC's Edge Ca
     ).not.toBeInTheDocument();
 
     expect(container.querySelectorAll("details")).toHaveLength(4);
+  });
+});
+
+describe("/ (Home) — Caveats section (FR-9): mounted unconditionally, independent of all four metrics' fetch status", () => {
+  // Caveats has no data dependency (SPEC.md's Intellectual Control: "a
+  // reader is arguably most in need of these caveats exactly when something
+  // *has* gone wrong"), so unlike every MetricSection/YearlyLineChart call
+  // site above, its render must never be gated behind any result.status —
+  // this is the "critical independence test" the dispatch instructions name
+  // explicitly.
+
+  it("renders the Caveats component exactly once, with no props, in the default all-ok path", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    // Injuries, collisions, and repaired collisions use their default "ok"
+    // beforeEach values here unmodified.
+
+    await renderHome();
+
+    expect(Caveats).toHaveBeenCalledTimes(1);
+    expect(Caveats.mock.calls[0][0]).toEqual({});
+    expect(screen.getByTestId("caveats-stub")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("caveats-stub")).getByRole("heading", {
+        name: "Caveats",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("positions the Caveats mount after the repaired-collisions table — the last child of <main>, per SPEC.md's page.tsx Output", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    const repairedTable = screen.getByRole("table", {
+      name: REPAIRED_TABLE_NAME,
+    });
+    const caveatsStub = screen.getByTestId("caveats-stub");
+    const position = repairedTable.compareDocumentPosition(caveatsStub);
+    expect(Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+  });
+
+  it("the critical independence test: all four metrics erroring simultaneously never suppresses Caveats", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (Caveats independence test, deaths)",
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (Caveats independence test, injuries)",
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (Caveats independence test, collisions)",
+    });
+    fetchRepairedCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: REPAIRED_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (Caveats independence test, repaired)",
+    });
+
+    await renderHome();
+
+    // All four metrics show their own error state, no crash — and, the
+    // point of this test, Caveats renders anyway.
+    expect(
+      screen.queryByRole("table", { name: /deaths/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: /injuries/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: COLLISIONS_TABLE_NAME }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: REPAIRED_TABLE_NAME }),
+    ).not.toBeInTheDocument();
+
+    expect(Caveats).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("caveats-stub")).toBeInTheDocument();
+  });
+
+  it("all four metrics empty simultaneously never suppresses Caveats", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: SYNTHETIC_SOQL,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: INJURIES_SYNTHETIC_SOQL,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+    });
+    fetchRepairedCollisionsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: REPAIRED_SYNTHETIC_SOQL,
+    });
+
+    await renderHome();
+
+    expect(
+      screen.queryByRole("table", { name: /deaths/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: /injuries/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: COLLISIONS_TABLE_NAME }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: REPAIRED_TABLE_NAME }),
+    ).not.toBeInTheDocument();
+
+    expect(Caveats).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("caveats-stub")).toBeInTheDocument();
+  });
+
+  it("a mixed combination of statuses (ok/error/empty/error) never suppresses Caveats — genuine independence, not just the happy path", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      kind: "contract",
+      reason:
+        "no aggregate returned for 2020 (Caveats independence test, injuries)",
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+    });
+    fetchRepairedCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: REPAIRED_SYNTHETIC_SOQL,
+      kind: "contract",
+      reason:
+        "no aggregate returned for 2021 (Caveats independence test, repaired)",
+    });
+
+    await renderHome();
+
+    expect(Caveats).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("caveats-stub")).toBeInTheDocument();
+  });
+
+  it("has no axe-core violations with the Caveats stub mounted alongside the rest of the page", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    expect(screen.getByTestId("caveats-stub")).toBeInTheDocument();
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
+  });
+});
+
+describe("/ (Home) — the SEE_CAVEATS_POINTER forward-reference (FR-9): appended to both existing inline notes", () => {
+  // Edge Case from SPEC.md: "The appended pointer text must not break any
+  // existing toContain(COLLISIONS_NOTE_TEXT) / toContain(REPAIRED_NOTE_TEXT)
+  // assertion in page.test.tsx — those are substring checks against the
+  // *original* (unappended) constants defined in the test file itself, so
+  // they remain valid against the longer, pointer-appended strings in
+  // page.tsx without modification." Verified true by inspection: every
+  // pre-existing `toContain(COLLISIONS_NOTE_TEXT)` / `toContain
+  // (REPAIRED_NOTE_TEXT)` call above this describe block is left completely
+  // unmodified — `String.prototype.includes`/`toContain` matches a
+  // substring, and COLLISIONS_NOTE_TEXT/REPAIRED_NOTE_TEXT remain exact
+  // prefixes of the longer, pointer-appended strings page.tsx is expected to
+  // render once SEE_CAVEATS_POINTER is appended. The two tests below add the
+  // new, positive assertion that the longer, appended string is actually
+  // present — which the pre-existing prefix-only assertions cannot by
+  // themselves prove.
+
+  it("appends the pointer sentence to the end of the rendered collisions note", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    expect(document.body.textContent ?? "").toContain(
+      COLLISIONS_NOTE_TEXT + SEE_CAVEATS_POINTER,
+    );
+  });
+
+  it("appends the pointer sentence to the end of the rendered repaired-collisions note", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchRepairedCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: REPAIRED_SYNTHETIC_SOQL,
+      rows: REPAIRED_SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    expect(document.body.textContent ?? "").toContain(
+      REPAIRED_NOTE_TEXT + SEE_CAVEATS_POINTER,
+    );
+  });
+
+  it("the pre-existing verbatim COLLISIONS_NOTE_TEXT/REPAIRED_NOTE_TEXT substring assertions remain satisfiable unmodified, since both remain exact prefixes of their pointer-appended rendering", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
+    });
+    fetchRepairedCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: REPAIRED_SYNTHETIC_SOQL,
+      rows: REPAIRED_SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    const text = document.body.textContent ?? "";
+    // Exactly the pre-existing assertion form used throughout this file
+    // above (e.g. line ~823, ~950, ~1285) — unmodified.
+    expect(text).toContain(COLLISIONS_NOTE_TEXT);
+    expect(text).toContain(REPAIRED_NOTE_TEXT);
   });
 });
 
