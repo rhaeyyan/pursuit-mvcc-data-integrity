@@ -4262,3 +4262,204 @@ FR-2/FR-3-data-half/FR-12 tasks that came before it.
    contract owned solely by `socrata.ts`, per Rule 4.
 3. Simplicity > Pattern purity (always present).
 ```
+
+---
+
+## Archived 2026-08-06 — FR-9: caveats section, five items (COMPLETE)
+
+**Outcome:** delivered 2 of 2 Redwood-budgeted files (`Caveats.tsx` new at 61 lines, within the
+60–80 estimate; `page.tsx` edited, +4 net production lines); standard ordering throughout, Cypress
+PASS on both the Phase 1 red-test check and the Phase 3 audit — no rejection loop spent. FR-9
+fully closed — the sole remaining P0 requirement. Cedar resolved its own twice-flagged open design
+question (additive, not a consolidation of the two existing inline notes) without needing a
+`/grill-me` round. The verbatim-prose constraint was independently re-verified byte-for-byte by
+Cypress's audit via a standalone script diff against SPEC.md's pinned text, not just a passing
+test. Full narrative in `ARCHIVED_SESSIONS.md`.
+
+
+# Active SPEC
+
+**Status:** approved — ready to dispatch to Cypress (tests first, standard ordering)
+**Author:** Cedar (Tech Lead) · **Created:** 2026-08-06 · **Human-approved (HITL):** 2026-08-06, Rayan
+**Then:** Cypress (failing tests first) → Redwood (execution) → Cypress (audit)
+**Ordering:** standard, no deviation — Cypress writes failing tests first per Rule 4
+
+## Why FR-9, and why no `/grill-me` round was needed (Cedar's reasoning, recorded)
+
+FR-9 is the sole remaining P0 requirement — FR-1–4, FR-8, FR-10–12 are all closed. This round the
+two axes from the last two picks (centrality vs. scope-readiness) don't conflict: re-reading the
+PRD directly confirms nothing else P0 is hiding in the text, and the "open design question" flagged
+twice on the ledger turns out to be resolvable, not genuinely ambiguous — no `/grill-me` needed.
+Reading FR-9's actual text (§5.3 item 9) against the two existing inline notes
+(`COLLISIONS_REPORTING_NOTE`, `REPAIRED_COLLISIONS_NOTE`) shows they don't overlap in content at
+all: the notes never mention the two policy dates, borough-coverage drift, the COVID confounder,
+congestion pricing, or DOT SIP placement. There's nothing to consolidate or deduplicate, so this
+isn't a "cross-reference vs. coexist" dilemma — it's additive. The one real, previously-deferred
+decision (flagged explicitly in the FR-3 data-half archive: *"Cedar chose to state the documented
+cause directly instead of leaving a forward reference to nothing... named this as FR-9's decision
+to revise later"*) is closed here: both notes gain a one-sentence forward pointer to the new
+section. FR-13 (policy-date markers, P1, Magnolia chart work) and FR-5–7 (severable P1, still
+carrying its named design risks) stay deferred — not urgent this round, and FR-13 in particular
+benefits from sequencing after FR-9 since it will want the same two dates FR-9 pins as prose. The
+deploy `[SPEC]` obligation is still blocked on the same unresolved "is a Vercel project connected?"
+question as the last two rounds — flagging again rather than guessing. The chart-overlay idea and
+the live-browser QA gap are noted but not picked; nothing changed to promote either over the last
+P0 item.
+
+This is a Redwood-owned task — no chart, no CSS, no visual design decision, same category as FR-3's
+data-half note and FR-12's new section, both of which added new DOM structure to `page.tsx` without
+becoming Magnolia work.
+
+---
+
+```markdown
+[SPEC]
+- **Objective**: Add a standalone, page-level caveats section covering the five items FR-9 names,
+  and close the forward-reference gap the FR-3 data-half SPEC deliberately deferred by pointing
+  both existing inline notes at it.
+- **Requirement**: FR-9 [P0] — "The system shall display a caveats section covering: the
+  reporting-drift finding with its two documented policy dates (Staten Island pilot 2019-03-18;
+  citywide 2020-04-06), the borough-coverage drift, the COVID/vehicle-speed confounder, the
+  January 2025 launch of Manhattan CBD congestion pricing..., and the geographically non-random
+  placement of NYC DOT Street Improvement Projects..."
+- **Inputs/Outputs**:
+  - `src/components/Caveats.tsx` — a zero-prop Server Component (no `'use client'`; static
+    content only, same posture as `MetricSection`). Renders:
+    ```html
+    <section aria-labelledby="caveats-heading">
+      <h2 id="caveats-heading">Caveats</h2>
+      <p>{INTRO}</p>
+      <h3>The 2019–2020 reporting-policy change</h3>
+      <p>{ITEM_1}</p>
+      <h3>Borough-field coverage isn't complete or constant</h3>
+      <p>{ITEM_2}</p>
+      <h3>The pandemic-era rise in deaths, 2020–2021</h3>
+      <p>{ITEM_3}</p>
+      <h3>Manhattan congestion pricing, January 2025</h3>
+      <p>{ITEM_4}</p>
+      <h3>Street Improvement Project placement</h3>
+      <p>{ITEM_5}</p>
+    </section>
+    ```
+    Exact text, to be reproduced verbatim (matches the `COLLISIONS_NOTE_TEXT`/`REPAIRED_NOTE_TEXT`
+    "copied exactly, not paraphrased" convention already established for note strings):
+    - `INTRO`: "The figures above are accurate to what NYPD recorded, but the record itself has
+      documented limits. Five are covered here."
+    - `ITEM_1`: "Every collision-count figure on this page after early 2020 is affected by a
+      documented change in NYPD procedure, not a change in how many collisions actually happened.
+      NYPD piloted a policy of no longer dispatching officers to property-damage-only collisions in
+      Staten Island on 2019-03-18, and made it permanent citywide on 2020-04-06. Drivers in those
+      crashes now exchange information themselves and file a report with the state DMV, and those
+      filings never reach the dataset this page reads from. The deaths and injuries series above are
+      largely unaffected — both still require an officer or a hospital record — which is why they
+      hold roughly flat while the raw collision count falls."
+    - `ITEM_2`: "This dataset's borough field is left blank on a substantial share of rows, and how
+      completely it's filled in has changed over the 2018–2025 window rather than staying constant.
+      Any claim broken out by borough should be read alongside that fact, not as if the field were
+      fully and evenly populated across every year."
+    - `ITEM_3`: "Deaths and injuries both rose in 2020–2021 even as recorded collisions fell.
+      Nationwide, average vehicle speeds increased during pandemic-era lockdowns as roads emptied,
+      which independently raises crash severity. This page does not attribute the 2020–2021 rise, or
+      any later change, to enforcement activity or its absence — it shows the series moving together
+      and names this as one of the reasons a causal reading isn't supported."
+    - `ITEM_4`: "Manhattan's Central Business District congestion pricing program began in January
+      2025 and reduced traffic entering that zone. Any claim about Manhattan specifically that runs
+      through a 2025 endpoint should be read with that launch in mind as a possible contributor,
+      separate from anything this page attributes to reporting or enforcement."
+    - `ITEM_5`: "NYC DOT's own reporting states that street-redesign investment since 2014 was
+      concentrated deliberately in lower-income neighborhoods and communities of color, including
+      several in the Bronx. A borough's deaths trend can therefore reflect a targeted infrastructure
+      intervention rather than, or in addition to, anything this page measures about reporting or
+      enforcement."
+  - `src/app/page.tsx`: mount `<Caveats />` as the last child of `<main>`, after the repaired-
+    collisions `MetricSection`, unconditionally (not gated on any `result.status`). Add one new
+    shared constant:
+    ```ts
+    const SEE_CAVEATS_POINTER =
+      " See Caveats, below, for the two policy dates and other limits on this figure.";
+    ```
+    and append it (string concatenation, not a rewrite) to the end of both
+    `COLLISIONS_REPORTING_NOTE` and `REPAIRED_COLLISIONS_NOTE`.
+- **Query**: None. No SoQL, no new fetch, no dataset access. All five items are static, dated,
+  already-verified prose sourced from PRD §5.3 FR-9's own text and the "documented cause" section
+  of Appendix A — not a live aggregate, so nothing here is a "displayed figure" NFR-4 governs.
+- **Design Pattern**: none — simple case. A fixed list of five static items with no interchangeable
+  behavior and no variance to encapsulate.
+- **UI Scope**: structural — a new `<section>` landmark and heading hierarchy are added to the DOM.
+  Assigned to Redwood, not Magnolia, per the precedent set by FR-3's data-half note and FR-12's new
+  `MetricSection` block: no chart, no new CSS, no color/motion/responsive decision — plain semantic
+  HTML content addition, the same category of work as those two prior tasks.
+- **Intellectual Control**:
+  - A dedicated component, not inline `page.tsx` prose, for the same reason `MetricSection` was
+    extracted: keeps `page.tsx` thin (currently 122 lines; five inline paragraphs would push it well
+    past its own historical ~150-line Tipping Point) and makes the section independently testable.
+  - Renders unconditionally, independent of all four metrics' fetch status. Unlike `MetricSection`,
+    Caveats has no data dependency — a reader is arguably most in need of these caveats exactly when
+    something *has* gone wrong (an error state showing), so gating it behind any `result.status`
+    would be actively wrong, not merely unnecessary.
+  - The two policy dates (2019-03-18, 2020-04-06) are hardcoded as prose deliberately: they are
+    fixed historical facts named directly in FR-9's and FR-13's own PRD text, not Socrata-derived
+    aggregates — the same category as the "2018–2025" window text already hardcoded throughout the
+    codebase's `captionText` strings, not a figure NFR-4 restricts.
+  - No percentage or count (borough-coverage rate, Manhattan enforcement delta, etc.) appears
+    anywhere in `Caveats.tsx`. Those numbers' authoritative home is FR-7's not-yet-built persistent
+    borough-filter warning; restating them here would be a second, driftable copy of a figure this
+    task has no mechanism to keep in sync (ADR 0001's exact failure mode). FR-9's list item is
+    satisfied qualitatively — "covering... the borough-coverage drift" — without needing the number.
+  - **Declined optimization, named rather than silently skipped**: FR-13 will also need these two
+    dates (as chart-axis reference-marker positions, a different shape of need — a coordinate, not
+    a sentence). Pre-extracting a shared `policyDates.ts` module now, before FR-13 has its own SPEC,
+    would be the unearned-generality failure Rule 8 rejects — the same discipline the FR-3 data-half
+    SPEC applied to "don't build for a requirement that hasn't been specced yet." Revisit when FR-13
+    is actually specced.
+  - The cross-reference is a plain trailing sentence appended to the existing note strings, not a
+    hyperlink. Making it a real anchor link would require widening `MetricSection`'s and
+    `YearlyLineChart`'s `note?: string` prop to accept `ReactNode`, touching two additional frozen,
+    already-tested component contracts for a one-line addition — declined in favor of the minimal
+    change that still closes the deferred decision. The section heading still carries
+    `id="caveats-heading"` so a future SPEC can add real anchors cheaply if wanted.
+- **Constraints**:
+  - No new NPM/PIP dependency.
+  - `Caveats.tsx` stays a Server Component — no `'use client'`, no interactivity, matching
+    `MetricSection`'s precedent.
+  - Prose above must be reproduced verbatim, not paraphrased — Cypress will assert against it with
+    `toContain`, matching the `COLLISIONS_NOTE_TEXT`/`REPAIRED_NOTE_TEXT` convention.
+  - Heading hierarchy must not skip a level: `page.tsx`'s existing `<h1>` → Caveats' `<h2>` →
+    Caveats' five `<h3>`s — axe-core's heading-order rule is part of the acceptance gate.
+  - `SEE_CAVEATS_POINTER` is defined once and appended to both notes via concatenation — not two
+    independently typed copies (same ADR 0001 discipline `COLLISIONS_REPORTING_NOTE`'s own header
+    comment already names).
+- **Edge Cases**:
+  - Caveats renders identically regardless of whether any/all of the four `Promise.all` fetches
+    return `"ok"`, `"empty"`, or `"error"` — assert this directly (mock all four to error, confirm
+    the Caveats heading and all five item headings are still present).
+  - `guard-data-integrity.sh`'s pinned-figure list must stay green — none of the five items or the
+    pointer sentence contain any of the guarded literals (verify by running the hook standalone
+    post-edit, not just trusting the PostToolUse pass).
+  - The appended pointer text must not break any existing `toContain(COLLISIONS_NOTE_TEXT)` /
+    `toContain(REPAIRED_NOTE_TEXT)` assertion in `page.test.tsx` — those are substring checks against
+    the *original* (unappended) constants defined in the test file itself, so they remain valid
+    against the longer, pointer-appended strings in `page.tsx` without modification. Confirm this by
+    reading the test file, not by assuming.
+- **Files** (4, under the 5-file cap):
+  1. `src/components/Caveats.tsx` (new)
+  2. `src/components/Caveats.test.tsx` (new)
+  3. `src/app/page.tsx` (edit — mount `<Caveats />`; add `SEE_CAVEATS_POINTER`; append it to both
+     existing note constants)
+  4. `src/app/page.test.tsx` (edit — assert Caveats renders, assert it renders unconditionally
+     across all four metrics' error/empty paths, assert the pointer sentence is present in both
+     notes' rendered text)
+- **Tipping Point**: `Caveats.tsx` is expected to land around 60–80 lines. Revisit (split items into
+  their own data-driven list, or reconsider the flat five-`<h3>` shape) if a sixth item is ever
+  named, or once FR-13/FR-5–7 land and this file's static dates start wanting to be shared with
+  chart code — the trigger named above, not a line count in isolation.
+
+[FORCES]
+1. Additive, standalone section > rewriting the two existing inline notes — the two content
+   surfaces don't overlap, so consolidating them would manufacture a merge neither requirement asks
+   for.
+2. Qualitative caveat text > restating a pinned percentage — the borough-coverage and enforcement
+   numbers belong to FR-7's not-yet-built warning; a second copy here is exactly the drift ADR 0001
+   was written about.
+3. Simplicity > Pattern purity (always present).
+```

@@ -8,6 +8,75 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — FR-9 closed: the caveats section, and the sole remaining P0 requirement
+
+Added a standalone `Caveats.tsx` — a static Server Component with five items (the two reporting-
+policy dates, borough-coverage drift, the pandemic-speed confounder, January 2025 congestion
+pricing, DOT Street Improvement Project placement) — mounted unconditionally at the bottom of
+`page.tsx`, plus a one-sentence forward-pointer appended to the two existing inline notes. Standard
+ordering, Cypress PASS on both the Phase 1 red-test check and the Phase 3 audit — no rejection loop
+spent. Full SPEC in `ARCHIVED_SPECS.md`, "Archived 2026-08-06 — FR-9." This closes the last P0
+requirement: diagnosis (FR-1–3), fix (FR-12), summary (FR-4), and now honest limits (FR-9) are all
+shipped.
+
+- *Why Cedar resolved its own twice-flagged open question instead of recommending `/grill-me`, and
+  why that call was correct rather than a shortcut.* The ledger had flagged, across two prior
+  sessions, that FR-9 might require deciding whether the existing inline notes should become
+  cross-references into it. Rather than treating that flag as proof the question was genuinely
+  ambiguous, Cedar re-read FR-9's actual PRD text against the two notes' actual content and found
+  they don't overlap at all — the notes explain *why a series looks different*, FR-9's five items
+  cover *broader interpretive limits* (dates, borough coverage, a nationwide confounder, a
+  congestion-pricing launch, infrastructure placement) that never appear in either note. A flagged
+  question is not automatically a real one; re-deriving from the source text before accepting an
+  inherited framing is the same discipline Cedar applied when it corrected the shared-axis premise
+  on FR-3's chart and the Strategy-pattern pre-commitment on FR-12.
+- *Why Caveats renders unconditionally, independent of all four metrics' fetch status — the one
+  design choice that inverts every other component's pattern on this page.* Every `MetricSection`
+  and chart on `/` only renders on `status === "ok"`, because there's nothing honest to show without
+  data. Caveats is the opposite case: it explains the record's limits, which is arguably most
+  needed exactly when a fetch has failed and a reader is looking at an error state trying to
+  understand what they're seeing. Cedar named this explicitly rather than defaulting to the
+  page's established conditional-rendering habit out of consistency for its own sake.
+- *Why no percentage or count was ever going to appear in Caveats.tsx, even though borough-coverage
+  rate would have made item 2 more concrete.* FR-7's not-yet-built persistent borough-filter warning
+  is that number's one legitimate home. A second, independently-typed copy here would have no
+  mechanism to stay in sync with it once FR-7 ships — exactly the failure ADR 0001 was written
+  about. FR-9's own text only requires "covering... the borough-coverage drift," which the
+  qualitative sentence satisfies without inventing a number this task has no way to keep honest.
+- *Why a shared `policyDates.ts` module was named and explicitly declined, not built preemptively.*
+  FR-13 (policy-date chart markers, still unspecced) will want the same two dates in a different
+  shape — coordinates, not prose. Extracting a shared module now, before FR-13's SPEC exists to
+  define what shape it actually needs, would be exactly the unearned-generality Rule 8 rejects.
+  Named as a deferred trigger rather than silently duplicated or silently pre-built.
+- *Why the verbatim-prose constraint got a dedicated, independent re-derivation in the audit rather
+  than trusting the passing test.* Five paragraphs of exact, citation-level prose are the kind of
+  content most likely to drift silently — a single reworded clause would pass casual review. Cypress
+  wrote a standalone script diffing SPEC.md's pinned text against the shipped component
+  character-for-character, the same category of extra rigor it applied to the `-0%` trap on FR-4
+  and the byte-identical invariant on FR-12 — proportionate scrutiny aimed at the specific way this
+  particular task could fail quietly.
+
+---
+
+## 2026-08-06 — `stop-quality-gate.sh`'s two fake-green defects fixed
+
+No SPEC — a simple, fully-diagnosed bug fix routed directly to Redwood per Pine's rules, not
+through Cedar. A missing/non-executable `tsc`/`eslint` binary used to fail the `[ -x ... ]` guard
+silently and fall through to "Quality gate clean," having never actually run either check — the
+same toolchain-form silently-coerced-zero the script's own Node-version-mismatch branch already
+refused to allow, just reached through a different code path nobody had closed. Fixed to fail loud
+with an explicit "incomplete or corrupted install" message instead. Also hardened the all-clear
+message's `node -v` interpolation with a defensive capture and `"unknown"` fallback, so it can no
+longer print an empty version and silently violate Amendment 3(b). Verified by renaming each binary
+in turn and confirming exit 2, then restoring and reconfirming exit 0; `--hook` mode and the
+`stop_hook_active` escalation short-circuit reconfirmed untouched. Independently re-verified by the
+orchestrating session (not just trusting Redwood's report) before being folded into the next
+commit. Worth remembering as the general shape of the finding: "nothing ran" and "everything
+passed" are not the same claim, and a gate that conflates them is worse than no gate, since it
+actively produces false confidence rather than an honest gap.
+
+---
+
 ## 2026-08-06 — FR-4 closed: a 2018→2025 percent-change line, derived not fetched
 
 Added a percent-change summary line under each metric's table — `src/lib/percentChange.ts`'s
