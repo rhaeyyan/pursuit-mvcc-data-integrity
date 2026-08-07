@@ -12,6 +12,23 @@
 .figure {
   --chart-series-1: #2a78d6;
   --chart-series-2: #eb6834;
+  /* FR-13's reference-marker colour — the categorical palette's aqua slot
+     (dataviz skill, references/palette.md), chosen over the alternatives
+     tried (violet, yellow, green, red, magenta) because it is the one that
+     clears the validator's CVD separation and normal-vision floor against
+     both --chart-series-1 and --chart-series-2, all-pairs, in both light and
+     dark mode against this app's actual --background surfaces (#ffffff /
+     #0a0a0a — see globals.css). Validated with
+     dataviz/scripts/validate_palette.js "#2a78d6,#eb6834,#1baf7a" --mode
+     light --surface "#ffffff" --pairs all (ALL CHECKS PASS, one WARN: light
+     contrast 2.82:1 — the documented "relief" case, satisfied here because a
+     reference marker always ships with a visible inline text label and the
+     figcaption sentence below, never a bare line) and the dark twin with
+     "#3987e5,#d95926,#199e70" --surface "#0a0a0a" (ALL CHECKS PASS, no
+     WARNs). Never a data series in its own right — an annotation must never
+     be mistakable for a third plotted metric, hence a distinct token rather
+     than a third --chart-series-N slot. */
+  --chart-annotation: #1baf7a;
   --chart-grid: #e1e0d9;
   --chart-rule: #c3c2b7;
   --chart-ink: #52514e;
@@ -23,6 +40,7 @@
   .figure {
     --chart-series-1: #3987e5;
     --chart-series-2: #d95926;
+    --chart-annotation: #199e70;
     --chart-grid: #2c2c2a;
     --chart-rule: #383835;
     --chart-ink: #c3c2b7;
@@ -84,6 +102,25 @@
    for the same reason as the marks above. */
 .figure :global(.recharts-label) {
   fill: var(--chart-ink);
+}
+
+/* FR-13's policy-date reference lines. Recharts renders each <ReferenceLine>
+   as its own `.recharts-reference-line` group (verified against the
+   installed recharts@3.10.1, and the same selector
+   YearlyLineChart.test.tsx asserts against) — a sibling of `.recharts-line`,
+   never a data series, so it takes a distinct token (--chart-annotation)
+   rather than either --chart-series slot. The dash pattern itself is set as
+   an inline prop on <ReferenceLine> in the component (MARKER_DASH_PATTERN),
+   not here — this project's vitest.config.mts has no `css: true`, so
+   jsdom/Vitest never applies this stylesheet in tests; a CSS-only dash would
+   be invisible to the DOM-based test assertions. This rule is the real-
+   browser fallback/reinforcement for stroke colour only. */
+.figure :global(.recharts-reference-line line) {
+  stroke: var(--chart-annotation);
+}
+
+.figure :global(.recharts-reference-line .recharts-text) {
+  fill: var(--chart-annotation);
 }
 
 /* The end-value label is a plain <text> this component renders itself

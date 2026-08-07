@@ -16,6 +16,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -26,6 +27,13 @@ import {
 // repo that reads SOCRATA_APP_TOKEN into the client bundle; `import type`
 // is erased at compile time and cannot.
 import type { YearlyMetricRow } from "../lib/socrata";
+
+// FR-13's single source of truth for the two documented policy dates — a
+// genuine value import (not `import type`) since the marker data is read at
+// render time, not just typed against. `policyDates.ts` never touches
+// SOCRATA_APP_TOKEN, so this carries none of the client-bundle risk the
+// socrata import above (two lines up) guards against.
+import { POLICY_DATE_MARKERS, type PolicyDateMarker } from "../lib/policyDates";
 
 import styles from "./YearlyLineChart.module.css";
 
@@ -44,6 +52,41 @@ export type YearlyLineChartProps<K extends string> = {
 // requires — a real, visible dash, never derived from strokeStyle at every
 // call site individually.
 const DASH_PATTERN = "8 6";
+
+// The dash pattern for FR-13's policy-date reference lines — deliberately a
+// finer dot/dash than DASH_PATTERN above, so an annotation marker is never
+// mistakable, on sight, for a second dashed *data series* (SPEC.md
+// Constraint: "different from the '8 6' pattern DASH_PATTERN already spends
+// on the reporting-affected collisions line").
+const MARKER_DASH_PATTERN = "2 3";
+
+/**
+ * Filters `POLICY_DATE_MARKERS` down to the markers whose `year` actually
+ * appears in `rows` — defensive against a future narrower panel (e.g. a
+ * Staten-Island-only story) that may not cover both marker years. Pure: no
+ * side effects, no throw on an empty result. See SPEC.md's Edge Cases.
+ */
+function getVisiblePolicyMarkers<K extends string>(
+  rows: YearlyMetricRow<K>[],
+): PolicyDateMarker[] {
+  const years = new Set(rows.map((row) => row.year));
+  return POLICY_DATE_MARKERS.filter((marker) => years.has(marker.year));
+}
+
+/**
+ * Builds the accessible caption sentence for whichever markers actually
+ * render, so the visual and text layers can never independently drift
+ * (ADR 0001). Pinned verbatim by SPEC.md and Cypress's tests for the
+ * full-window (both-marker) case; degrades to naming only the surviving
+ * marker(s) when `markers` is shorter, and is never called at all when
+ * `markers` is empty (see the caller below).
+ */
+function buildPolicyMarkerCaption(markers: PolicyDateMarker[]): string {
+  const parts = markers
+    .map((marker) => `${marker.isoDate} (${marker.label})`)
+    .join(" and ");
+  return `Vertical reference lines mark ${parts} — see Caveats, below, for details.`;
+}
 
 /**
  * Builds the direct end-value label renderer for a given `rows`/`fieldAlias`
@@ -106,6 +149,16 @@ export function YearlyLineChart<K extends string>({
     "--chart-series": `var(--chart-series-${colorSlot})`,
   } as CSSProperties;
 
+  // FR-13: the two policy-date markers, narrowed to whichever years `rows`
+  // actually covers, and the one accessible sentence generated from that
+  // same filtered list — see the Edge Cases in SPEC.md for why this must
+  // never claim a marker that isn't drawn.
+  const visiblePolicyMarkers = getVisiblePolicyMarkers(rows);
+  const policyMarkerCaption =
+    visiblePolicyMarkers.length > 0
+      ? buildPolicyMarkerCaption(visiblePolicyMarkers)
+      : null;
+
   return (
     <figure className={styles.figure} style={figureStyle}>
       <div className={styles.plot} role="img" aria-label={ariaLabel}>
@@ -139,12 +192,24 @@ export function YearlyLineChart<K extends string>({
               isAnimationActive={false}
               label={renderEndLabel}
             />
+            {visiblePolicyMarkers.map((marker) => (
+              <ReferenceLine
+                key={marker.year}
+                x={marker.year}
+                strokeDasharray={MARKER_DASH_PATTERN}
+                label={{
+                  value: marker.label,
+                  position: "top",
+                }}
+              />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
       <figcaption className={styles.caption}>
         {captionText}
         {note !== undefined && <p>{note}</p>}
+        {policyMarkerCaption !== null && <p>{policyMarkerCaption}</p>}
       </figcaption>
     </figure>
   );
