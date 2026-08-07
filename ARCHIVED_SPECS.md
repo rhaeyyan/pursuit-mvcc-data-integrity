@@ -3699,3 +3699,407 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
 2. Earned parameterization (MetricSection's precedent) > a new GoF pattern for two call sites.
 3. Simplicity > Pattern purity (always present unless explicitly overridden).
 ```
+
+---
+
+## Archived 2026-08-06 — FR-12: casualty-filtered "repaired" collisions, data half (COMPLETE)
+
+**Outcome:** delivered 4 of 4 budgeted files (`socrata.ts` widened with an optional `extraWhere`
+param, `repairedCollisions.ts` + its API route new, `page.tsx` gets a fourth independent table);
+standard ordering throughout, Cypress PASS on both the Phase 1 red-test check and the Phase 3
+audit — no rejection loop spent. FR-12 is fully closed (its text has no stroke/chart requirement,
+unlike FR-3). The byte-identical invariant on `socrata.ts`'s 2-argument call path was verified
+both by unit test and against the live API — all three pre-existing metrics' figures unchanged.
+Full narrative in `ARCHIVED_SESSIONS.md`.
+
+
+# Active SPEC
+
+**Status:** approved — ready to dispatch to Cypress (tests first, standard ordering)
+**Author:** Cedar (Tech Lead) · **Created:** 2026-08-06 · **Human-approved (HITL):** 2026-08-06, Rayan
+**Then:** Cypress (failing tests first) → Redwood (execution) → Cypress (audit)
+**Ordering:** standard, no deviation — Cypress writes failing tests first per Rule 4
+
+## Why this task, not the seven candidates it was picked over (Cedar's reasoning, recorded)
+
+Cedar was handed a backlog of seven candidates (deploy SPEC, FR-4, FR-9, FR-13, FR-5–7 arrest
+group, the two hook defects — already fixed — and the live-browser QA gap) and instead recommended
+**FR-12 — the casualty-filtered "repaired" collision series, data half only** — found by re-reading
+the PRD directly rather than working only from the candidate list. FR-12 is **P0**, unshipped, and
+the PRD's own text names it as the single most important remaining piece: *"the verified
+remediation, which turns the product from diagnosis-only into diagnosis-plus-fix... it is P0
+because without it the product diagnoses a problem and offers no usable number in its place."* The
+page currently shows the break (deaths flat, collisions cratering) but never delivers the tagline's
+second half — "the number you should use instead." FR-12 is that number. It was tracked across the
+last five archived SPECs as queued backlog and was explicitly *blocked* until FR-3's chart half
+landed, because it needs a raw collisions series to compare against — that landed the session
+immediately before this one (`bfc6b81`). It is now, for the first time, genuinely unblocked.
+
+Against the seven listed candidates: FR-4 (percent-change) and FR-9 (caveats) are both P0 and
+legitimate next-in-line, but neither is thesis-central the way FR-12 is — FR-4 summarizes series
+that already exist, FR-9 is prose around findings already shown; FR-12 adds a series nobody has
+seen yet, the one the whole product exists to hand the reader. FR-13 and the FR-5–7 arrest group
+are P1, and FR-5–7 additionally carries real design risk (secondary axis, borough-code trap, the
+"enforcement caused deaths" misreading NFR-5 warns against). The deploy SPEC has a genuine open
+question Cedar couldn't resolve unilaterally (is a Vercel project even connected?) — flagged for a
+direct check rather than guessed at. The live-browser QA gap is tooling, not a spec-shaped task.
+The two hook fixes are already done, correctly excluded.
+
+The task itself is unusually well-scoped: the PRD pins the exact `$where` clause, the `mvcc-data`
+skill pins the exact expected 8-year figures, and the PRD explicitly frames this as *"a single
+additional SoQL query with a `$where` clause, not a new subsystem."* Unlike FR-3, FR-12's text
+imposes no stroke/chart requirement — only "display... alongside the raw series" — so this task,
+Redwood-only, is positioned to **fully close FR-12** rather than partially.
+
+**A four-times-repeated pre-commitment, engaged with rather than silently followed or ignored.**
+FR-12 was named in four consecutive prior SPECs as the trigger for widening `socrata.ts` past two
+parameters ("parameterize at two, encapsulate at three... a Strategy or series registry is finally
+earned" when a third distinct query *shape* arrives). Having the concrete case in hand, Cedar
+declined that escalation: FR-12's actual variance is one additional AND-ed `$where` fragment — a
+data value, not a second algorithm. A GoF Strategy pattern encapsulates interchangeable *behavior*;
+nothing about `fetchYearlyMetric`'s fetch/validate/parse pipeline varies across any of the four
+metrics, only three small strings do. Widening the signature with one more **optional, named,
+non-boolean** parameter (`extraWhere?: string`) is the same "explicit typed parameters over a
+hidden-branching config object" principle the FR-2 SPEC already used to justify the *current*
+two-parameter shape. The real encapsulation trigger isn't "a third shape," it's **a second
+independent axis of variation** — FR-6's borough filter (metric × borough), not FR-12 (metric, with
+one shape variant). That correction is named explicitly here so it doesn't get silently inherited
+as unexamined fact by the next session.
+
+---
+
+```markdown
+[SPEC] — Casualty-filtered "repaired" collisions per year (FR-12), data half — the corrected number
+
+- **Objective**: Add a fourth, independently-fetched yearly SoQL aggregate — recorded collisions
+  where `number_of_persons_injured > 0 OR number_of_persons_killed > 0` — rendered on `/` as its
+  own accessible table + FR-8 query disclosure, alongside the existing raw-collisions table. This
+  is the product's stated "fix": the corrected trend the raw series (down 63%, an artifact of the
+  2020 NYPD reporting-policy change) cannot provide. Unlike FR-3, FR-12's text imposes no
+  stroke/chart requirement — it requires "display... alongside the raw series," which two tables
+  on the same page satisfy — so this task is expected to **fully close FR-12**, not partially.
+  Redwood only; no Magnolia work in this task.
+
+- **Requirement**: **FR-12 [P0]** (PRD line 208) — casualty-filtered repaired collision series,
+  fully satisfied by this task (see Intellectual Control for why, unlike FR-3, no follow-on
+  chart SPEC is owed to close it). Also satisfies **FR-8 [P0]** (exact SoQL shown, a fourth
+  independently-pinned query), **FR-10 [P0]** (defined empty/error state for a fourth metric,
+  independent of the other three), **FR-11 [P0]** (absent/null core aggregate → error, never a
+  silent zero — trap 1 applies here exactly as to deaths/injuries/collisions), **NFR-1** (ISR
+  caching inherited via the shared transport; parallel fetch), **NFR-2** (token read stays
+  confined to `socrata.ts`), **NFR-3** (a fourth screen-reader-accessible table), and **NFR-4**
+  (every figure from SoQL aggregation — this task authors zero literals). Explicitly **not** in
+  scope: any chart/visual overlay of this series (named as an optional, non-required future
+  enhancement below, not owed); **FR-4** (% change — still blocked on a UI landing spot, unrelated
+  to this task); **FR-9** (caveats — separate); **FR-13**; the severable FR-5–7 arrest group.
+
+- **Inputs/Outputs**:
+  - *Input*: a clean tree with FR-3's chart half merged (`bfc6b81`); `SOCRATA_APP_TOKEN` in a
+    gitignored `.env`.
+  - *Step 0*: run and record `node -v` / `npm -v` (Amendment 3(b), binding); must satisfy
+    `engines.node` (`>=22.22.2`).
+
+  - *Output 1 — `src/lib/socrata.ts`* (**edited**). Widen `buildYearlySoql`, `buildYearlyUrl`, and
+    `fetchYearlyMetric` to accept a third, **optional** parameter, `extraWhere?: string`, AND-ed
+    onto the fixed `WHERE_CLAUSE` when present:
+    ```ts
+    function whereClause(extraWhere?: string): string {
+      return extraWhere ? `${WHERE_CLAUSE} AND ${extraWhere}` : WHERE_CLAUSE;
+    }
+    ```
+    Replace the two literal `WHERE_CLAUSE` references in `buildYearlySoql`/`buildYearlyUrl` with
+    `whereClause(extraWhere)`; add the parameter to `fetchYearlyMetric`'s signature and forward it
+    to both builders. **`$group`/`$order` stay fixed constants, untouched — do not parameterize
+    them here.** This is the sole change to the file. When `extraWhere` is omitted (all three
+    existing callers), output must be **byte-for-byte identical** to today's — this is the load
+    -bearing invariant, checked mechanically (Acceptance clause 5).
+
+  - *Output 2 — `src/lib/repairedCollisions.ts`* (**new**). Fourth thin wrapper, same shape as
+    `collisions.ts` plus the new third argument:
+    ```ts
+    import {
+      buildYearlySoql,
+      buildYearlyUrl,
+      fetchYearlyMetric,
+      type YearlyMetricResult,
+      type YearlyMetricRow,
+    } from "./socrata";
+
+    const AGGREGATE_EXPR = "count(collision_id)";
+    const FIELD_ALIAS = "repaired" as const;
+    const EXTRA_WHERE =
+      "(number_of_persons_injured > 0 OR number_of_persons_killed > 0)";
+
+    export const REPAIRED_COLLISIONS_SOQL = buildYearlySoql(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      EXTRA_WHERE,
+    );
+    export function buildRepairedCollisionsUrl(): URL {
+      return buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE);
+    }
+    export type RepairedCollisionsRow = YearlyMetricRow<"repaired">;
+    export type RepairedCollisionsResult = YearlyMetricResult<"repaired">;
+    export function fetchRepairedCollisionsPerYear(): Promise<RepairedCollisionsResult> {
+      return fetchYearlyMetric(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE);
+    }
+    ```
+    `FIELD_ALIAS` is the lowercase single-word `"repaired"`, matching the `deaths`/`injuries`/
+    `collisions` naming convention exactly (not `repairedCollisions` — an untested camelCase SoQL
+    alias is an avoidable risk when a plain word already reads clearly in context: the module
+    name, the table caption, and the column label all carry "repaired collisions"; the bare field
+    key does not need to repeat it).
+
+  - *Output 3 — `src/app/api/repaired-collisions/route.ts`* (**new**). `export async function
+    GET()`, identical union-to-HTTP mapping as the three existing routes:
+
+    | `status` / `kind` | HTTP | Body |
+    |---|---|---|
+    | `ok` | 200 | `{ status, soql, rows }` |
+    | `empty` | 200 | `{ status, soql }` |
+    | `error` / `upstream` | 502 | `{ status, soql, kind, reason }` |
+    | `error` / `contract` | 422 | `{ status, soql, kind, reason }` |
+
+  - *Output 4 — `src/app/page.tsx`* (**edited**). Fetch all four metrics **in parallel**:
+    `const [result, injuriesResult, collisionsResult, repairedResult] = await Promise.all([...,
+    fetchRepairedCollisionsPerYear()])` — not a sequential fifth `await` (NFR-1). After the
+    existing collisions `MetricSection`, add a fourth, independent block:
+    ```tsx
+    <MetricSection
+      fieldAlias="repaired"
+      columnLabel="Repaired collisions"
+      captionText="NYC collisions with a recorded injury or death per year, 2018–2025"
+      result={repairedResult}
+      soql={REPAIRED_COLLISIONS_SOQL}
+      note={REPAIRED_COLLISIONS_NOTE}
+    />
+    ```
+    `REPAIRED_COLLISIONS_NOTE` is a new local constant, sibling to the existing
+    `COLLISIONS_REPORTING_NOTE`, verbatim text: *"This series counts only collisions with a
+    recorded injury or death — records that still required an officer response after the 2020
+    policy change, unlike the property-damage-only collisions the raw count above stopped
+    capturing. It tracks close to the injuries trend and is the more reliable figure for judging
+    whether collisions actually declined."* Correlation language only, no causal claim beyond the
+    documented policy mechanism (mvcc-data skill: "this is documented policy, not inference").
+    **All four metrics' branches stay fully independent** — one failing must never suppress or
+    alter another's render, extending the guarantee established at three metrics to a fourth.
+
+  - *Acceptance, by command, `node -v` recorded beside results*:
+    1. `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` each exit 0.
+    2. `npm ls zod` and `npm ls recharts` — both unchanged; zero installs expected.
+    3. `npm run dev`; `curl -s localhost:3000/api/deaths`, `/api/injuries`, `/api/collisions`
+       unchanged, `status: "ok"`, 8 rows each; `curl -s localhost:3000/api/repaired-collisions` →
+       `status: "ok"`, 8 rows.
+    4. `/` renders all four tables (deaths, injuries, collisions, repaired collisions) plus both
+       charts (deaths, collisions) plus all four disclosures, unchanged from before for the first
+       three.
+    5. **`git diff --stat` shows zero changes to `src/lib/deaths.test.ts`,
+       `src/lib/injuries.test.ts`, `src/lib/collisions.test.ts`, `src/app/api/deaths/route.test.ts`,
+       `src/app/api/injuries/route.test.ts`, `src/app/api/collisions/route.test.ts`, and
+       `src/components/MetricSection.test.tsx`.** This is the mechanical proof that widening
+       `socrata.ts`'s signature left the 2-argument call path byte-identical. If satisfying
+       acceptance required editing any of these, report exactly which assertion broke and why —
+       do not silently edit Cypress's files.
+    6. The live `/api/repaired-collisions` response body pasted verbatim into the
+       `[COMPLETION-REPORT]`. Cypress diffs it against the mvcc-data skill's pinned
+       "Casualty-filtered" column and re-confirms the other three metrics are unchanged. Redwood
+       transports; it does not judge correctness (NFR-4).
+    7. `git grep -n SOCRATA_APP_TOKEN -- src .env.example` — token name still appears in exactly
+       **one** source file (`socrata.ts`) plus `.env.example`, value in none.
+    8. `npm audit`; report high/critical.
+    9. **Report the final line count of `src/app/page.tsx`** beside the acceptance results,
+       compared explicitly to the ~150-line Tipping Point. Not a blocking gate — report and flag,
+       don't silently decompose or silently ignore it.
+
+- **Query** (pinned; a contract, not an implementation detail — Rule 4):
+
+  Dataset `h9gi-nx95`, base `https://data.cityofnewyork.us/resource/h9gi-nx95.json`. Same window
+  and grouping as the other three metrics; the aggregate and the `$where` extension are new.
+
+  **Repaired collisions (new, pinned by this SPEC):**
+  ```
+  $select = date_extract_y(crash_date) AS year, count(collision_id) AS repaired
+  $where  = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+            AND (number_of_persons_injured > 0 OR number_of_persons_killed > 0)
+  $group  = date_extract_y(crash_date)
+  $order  = year
+  ```
+  Deaths, injuries, and raw-collisions clauses are **unchanged** — restated nowhere in code,
+  verify against the live modules, do not re-derive.
+
+  Header: `X-App-Token: <SOCRATA_APP_TOKEN>`, set only when non-empty.
+
+  **Expected response shape** — a JSON array of exactly 8 objects, ascending by year, every
+  numeric field a string:
+  ```json
+  [{ "year": "2018", "repaired": "45774" }, ... 8 entries through "2025" ]
+  ```
+
+  **Pinned figures (mvcc-data skill, verified 2026-08-03)** — for Cypress's diff, never a literal
+  in `src/**`: Repaired collisions 2018→2025: 45774, 45439, 33362, 38809, 39336, 40472, 40229,
+  37420 (−18.2% across the window). **All eight values are already in
+  `guard-data-integrity.sh`'s pinned-literal list** — a real mechanical net exists here, same as
+  the injuries/collisions figures did.
+
+  **`count(collision_id)` chosen over `count(*)`**, matching `collisions.ts`'s established
+  reasoning: a verified non-null primary-key field, so numerically equivalent, kept for a
+  self-documenting FR-8 disclosure. **If Socrata rejects this query as constructed, halt and
+  request a revised SPEC — do not repair it in place.**
+
+- **Design Pattern**: **none — simple case**, with an explicit refinement of the multi-SPEC
+  pre-commitment ("parameterize at two, encapsulate at three... a Strategy or series registry is
+  finally earned" at a third query shape). Having the concrete third case in hand, a Strategy
+  pattern is not earned by it: FR-12's variance is a single additional data value (one AND-ed
+  `$where` fragment), not a second interchangeable *behavior* — `fetchYearlyMetric`'s fetch/
+  validate/parse pipeline is identical across all four metrics; only three small strings differ
+  per caller. `composition-patterns`' actual principle (explicit, typed, non-boolean parameters
+  over a hidden-branching config object) is satisfied by a third **optional, named** parameter
+  exactly as the first two were satisfied by two required ones — the object-oriented escalation
+  the old shorthand anticipated is not the smallest thing that could work. **Correction recorded
+  for the next session:** the real encapsulation trigger isn't "a third query shape," it's a
+  **second independent axis of variation** — FR-6's borough filter, which multiplies against the
+  metric axis (metric × borough) rather than adding one more optional field to it. That is where a
+  small series registry stops being optional; this task does not cross that boundary.
+
+- **UI Scope**: N/A — no chart, no CSS, no client component. `page.tsx`'s new markup is plain
+  semantic HTML inheriting `globals.css` only, exactly as the collisions data-half task specified.
+  A follow-on Magnolia SPEC could optionally overlay this series on the existing collisions chart
+  panel (raw dashed, repaired solid — same units, no axis-mismatch problem the deaths/collisions
+  split had) for a stronger visual "corrected vs. artifact" comparison; **named here as a future
+  enhancement, not required by FR-12's text and not owed by this task.**
+
+- **Intellectual Control**:
+  - *Why this task, unlike FR-3's data half, is expected to fully close its requirement.* FR-3's
+    text conjunctively requires a dashed stroke **and** a label — a table cannot render a stroke,
+    so FR-3's data half was honestly recorded as partial. FR-12's text requires only "display...
+    alongside the raw series" and explicitly self-describes as "a single additional SoQL query...
+    not a new subsystem" — no stroke, no chart language at all. Two tables on the same page,
+    fetched from the same window, literally satisfy "alongside." Recording this as fully closing
+    FR-12 is the honest reading of the requirement as written, not a shortcut past it.
+  - *Why `extraWhere` is a single optional string, not a config object or a richer query builder.*
+    Widening the parameter surface further than the one dimension that actually varies (the
+    `$where` clause) would be building for FR-6 before its SPEC exists to justify the shape — the
+    same unearned-abstraction failure Rule 8 rejected when `fetchYearlyMetric` was first
+    generalized. `$group`/`$order` remain fixed constants; only `$where` gained an extension point,
+    because that is the only clause FR-12 actually needs to change.
+  - *Why the byte-for-byte invariant on the 2-argument call path is the load-bearing acceptance
+    criterion.* `DEATHS_SOQL`, `INJURIES_SOQL`, and `COLLISIONS_SOQL` are frozen contracts (Rule 4)
+    displayed on the page today (FR-8). Silently changing their output while "just adding a
+    parameter" would be an invisible contract violation nobody would notice until Cypress's live
+    `curl` diverged from the pinned table. Acceptance clause 5's unmodified-test-file check turns
+    that invisible invariant into something `git diff --stat` can prove.
+  - *Why the note is affirmative framing, not another caveat.* Every existing inline note on this
+    page (`COLLISIONS_REPORTING_NOTE`) tells the reader a series is *unreliable*. This is the first
+    note telling the reader a series is *the one to trust*, tying that claim to the same documented
+    policy mechanism (officers still respond to casualty collisions) rather than asserting it
+    independently — correlation/documented-fact language only, consistent with NFR-5.
+  - *Why this will not break at scale.* `repairedCollisions.ts` knows nothing about deaths,
+    injuries, or raw collisions by name. A fifth yearly-aggregate metric with a matching shape
+    (same window, same group key, an aggregate and optionally one `$where` fragment) costs one
+    more five-line file and zero further changes to `socrata.ts`. The real remaining boundary —
+    a second independent axis (FR-6's borough filter) — is named above and un-triggered by this
+    task.
+
+- **Constraints**:
+  1. **Token discipline (NFR-2, Rule 3).** `process.env.SOCRATA_APP_TOKEN` stays read **only**
+     inside `src/lib/socrata.ts`. `repairedCollisions.ts` must not read it directly; no
+     `NEXT_PUBLIC_`, no `'use client'` on any touched/new file.
+  2. **No figure may be authored.** All eight repaired-collision values are in
+     `guard-data-integrity.sh`'s pinned list — rely on that but not only on it; no figure from any
+     of the four metrics may appear as a literal anywhere in `src/**` outside test files.
+  3. **`REPAIRED_COLLISIONS_SOQL` is pinned by this SPEC and frozen from this point forward**
+     (Rule 4). `DEATHS_SOQL`/`INJURIES_SOQL`/`COLLISIONS_SOQL` are unchanged and unread by this
+     task except for verification.
+  4. **No zero-coercion, anywhere, for any of the four metrics** (FR-11, trap 1). An absent key,
+     `null`, or a non-matching string for `repaired` in any year of the window produces `status:
+     "error"`, `kind: "contract"` for *that metric only*.
+  5. **`socrata.ts`'s 2-argument call path must be byte-identical to today's output** — verified
+     by Acceptance clause 5, not merely asserted.
+  6. **No new dependency.** Zero install expected; halt and request a revised SPEC if one becomes
+     necessary (Rule 9).
+  7. **`DeathsChart.tsx`, `YearlyLineChart.tsx`/`.module.css`/`.test.tsx`, `MetricSection.tsx`
+     untouched.** No chart change in this task.
+  8. **No CSS authored or edited.** `globals.css`, `page.module.css` untouched.
+  9. **Files not to touch**: `YearlyLineChart.tsx`, `YearlyLineChart.module.css`,
+     `YearlyLineChart.test.tsx`, `MetricSection.tsx`, `src/lib/deaths.ts`, `src/lib/injuries.ts`,
+     `src/lib/collisions.ts`, `src/app/api/deaths/route.ts`, `src/app/api/injuries/route.ts`,
+     `src/app/api/collisions/route.ts`, `vitest.config.mts`, `vitest.setup.ts`, `tsconfig.json`,
+     `eslint.config.mjs`, `next.config.ts`, `src/app/layout.tsx`, `globals.css`,
+     `page.module.css`, `.claude/**`, `CLAUDE.md`, `README.md`, `.gitignore`, `docs/**`,
+     `SESSION_STATE.md`.
+  10. **`src/app/page.module.css` remains orphaned** — still owed to a future layout SPEC (FR-9
+      remains the most likely owner).
+  11. **Caching (NFR-1)**: inherited `next: { revalidate: 86400 }`, no second cache directive.
+  12. **Bound every request**: `AbortSignal.timeout(10_000)`, inherited, unchanged.
+  13. **Amendment 3(b)** binds: `node -v` recorded beside every acceptance result.
+  14. `npm audit`; report high/critical, never `audit fix --force`.
+
+- **Edge Cases**:
+  1. **Network failure/timeout, for repaired collisions independently** → `error`/`upstream`; the
+     other three metrics render normally if they succeeded.
+  2. **Non-2xx from repaired collisions** → `error`/`upstream` naming the status code. No retry.
+  3. **Non-JSON response from repaired collisions** → `error`/`upstream`, content-type guarded.
+  4. **Zero rows for repaired collisions** → `status: "empty"`, HTTP 200, independent of the other
+     three.
+  5. **A year 2018–2025 missing from the repaired-collisions response** → `error`/`contract`
+     naming the missing year. **Never zero-fill.**
+  6. **A field present but `null`, empty string, non-numeric, or a JSON number instead of a
+     string** → `error`/`contract` naming the year and offending value's type.
+  7. **More than 8 rows, a duplicate year, or an out-of-window year** → `error`/`contract`.
+  8. **`SOCRATA_APP_TOKEN` unset or empty** → omit the header, warn once per call (four warnings
+     on one page load is acceptable).
+  9. **Repaired collisions `ok` while any of the other three are `empty`/`error`, or vice versa,
+     in any combination.** All four branches render independently — first four-way independence
+     test; the existing three-way guarantee (FR-3 data half) must extend cleanly.
+  10. **Deaths/injuries/raw-collisions `buildYearlySoql`/`buildYearlyUrl` output has changed at
+      all** (even whitespace) when called with two arguments → this is a regression, not a valid
+      SPEC outcome; halt.
+  11. **The live 2025 figures have moved.** Report as a finding in the `[COMPLETION-REPORT]`; do
+      not adjust or "sanity-correct." `/verify-figures` is the mechanism.
+  12. **`CLAUDE.md` dirty after `dev`/`build`** → `git checkout -- CLAUDE.md`; expected, never
+      committed.
+  13. **`page.tsx`'s line count lands at or over ~150** → report prominently; do not silently
+      extract a shared component to dodge it, and do not silently ignore it (Acceptance clause 9).
+
+- **Files** (max 5 — four used):
+  1. **`src/lib/socrata.ts`** — *edited.* Add optional third param `extraWhere` to
+     `buildYearlySoql`/`buildYearlyUrl`/`fetchYearlyMetric`; no other change.
+  2. **`src/lib/repairedCollisions.ts`** — *new.* `AGGREGATE_EXPR = "count(collision_id)"`,
+     `FIELD_ALIAS = "repaired"`, `EXTRA_WHERE`, `REPAIRED_COLLISIONS_SOQL`,
+     `buildRepairedCollisionsUrl()`, `RepairedCollisionsRow`, `RepairedCollisionsResult`,
+     `fetchRepairedCollisionsPerYear()`.
+  3. **`src/app/api/repaired-collisions/route.ts`** — *new.* `GET` only, identical
+     union-to-HTTP mapping as the three existing routes.
+  4. **`src/app/page.tsx`** — *edited.* Fourth parallel fetch; the new independent
+     repaired-collisions `MetricSection` block plus `REPAIRED_COLLISIONS_NOTE`; no other change.
+
+  **Not in this budget, and not owed by this task:** the deploy SPEC's Vercel/First-Load-JS
+  obligations; `page.module.css`; any shared-component extraction beyond what's already in
+  `MetricSection`; a chart overlay of this series (named above as optional future work).
+
+  **If Redwood believes a fifth file is required**, halt and request a revision naming (i) the
+  specific failure the extra file is the only thing that catches, and (ii) which of the four
+  cannot carry it.
+
+- **Tipping Point**: this is the fourth yearly-aggregate metric, the first to use the widened
+  `extraWhere` parameter, and a page holding four independent series plus two charts. Decompose
+  or revise when **any one** trips:
+  - **`page.tsx`'s line count is at or over ~150 after this task** (Acceptance clause 9). Split
+    the table+disclosure markup further, or move the per-metric constants out of `page.tsx` into
+    their own module, then — not preemptively.
+  - **A fifth yearly-aggregate metric with a *matching* shape arrives** (no new `$where`).
+    Absorbed as a fifth one-line caller module; zero further changes to `socrata.ts` expected.
+  - **A second independent axis of variation arrives** (FR-6's borough filter: metric × borough,
+    not metric-with-one-more-optional-field). This is the corrected trigger for a small series
+    registry — named explicitly here rather than left as the old, now-inaccurate "third shape"
+    shorthand.
+  - **FR-9 lands.** At that point, re-examine whether `REPAIRED_COLLISIONS_NOTE` and
+    `COLLISIONS_REPORTING_NOTE` should become cross-references into the caveats section rather
+    than standalone prose (the same deferred question named at FR-3's data-half close).
+
+[FORCES]
+
+1. Delivering the product's promised "number you should use instead" (FR-12, now unblocked) > continuing to add summary/context features (FR-4, FR-9) around a diagnosis with no fix on the page yet.
+2. Honoring a four-times-repeated pre-commitment by engaging with it explicitly > either silently ignoring it or silently over-building a Strategy pattern the concrete case doesn't warrant.
+3. Simplicity > Pattern purity (one optional parameter, not a config object or registry, for one data value that varies).
+```

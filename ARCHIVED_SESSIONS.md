@@ -8,6 +8,71 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-06 — FR-12 closed: the "repaired" collisions series, the product's actual fix
+
+Added a fourth, independently-fetched yearly metric — collisions with a recorded injury or death
+— as its own accessible table on `/`. `src/lib/socrata.ts` widened with one new optional
+`extraWhere?: string` parameter (AND-ed onto the fixed `WHERE_CLAUSE` when present); new
+`src/lib/repairedCollisions.ts` and `src/app/api/repaired-collisions/route.ts`; `page.tsx` gained
+a fourth parallel fetch and independent `MetricSection` block. Standard ordering, Cypress PASS on
+both the Phase 1 red-test check and the Phase 3 audit — no rejection loop spent. Full SPEC in
+`ARCHIVED_SPECS.md`, "Archived 2026-08-06 — FR-12."
+
+- *Why Cedar picked FR-12 over the seven candidates it was actually handed.* Asked to choose from
+  a list (deploy SPEC, FR-4, FR-9, FR-13, FR-5–7, plus two already-closed items), Cedar instead
+  re-read the PRD directly and surfaced something the candidate list omitted: FR-12 is P0, and the
+  PRD's own text names it as the point of the whole product — *"without it the product diagnoses a
+  problem and offers no usable number in its place."* Every prior session had shipped diagnosis
+  (the break, the raw collapsing series); nothing had yet shipped the fix. This is the same
+  discipline as the FR-2-over-FR-3 pick two sessions earlier: evaluate on merits, not by
+  elimination from a given list. Worth remembering that a candidate list handed to Cedar is a
+  starting point, not a ceiling — the correct backlog can be more complete than what the
+  orchestrating session already knew to name.
+- *Why FR-12 was only now buildable, and not earlier.* FR-12's remediation only makes sense stated
+  against the raw series it corrects — it needed FR-3's raw collisions data (and, for full
+  narrative weight, its chart) to exist as the thing being compared against. FR-3's chart half
+  landed the session immediately prior (`bfc6b81`); FR-12 was blocked until exactly that point,
+  tracked as queued backlog across the preceding five archived sessions.
+- *Why this task, unlike FR-3's data half, was expected to and did fully close its requirement.*
+  FR-3's PRD text conjunctively requires a dashed stroke and a label — a table literally cannot
+  render a stroke, so that task was honestly recorded partial. FR-12's text requires only "display
+  alongside the raw series," with no chart language at all, and self-describes as "a single
+  additional SoQL query... not a new subsystem." Two tables on one page, from the same fetch
+  window, satisfy "alongside" as written. Closing it fully here is the honest reading of the
+  requirement text, not a shortcut past a harder one.
+- *Why a four-times-repeated pre-commitment to a Strategy/registry pattern was engaged with and
+  overridden, not silently followed or silently dropped.* Four consecutive prior SPECs had noted
+  that `socrata.ts` should escalate to a Strategy pattern or series registry "when a third distinct
+  query shape arrives" — FR-12 was that anticipated third shape. Having the concrete case in hand,
+  Cedar declined the escalation: FR-12's actual variance is one AND-ed `$where` fragment, a data
+  value, not a second interchangeable behavior — nothing about the fetch/validate/parse pipeline
+  itself varies. A single optional, named, non-boolean parameter satisfies the same
+  explicit-typed-parameters principle the two-parameter shape was already justified by. Cedar
+  named the corrected trigger explicitly for next time — a second *independent axis* of variation
+  (FR-6's borough filter, metric × borough), not "a third shape" — so the old, now-inaccurate
+  shorthand doesn't get inherited as settled fact by whichever session eventually builds FR-6. This
+  is the same category of judgment call as the small-multiples correction on FR-3's chart half:
+  Cedar is expected to revise its own prior framing when the concrete case shows it was imprecise,
+  not execute stale guidance literally.
+- *Why the byte-for-byte invariant on `socrata.ts`'s two-argument call path was the single most
+  scrutinized acceptance criterion, checked three separate times (Cypress's unit test, Cypress's
+  audit reading the source by hand, and a live-API regression check against all three pre-existing
+  metrics).* `DEATHS_SOQL`/`INJURIES_SOQL`/`COLLISIONS_SOQL` are frozen contracts already displayed
+  on the page (FR-8). Widening a shared function silently changing their output would be an
+  invisible contract violation — nobody would notice until a live figure diverged from the pinned
+  table, which is exactly the failure mode Rule 4 (queries are contracts) exists to prevent. Three
+  independent proofs (not just "the tests pass") is proportionate to how quietly this kind of
+  regression could otherwise slip through.
+- *Why the collisions-chart-overlay idea was named as a real, considered option and then explicitly
+  declined rather than silently omitted.* FR-12's raw and repaired series share units (both are
+  collision counts) and could sit on one axis without the ~800× scale mismatch that forced FR-3's
+  chart into small multiples — a materially different situation from the deaths/collisions
+  comparison. Cedar named this as a legitimate follow-on Magnolia SPEC rather than either building
+  it unasked (scope creep past FR-12's actual text) or leaving a future session to wonder whether
+  it was considered and rejected for a reason, or just never occurred to anyone.
+
+---
+
 ## 2026-08-06 — FR-3 closed: collisions chart as small multiples, not a merged two-series plot
 
 `DeathsChart.tsx` generalized into `src/components/YearlyLineChart.tsx`, a single-series chart

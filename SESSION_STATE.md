@@ -1,10 +1,27 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** none pre-declared. FR-3 closed this session (see Active). `SPEC.md` is
+**Current objective:** none pre-declared. FR-12 closed this session (see Active). `SPEC.md` is
 reset and empty — next task starts with Cedar.
 
 ## Active
 
+- **FR-12 (casualty-filtered "repaired" collisions, data half) CLOSED (2026-08-06).** Cedar found
+  it by re-reading the PRD directly rather than picking from the seven candidates it was handed —
+  P0, and the PRD's own text names it as the product's actual "fix" (the corrected number to use
+  instead of the reporting-broken raw series), unblocked only once FR-3's chart half landed the
+  session before. Standard ordering throughout; Cypress PASS on both the Phase 1 red-test check
+  and the Phase 3 audit — no rejection loop spent. Widened `socrata.ts` with one new optional
+  `extraWhere` param — Cedar explicitly declined the Strategy/registry escalation four prior SPECs
+  had pre-committed to at "a third query shape," naming the real trigger as a second independent
+  axis of variation (FR-6's borough filter) instead. New `repairedCollisions.ts` +
+  `api/repaired-collisions/route.ts`; `page.tsx` gained a fourth independent table (now 122 lines,
+  under the ~150 Tipping Point). **FR-12 fully closed** — unlike FR-3, its text has no stroke/chart
+  requirement, so two tables satisfy "alongside the raw series" as written. The byte-identical
+  invariant on `socrata.ts`'s 2-argument call path was verified three ways: unit test, Cypress
+  reading the source by hand, and a live-API regression check confirming deaths/injuries/collisions
+  figures unchanged. Full narrative and reasoning in `ARCHIVED_SESSIONS.md`; closed SPEC in
+  `ARCHIVED_SPECS.md`. `SPEC.md` reset — no task pre-declared. **Working tree has the completed,
+  uncommitted diff** (4 implementation files + Cypress's 4 test files) — not yet committed.
 - **FR-3's chart half (collisions dashed-stroke chart, small multiples) CLOSED (2026-08-06).**
   Standard ordering throughout; Cypress PASS on both the Phase 1 red-test check and the Phase 3
   audit — no rejection loop spent. FR-3 (dashed stroke + inline label, conjunctively) is now
@@ -76,14 +93,16 @@ reset and empty — next task starts with Cedar.
 
 *(Empty — everything closed so far is archived; nothing has closed since MetricSection.)*
 
-Seven entries are now in `ARCHIVED_SESSIONS.md`, newest first: **FR-3 closed — small-multiples
-chart** (2026-08-06, why the shared-axis framing was rejected and rebuilt, plus a caught
-prompt-injection attempt); **`MetricSection` extraction** (2026-08-06, why the deaths-chart slot
-was deliberately kept out of its contract); **FR-3's data half** (2026-08-06, why FR-3 was recorded
-partially-satisfied rather than closed at the time); **FR-2 / `socrata.ts` extraction** (2026-08-06,
-why Cedar picked it over the more thesis-central FR-3); **the subgroup-sum fallback correction**
-(2026-08-06, why the mid-flight revision request mattered); **Task 2 of the walking skeleton**
-(2026-08-06, the chart); **Task 1 of the walking skeleton** (2026-08-06, the data path) plus the
-pre-Task-1 platform/scaffold work before it. Read that file directly for the full reasoning behind
-any of these — this pointer is deliberately terse now that seven entries live there, per the
-archive threshold.
+Eight entries are now in `ARCHIVED_SESSIONS.md`, newest first: **FR-12 closed — the "repaired"
+collisions series** (2026-08-06, why Cedar found it outside the given candidate list, and why the
+Strategy/registry pre-commitment was overridden rather than followed); **FR-3 closed —
+small-multiples chart** (2026-08-06, why the shared-axis framing was rejected and rebuilt, plus a
+caught prompt-injection attempt); **`MetricSection` extraction** (2026-08-06, why the deaths-chart
+slot was deliberately kept out of its contract); **FR-3's data half** (2026-08-06, why FR-3 was
+recorded partially-satisfied rather than closed at the time); **FR-2 / `socrata.ts` extraction**
+(2026-08-06, why Cedar picked it over the more thesis-central FR-3); **the subgroup-sum fallback
+correction** (2026-08-06, why the mid-flight revision request mattered); **Task 2 of the walking
+skeleton** (2026-08-06, the chart); **Task 1 of the walking skeleton** (2026-08-06, the data path)
+plus the pre-Task-1 platform/scaffold work before it. Read that file directly for the full
+reasoning behind any of these — this pointer is deliberately terse now that eight entries live
+there, per the archive threshold.
