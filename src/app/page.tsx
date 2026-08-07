@@ -1,22 +1,30 @@
 // Task 1 walking skeleton (deaths per year) plus Task 3's independent
-// injuries series (FR-2) and the collisions series (FR-3, now complete —
-// chart half plus data half). All three metrics are fetched in parallel
-// (Promise.all — NFR-1) and rendered as fully independent branches: one
-// metric erroring must never suppress or alter another's render. Injuries
-// has no chart — only deaths and collisions do, via two independently-scaled
+// injuries series (FR-2), the collisions series (FR-3, complete — chart half
+// plus data half), and FR-12's repaired (casualty-filtered) collisions
+// series — the corrected number the raw collisions series cannot provide.
+// All four metrics are fetched in parallel (Promise.all — NFR-1) and
+// rendered as fully independent branches: one metric erroring must never
+// suppress or alter another's render. Injuries and repaired collisions have
+// no chart — only deaths and collisions do, via two independently-scaled
 // small-multiple instantiations of YearlyLineChart (SPEC.md, "Close FR-3's
 // remaining chart half"; see that component's file header for why a shared
-// axis is rejected). The accessible tables (NFR-3) and the FR-8 query
-// disclosures are built by the shared MetricSection component (extracted per
-// the page.tsx decomposition SPEC, 2026-08-06); this file composes the three
-// MetricSection calls plus the two chart sibling mounts, which stay here
-// rather than inside MetricSection (see that component's file header).
+// axis is rejected; FR-12's SPEC names a chart overlay as optional future
+// work, not owed by this task). The accessible tables (NFR-3) and the FR-8
+// query disclosures are built by the shared MetricSection component
+// (extracted per the page.tsx decomposition SPEC, 2026-08-06); this file
+// composes the four MetricSection calls plus the two chart sibling mounts,
+// which stay here rather than inside MetricSection (see that component's
+// file header).
 
 import { MetricSection } from "../components/MetricSection";
 import { YearlyLineChart } from "../components/YearlyLineChart";
 import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../lib/collisions";
 import { DEATHS_SOQL, fetchDeathsPerYear } from "../lib/deaths";
 import { INJURIES_SOQL, fetchInjuriesPerYear } from "../lib/injuries";
+import {
+  REPAIRED_COLLISIONS_SOQL,
+  fetchRepairedCollisionsPerYear,
+} from "../lib/repairedCollisions";
 
 // FR-3 / NFR-5: the collisions series' caveat is shared verbatim between its
 // chart and its table so the two renderings cannot drift apart (ADR 0001).
@@ -24,12 +32,23 @@ const COLLISIONS_REPORTING_NOTE =
   "This series is affected by a 2020 NYPD reporting-policy change that reduced how many " +
   "minor collisions are recorded; it is not evidence of a comparable drop in real collisions.";
 
+// FR-12: the corrected series — affirmative framing, not another caveat.
+// Ties the "trust this one" claim to the same documented policy mechanism
+// named above rather than asserting it independently (NFR-5).
+const REPAIRED_COLLISIONS_NOTE =
+  "This series counts only collisions with a recorded injury or death — records that still " +
+  "required an officer response after the 2020 policy change, unlike the property-damage-only " +
+  "collisions the raw count above stopped capturing. It tracks close to the injuries trend and " +
+  "is the more reliable figure for judging whether collisions actually declined.";
+
 export default async function Home() {
-  const [result, injuriesResult, collisionsResult] = await Promise.all([
-    fetchDeathsPerYear(),
-    fetchInjuriesPerYear(),
-    fetchCollisionsPerYear(),
-  ]);
+  const [result, injuriesResult, collisionsResult, repairedResult] =
+    await Promise.all([
+      fetchDeathsPerYear(),
+      fetchInjuriesPerYear(),
+      fetchCollisionsPerYear(),
+      fetchRepairedCollisionsPerYear(),
+    ]);
 
   return (
     <main>
@@ -88,6 +107,15 @@ export default async function Home() {
         result={collisionsResult}
         soql={COLLISIONS_SOQL}
         note={COLLISIONS_REPORTING_NOTE}
+      />
+
+      <MetricSection
+        fieldAlias="repaired"
+        columnLabel="Repaired collisions"
+        captionText="NYC collisions with a recorded injury or death per year, 2018–2025"
+        result={repairedResult}
+        soql={REPAIRED_COLLISIONS_SOQL}
+        note={REPAIRED_COLLISIONS_NOTE}
       />
     </main>
   );

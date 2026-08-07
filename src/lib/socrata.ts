@@ -7,11 +7,12 @@
 // arrived as the second caller. `deaths.ts` and `injuries.ts` are both thin
 // wrappers over fetchYearlyMetric() below.
 //
-// The $where/$group/$order clauses (the fixed 2018-2025 window,
-// date_extract_y(crash_date), year) are fixed internal constants, not
-// parameters — per SPEC.md, that generality is unearned until a third
-// distinct query *shape* arrives (a different $where or group key). Only the
-// $select aggregate expression and its field alias vary per caller.
+// The $group/$order clauses (date_extract_y(crash_date), year) stay fixed
+// internal constants, not parameters — per SPEC.md, that generality remains
+// unearned. FR-12 widened $where with a single optional `extraWhere`
+// fragment (AND-ed onto the fixed 2018-2025 window), the one axis that
+// varies today (repairedCollisions.ts's casualty filter); the $select
+// aggregate expression and field alias still vary per caller as before.
 
 import { z } from "zod";
 
@@ -43,24 +44,36 @@ function selectClause(aggregateExpr: string, fieldAlias: string): string {
   return `date_extract_y(crash_date) AS year, ${aggregateExpr} AS ${fieldAlias}`;
 }
 
+// FR-12: the only clause that ever varies per caller beyond $select is
+// $where, and only by AND-ing one additional fragment onto the fixed window.
+// $group/$order stay fixed constants, untouched by this parameter.
+function whereClause(extraWhere?: string): string {
+  return extraWhere ? `${WHERE_CLAUSE} AND ${extraWhere}` : WHERE_CLAUSE;
+}
+
 // FR-8: the displayed query and the sent request are derived from the same
 // clause builders so they cannot drift apart.
 export function buildYearlySoql(
   aggregateExpr: string,
   fieldAlias: string,
+  extraWhere?: string,
 ): string {
   return [
     `$select=${selectClause(aggregateExpr, fieldAlias)}`,
-    `$where=${WHERE_CLAUSE}`,
+    `$where=${whereClause(extraWhere)}`,
     `$group=${GROUP_CLAUSE}`,
     `$order=${ORDER_CLAUSE}`,
   ].join("\n");
 }
 
-export function buildYearlyUrl(aggregateExpr: string, fieldAlias: string): URL {
+export function buildYearlyUrl(
+  aggregateExpr: string,
+  fieldAlias: string,
+  extraWhere?: string,
+): URL {
   const url = new URL(BASE_URL);
   url.searchParams.set("$select", selectClause(aggregateExpr, fieldAlias));
-  url.searchParams.set("$where", WHERE_CLAUSE);
+  url.searchParams.set("$where", whereClause(extraWhere));
   url.searchParams.set("$group", GROUP_CLAUSE);
   url.searchParams.set("$order", ORDER_CLAUSE);
   return url;
@@ -155,9 +168,10 @@ function validateYearCoverage<K extends string>(
 export async function fetchYearlyMetric<K extends string>(
   aggregateExpr: string,
   fieldAlias: K,
+  extraWhere?: string,
 ): Promise<YearlyMetricResult<K>> {
-  const soql = buildYearlySoql(aggregateExpr, fieldAlias);
-  const url = buildYearlyUrl(aggregateExpr, fieldAlias);
+  const soql = buildYearlySoql(aggregateExpr, fieldAlias, extraWhere);
+  const url = buildYearlyUrl(aggregateExpr, fieldAlias, extraWhere);
 
   const token = process.env.SOCRATA_APP_TOKEN;
   const headers: Record<string, string> = {};
