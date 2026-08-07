@@ -16,6 +16,7 @@
 // which stay here rather than inside MetricSection (see that component's
 // file header).
 
+import { Caveats } from "../components/Caveats";
 import { MetricSection } from "../components/MetricSection";
 import { YearlyLineChart } from "../components/YearlyLineChart";
 import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../lib/collisions";
@@ -26,11 +27,20 @@ import {
   fetchRepairedCollisionsPerYear,
 } from "../lib/repairedCollisions";
 
+// FR-9: the one-sentence forward pointer appended to both existing inline
+// notes below, closing the deferred "forward reference to nothing" decision
+// named in the FR-3 data-half SPEC. Defined once and appended via
+// concatenation to both notes, not duplicated as two separately-typed
+// strings (ADR 0001's discipline).
+const SEE_CAVEATS_POINTER =
+  " See Caveats, below, for the two policy dates and other limits on this figure.";
+
 // FR-3 / NFR-5: the collisions series' caveat is shared verbatim between its
 // chart and its table so the two renderings cannot drift apart (ADR 0001).
 const COLLISIONS_REPORTING_NOTE =
   "This series is affected by a 2020 NYPD reporting-policy change that reduced how many " +
-  "minor collisions are recorded; it is not evidence of a comparable drop in real collisions.";
+  "minor collisions are recorded; it is not evidence of a comparable drop in real collisions." +
+  SEE_CAVEATS_POINTER;
 
 // FR-12: the corrected series — affirmative framing, not another caveat.
 // Ties the "trust this one" claim to the same documented policy mechanism
@@ -39,7 +49,8 @@ const REPAIRED_COLLISIONS_NOTE =
   "This series counts only collisions with a recorded injury or death — records that still " +
   "required an officer response after the 2020 policy change, unlike the property-damage-only " +
   "collisions the raw count above stopped capturing. It tracks close to the injuries trend and " +
-  "is the more reliable figure for judging whether collisions actually declined.";
+  "is the more reliable figure for judging whether collisions actually declined." +
+  SEE_CAVEATS_POINTER;
 
 export default async function Home() {
   const [result, injuriesResult, collisionsResult, repairedResult] =
@@ -117,6 +128,8 @@ export default async function Home() {
         soql={REPAIRED_COLLISIONS_SOQL}
         note={REPAIRED_COLLISIONS_NOTE}
       />
+
+      <Caveats />
     </main>
   );
 }
