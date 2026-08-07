@@ -102,6 +102,36 @@
 // three-way independence coverage is extended with a fourth describe block
 // below exercising four-way independence, mirroring that block's structure
 // exactly, substituting the repaired-collisions module/alias.
+//
+// This-SPEC addition (FR-5, "traffic-enforcement arrest counts per year,
+// 2018-2025, filtered to five offense categories"): ../lib/arrests is mocked
+// the same way as the other four (fetchArrestsPerYear + ARRESTS_SOQL), with
+// its own default-"ok" beforeEach entry mirroring injuries'/collisions'/
+// repaired's, so every pre-existing test above now also gets a well-formed
+// arrests result to Promise.all against without having to touch that test's
+// body. Because a default "ok" arrests render adds a *fifth* unconditional
+// <details> disclosure to every render, the pre-existing assertions that
+// hard-coded "4 disclosures total" are updated in place to "5" throughout —
+// a necessary consequence of this file's own new default, not scope creep;
+// the assertions' original intent (this specific disclosure is present and
+// reachable) is preserved exactly, only the total-count arithmetic changes.
+// page.tsx places the arrests block after the repaired-collisions block and
+// before Caveats (SPEC.md's Files item 3), so the unscoped
+// `container.querySelector("details")` call sites (which only ever want the
+// *first* details, the deaths one) remain correct unchanged. Unlike
+// YearlyLineChart, MetricSection is NOT mocked anywhere in this file — every
+// pre-existing table assertion above renders the real component — so the
+// new arrests table assertions below follow that same real-render idiom
+// (getByRole("table", { name: /arrests/i }) etc.) rather than inspecting
+// mock call props, consistent with this file as it exists today (the actual
+// reference for how prior SPEC iterations extended this pattern). The
+// arrests chart mount, by contrast, is asserted the same way the deaths/
+// collisions chart mounts already are — via `callsFor("arrests")` against
+// the shared YearlyLineChart mock — since that component IS mocked here.
+// Edge Case 9's four-way independence coverage is extended with a fifth
+// describe block below exercising five-way independence at the two
+// combinations the dispatch instructions name explicitly: arrests alone
+// failing while the other four succeed, and the inverse.
 
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -114,10 +144,12 @@ const {
   fetchInjuriesPerYear,
   fetchCollisionsPerYear,
   fetchRepairedCollisionsPerYear,
+  fetchArrestsPerYear,
   SYNTHETIC_SOQL,
   INJURIES_SYNTHETIC_SOQL,
   COLLISIONS_SYNTHETIC_SOQL,
   REPAIRED_SYNTHETIC_SOQL,
+  ARRESTS_SYNTHETIC_SOQL,
   YearlyLineChart,
   Caveats,
 } = vi.hoisted(() => ({
@@ -125,6 +157,7 @@ const {
   fetchInjuriesPerYear: vi.fn(),
   fetchCollisionsPerYear: vi.fn(),
   fetchRepairedCollisionsPerYear: vi.fn(),
+  fetchArrestsPerYear: vi.fn(),
   SYNTHETIC_SOQL:
     "SYNTHETIC SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   INJURIES_SYNTHETIC_SOQL:
@@ -133,6 +166,8 @@ const {
     "SYNTHETIC COLLISIONS SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   REPAIRED_SYNTHETIC_SOQL:
     "SYNTHETIC REPAIRED COLLISIONS SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
+  ARRESTS_SYNTHETIC_SOQL:
+    "SYNTHETIC ARRESTS SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   // A minimal stand-in, not the real chart — YearlyLineChart.test.tsx is
   // where the real component's rendered SVG geometry is asserted against
   // real recharts output. Here we only need something identifiable in the
@@ -189,6 +224,11 @@ vi.mock("../lib/collisions", () => ({
 vi.mock("../lib/repairedCollisions", () => ({
   fetchRepairedCollisionsPerYear,
   REPAIRED_COLLISIONS_SOQL: REPAIRED_SYNTHETIC_SOQL,
+}));
+
+vi.mock("../lib/arrests", () => ({
+  fetchArrestsPerYear,
+  ARRESTS_SOQL: ARRESTS_SYNTHETIC_SOQL,
 }));
 
 vi.mock("../components/YearlyLineChart", () => ({ YearlyLineChart }));
@@ -257,6 +297,23 @@ const REPAIRED_SYNTHETIC_ROWS = [
 const REPAIRED_NOTE_TEXT =
   "This series counts only collisions with a recorded injury or death — records that still required an officer response after the 2020 policy change, unlike the property-damage-only collisions the raw count above stopped capturing. It tracks close to the injuries trend and is the more reliable figure for judging whether collisions actually declined.";
 
+// Obviously-synthetic, five-digit round numbers ascending by 500 — distinct
+// in magnitude/shape from deaths (11..88), injuries (100..800), raw
+// collisions (1000..8000), and repaired collisions (150..850) above, and
+// never the pinned mvcc-data-skill arrests figures (29007 in 2018, 8330 in
+// 2020, 21123 in 2025 — those are non-monotonic; this fixture is strictly
+// ascending, an unmistakably different shape).
+const ARRESTS_SYNTHETIC_ROWS = [
+  { year: 2018, arrests: 12000 },
+  { year: 2019, arrests: 12500 },
+  { year: 2020, arrests: 13000 },
+  { year: 2021, arrests: 13500 },
+  { year: 2022, arrests: 14000 },
+  { year: 2023, arrests: 14500 },
+  { year: 2024, arrests: 15000 },
+  { year: 2025, arrests: 15500 },
+];
+
 // This-SPEC addition (FR-9) — verbatim per SPEC.md's page.tsx Output section,
 // copied exactly, not paraphrased. Appended (string concatenation, not a
 // rewrite) to the end of both COLLISIONS_NOTE_TEXT and REPAIRED_NOTE_TEXT
@@ -322,6 +379,11 @@ beforeEach(() => {
     soql: REPAIRED_SYNTHETIC_SOQL,
     rows: REPAIRED_SYNTHETIC_ROWS,
   });
+  fetchArrestsPerYear.mockResolvedValue({
+    status: "ok",
+    soql: ARRESTS_SYNTHETIC_SOQL,
+    rows: ARRESTS_SYNTHETIC_ROWS,
+  });
 });
 
 afterEach(() => {
@@ -329,6 +391,7 @@ afterEach(() => {
   fetchInjuriesPerYear.mockReset();
   fetchCollisionsPerYear.mockReset();
   fetchRepairedCollisionsPerYear.mockReset();
+  fetchArrestsPerYear.mockReset();
   YearlyLineChart.mockClear();
   Caveats.mockClear();
 });
@@ -663,7 +726,7 @@ describe("/ (Home) — injuries block (FR-2, Task 3)", () => {
     // 2, because this-SPEC's default "ok" collisions mock (see beforeEach)
     // also renders its own unconditional disclosure on every test in this
     // file unless overridden.
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
   });
 });
 
@@ -739,7 +802,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     ).toBeInTheDocument();
   });
 
-  it("disambiguates the four <details> disclosures by summary text, all reachable by accessible name (FR-8)", async () => {
+  it("disambiguates the five <details> disclosures by summary text, all reachable by accessible name (FR-8)", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
@@ -760,11 +823,16 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
       soql: REPAIRED_SYNTHETIC_SOQL,
       rows: REPAIRED_SYNTHETIC_ROWS,
     });
+    fetchArrestsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: ARRESTS_SYNTHETIC_SOQL,
+      rows: ARRESTS_SYNTHETIC_ROWS,
+    });
 
     const { container } = await renderHome();
 
     const disclosures = Array.from(container.querySelectorAll("details"));
-    expect(disclosures).toHaveLength(4);
+    expect(disclosures).toHaveLength(5);
 
     const summaries = disclosures.map(
       (d) => d.querySelector("summary")?.textContent ?? "",
@@ -781,12 +849,15 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(
       summaries.some((s) => /soql query/i.test(s) && /repaired/i.test(s)),
     ).toBe(true);
+    expect(
+      summaries.some((s) => /soql query/i.test(s) && /arrests/i.test(s)),
+    ).toBe(true);
     // Distinct accessible names, so assistive tech can reach any of the
-    // four disclosures independently — this extends the pre-existing
-    // deaths/injuries/collisions distinct-summary guarantee (SPEC.md
-    // Output 5) to the fourth, repaired-collisions disclosure this SPEC
-    // adds.
-    expect(new Set(summaries).size).toBe(4);
+    // five disclosures independently — this extends the pre-existing
+    // deaths/injuries/collisions/repaired-collisions distinct-summary
+    // guarantee (SPEC.md Output 5) to the fifth, arrests disclosure this
+    // SPEC adds.
+    expect(new Set(summaries).size).toBe(5);
   });
 
   it("has no axe-core violations across the injuries table and all three SoQL disclosures", async () => {
@@ -815,7 +886,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(
       screen.getByRole("table", { name: /injuries/i }),
     ).toBeInTheDocument();
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -926,7 +997,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
     // must still be present, proving this assertion actually exercises
     // collisions and isn't a false-positive pass off the other two blocks'
     // unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
     expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
   });
 
@@ -954,7 +1025,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
     // trivially "pass" against a page that doesn't implement the collisions
     // block at all, which would be exactly the kind of spuriously-passing
     // test the dispatch instructions warn against.
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
     expect(document.body.textContent ?? "").not.toContain(COLLISIONS_NOTE_TEXT);
   });
 
@@ -984,7 +1055,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
       screen.getByRole("table", { name: COLLISIONS_TABLE_NAME }),
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -1114,7 +1185,7 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
 
     // All three disclosures still render regardless of each metric's status
     // (FR-8's unconditional-disclosure guarantee, extended to three).
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
   });
 
   it("mixed combination (another): deaths error, injuries empty, collisions ok — each of the three renders its own defined state independently", async () => {
@@ -1153,7 +1224,7 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
 
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
   });
 });
 
@@ -1400,7 +1471,7 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
     // disclosure must still be present, proving this assertion actually
     // exercises repaired collisions and isn't a false-positive pass off the
     // other three blocks' unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
     expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
   });
 
@@ -1417,7 +1488,7 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
 
     const { container } = await renderHome();
 
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
     expect(document.body.textContent ?? "").not.toContain(REPAIRED_NOTE_TEXT);
   });
 
@@ -1437,10 +1508,454 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
       screen.getByRole("table", { name: REPAIRED_TABLE_NAME }),
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(REPAIRED_NOTE_TEXT);
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
+  });
+});
+
+describe("/ (Home) — arrests block (FR-5, FR-8, FR-10, NFR-3, NFR-5 label-only)", () => {
+  // Unlike the collisions/repaired-collisions blocks above, MetricSection is
+  // not mocked in this file (it never has been) — the real component renders
+  // a real <table>, so these assertions read the rendered DOM directly, the
+  // same idiom every pre-existing table assertion in this file already uses.
+  // The chart half, by contrast, IS mocked (YearlyLineChart), so its props
+  // are asserted via `callsFor("arrests")` against the shared mock, exactly
+  // like the deaths/collisions chart-mount assertions above.
+
+  // Worked out by hand from ARRESTS_SYNTHETIC_ROWS' own fixture values
+  // (12000 -> 15500, 2018 -> 2025): (15500 - 12000) / 12000 * 100 =
+  // 29.1666...%, rounds to 29, an arithmetic fact about this file's own
+  // synthetic fixture, never a re-derivation of a real figure (NFR-4).
+  const ARRESTS_CHANGE_SUMMARY = "2018–2025 change: +29% (12000 → 15500)";
+
+  it("renders an accessible arrests <table> with columnLabel 'Arrests', the verbatim caption text, 8 rows, and its own SoQL disclosure", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    // Injuries, collisions, repaired collisions, and arrests all use their
+    // default "ok" beforeEach values here unmodified.
+
+    const { container } = await renderHome();
+
+    const table = screen.getByRole("table", { name: /arrests/i });
+    expect(table).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: /year/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByRole("columnheader", { name: "Arrests" }),
+    ).toBeInTheDocument();
+    // 8 data rows + 1 header row, scoped to the arrests table only.
+    expect(within(table).getAllByRole("row")).toHaveLength(9);
+
+    // The verbatim caption text (SPEC.md's pinned string) — copied exactly,
+    // not paraphrased.
+    expect(
+      screen.getByText(
+        "NYC traffic-enforcement arrests per year, 2018–2025 (five offense categories)",
+      ),
+    ).toBeInTheDocument();
+
+    const disclosures = Array.from(container.querySelectorAll("details"));
+    const arrestsDisclosure = disclosures.find((d) =>
+      /arrests/i.test(d.querySelector("summary")?.textContent ?? ""),
+    );
+    expect(arrestsDisclosure).toBeTruthy();
+    expect(arrestsDisclosure).toHaveTextContent("SoQL query — arrests");
+    expect(arrestsDisclosure).toHaveTextContent(ARRESTS_SYNTHETIC_SOQL);
+  });
+
+  it("positions the arrests table after the repaired-collisions table, and before Caveats, in document order", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    const repairedTable = screen.getByRole("table", {
+      name: REPAIRED_TABLE_NAME,
+    });
+    const arrestsTable = screen.getByRole("table", { name: /arrests/i });
+    const caveatsStub = screen.getByTestId("caveats-stub");
+
+    const repairedToArrests =
+      repairedTable.compareDocumentPosition(arrestsTable);
+    expect(Boolean(repairedToArrests & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
+
+    const arrestsToCaveats = arrestsTable.compareDocumentPosition(caveatsStub);
+    expect(Boolean(arrestsToCaveats & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
+  });
+
+  it("renders a visible, non-decorative arrests error message, independent of the other four metrics (FR-10)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchArrestsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: ARRESTS_SYNTHETIC_SOQL,
+      kind: "contract",
+      reason: "no aggregate returned for 2021 (synthetic arrests test reason)",
+    });
+
+    await renderHome();
+
+    expect(
+      screen.queryByRole("table", { name: /arrests/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/no aggregate returned for 2021/i),
+    ).toBeInTheDocument();
+    // The failure must not suppress the other four metrics' renders.
+    expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: /injuries/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: COLLISIONS_TABLE_NAME }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: REPAIRED_TABLE_NAME }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a visible, non-decorative arrests empty-state message, distinct from the error path (FR-10)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchArrestsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: ARRESTS_SYNTHETIC_SOQL,
+    });
+
+    const { container } = await renderHome();
+
+    expect(
+      screen.queryByRole("table", { name: /arrests/i }),
+    ).not.toBeInTheDocument();
+    // Not just "some text somewhere" — the arrests block's own disclosure
+    // must still be present, proving this assertion actually exercises
+    // arrests and isn't a false-positive pass off the other four blocks'
+    // unrelated content.
+    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
+  });
+
+  it("Intellectual Control point 5: renders no inline note for arrests — the ok branch carries exactly one <p> after the table (the change-summary line), never a bespoke caveat, unlike collisions/repaired-collisions", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    const arrestsTable = screen.getByRole("table", { name: /arrests/i });
+    const disclosures = Array.from(container.querySelectorAll("details"));
+    const arrestsDisclosure = disclosures.find((d) =>
+      /arrests/i.test(d.querySelector("summary")?.textContent ?? ""),
+    );
+    expect(arrestsDisclosure).toBeTruthy();
+
+    // Every <p> in the document that comes after the arrests table and
+    // before the arrests table's own SoQL disclosure — arrests is the last
+    // metric block before Caveats, so this range contains only this
+    // metric's own paragraphs (the change summary, and the note if any),
+    // never another metric's.
+    const paragraphsBetween = Array.from(
+      container.querySelectorAll("p"),
+    ).filter((p) => {
+      const afterTable = Boolean(
+        arrestsTable.compareDocumentPosition(p) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      const beforeDisclosure = Boolean(
+        (arrestsDisclosure as Element).compareDocumentPosition(p) &
+        Node.DOCUMENT_POSITION_PRECEDING,
+      );
+      return afterTable && beforeDisclosure;
+    });
+
+    expect(paragraphsBetween).toHaveLength(1);
+    expect(paragraphsBetween[0]).toHaveTextContent(ARRESTS_CHANGE_SUMMARY);
+    // None of the known caveat sentences used elsewhere on the page (which
+    // would indicate a note was mistakenly wired up) appear here.
+    expect(paragraphsBetween[0].textContent).not.toContain(
+      COLLISIONS_NOTE_TEXT,
+    );
+    expect(paragraphsBetween[0].textContent).not.toContain(REPAIRED_NOTE_TEXT);
+  });
+
+  it("has no axe-core violations on the arrests table, its chart stub, and its disclosure", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    expect(screen.getByRole("table", { name: /arrests/i })).toBeInTheDocument();
+    expect(container.querySelectorAll("details")).toHaveLength(5);
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
+  });
+});
+
+describe("/ (Home) — the arrests <YearlyLineChart> mount (FR-5)", () => {
+  // The chart half is asserted through the shared YearlyLineChart mock, the
+  // same idiom the deaths/collisions chart-mount tests above already use —
+  // this component IS mocked in this file, unlike MetricSection.
+
+  it("mounts the arrests chart exactly once, before the arrests table, with the pinned props verbatim", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    // Arrests' default-"ok" beforeEach value applies unmodified.
+
+    const { container } = await renderHome();
+
+    const arrestsCalls = callsFor("arrests");
+    expect(arrestsCalls).toHaveLength(1);
+    const props = arrestsCalls[0][0] as YearlyLineChartProps<"arrests">;
+
+    // Same array, not a copy — the chart and the table must provably plot
+    // and list the same objects, never two reads of one source that could
+    // drift (SPEC.md's Intellectual Control).
+    expect(props.rows).toBe(ARRESTS_SYNTHETIC_ROWS);
+    expect(props.fieldAlias).toBe("arrests");
+    expect(props.seriesLabel).toBe("Arrests");
+    expect(props.strokeStyle).toBe("solid");
+    // Reuse, not a new token (SPEC.md Intellectual Control point 4) — a
+    // wrong colorSlot here would silently visually collide with the deaths
+    // chart's own solid/slot-1 line without any other test catching it.
+    expect(props.colorSlot).toBe(1);
+    expect(props.ariaLabel).toBe(
+      "Line chart of NYC traffic-enforcement arrest counts per year from 2018 to 2025.",
+    );
+    expect(props.captionText).toBe(
+      "NYC traffic-enforcement arrests per year, 2018–2025. Every plotted figure is listed in the table below.",
+    );
+    // No bespoke caveat (SPEC.md Intellectual Control point 5) — unlike the
+    // collisions/repaired-collisions chart and table calls, arrests passes
+    // no `note` prop at all, not even an empty string.
+    expect(props.note).toBeUndefined();
+    expect("note" in props).toBe(false);
+
+    const chartStub = screen.getByTestId("yearly-chart-arrests");
+    const table = screen.getByRole("table", { name: /arrests/i });
+    const position = chartStub.compareDocumentPosition(table);
+    expect(Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(container.contains(chartStub)).toBe(true);
+  });
+
+  it("the arrests chart never mounts on the arrests error path, independent of the other four metrics' charts/tables", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchArrestsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: ARRESTS_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (arrests chart-independence test)",
+    });
+
+    await renderHome();
+
+    expect(callsFor("arrests")).toHaveLength(0);
+    expect(
+      screen.queryByTestId("yearly-chart-arrests"),
+    ).not.toBeInTheDocument();
+    expect(callsFor("deaths")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-deaths")).toBeInTheDocument();
+    expect(callsFor("collisions")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-collisions")).toBeInTheDocument();
+  });
+
+  it("the arrests chart never mounts on the arrests empty path, independent of the other four metrics", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchArrestsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: ARRESTS_SYNTHETIC_SOQL,
+    });
+
+    await renderHome();
+
+    expect(callsFor("arrests")).toHaveLength(0);
+    expect(
+      screen.queryByTestId("yearly-chart-arrests"),
+    ).not.toBeInTheDocument();
+    expect(callsFor("deaths")).toHaveLength(1);
+  });
+
+  it("the deaths and collisions charts are unaffected when only the arrests chart fails (the deaths/collisions chart-independence guarantee extended to a third, independently-mounted chart)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchArrestsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: ARRESTS_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason:
+        "Socrata responded 503 (arrests chart-independence test, inverse)",
+    });
+    // Collisions' default-"ok" beforeEach value applies unmodified.
+
+    await renderHome();
+
+    expect(callsFor("deaths")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-deaths")).toBeInTheDocument();
+    expect(callsFor("collisions")).toHaveLength(1);
+    expect(screen.getByTestId("yearly-chart-collisions")).toBeInTheDocument();
+    expect(callsFor("arrests")).toHaveLength(0);
+  });
+});
+
+describe("/ (Home) — five independent metrics on one page (this SPEC's Edge Case 9 extension: arrests joins deaths, injuries, collisions, repaired collisions)", () => {
+  // These two tests are the combinations the dispatch instructions name
+  // explicitly: arrests alone failing while the other four succeed, and the
+  // inverse (arrests alone succeeding while the other four fail) —
+  // extending the four-way independence block above (Edge Case 9) to the
+  // fifth, arrests metric this SPEC adds. Not all 32 permutations are
+  // enumerated, matching the established convention of this file's prior
+  // three-way/four-way independence blocks.
+
+  it("arrests ok while deaths, injuries, collisions, AND repaired collisions all error: arrests renders fully, completely unaffected by the other four failing together", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (five-way test, deaths)",
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (five-way test, injuries)",
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (five-way test, collisions)",
+    });
+    fetchRepairedCollisionsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: REPAIRED_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (five-way test, repaired collisions)",
+    });
+    // Arrests' default-"ok" beforeEach value applies unmodified.
+
+    await renderHome();
+
+    expect(screen.getByRole("table", { name: /arrests/i })).toBeInTheDocument();
+    expect(callsFor("arrests")).toHaveLength(1);
+
+    expect(
+      screen.queryByRole("table", { name: /deaths/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: /injuries/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: COLLISIONS_TABLE_NAME }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: REPAIRED_TABLE_NAME }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Socrata responded 503 \(five-way test, deaths\)/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Socrata responded 503 \(five-way test, injuries\)/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Socrata responded 503 \(five-way test, collisions\)/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Socrata responded 503 \(five-way test, repaired collisions\)/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("arrests error while deaths, injuries, collisions, AND repaired collisions are all ok (the inverse): the other four render fully, unsuppressed by the arrests failure", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchInjuriesPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: INJURIES_SYNTHETIC_SOQL,
+      rows: INJURIES_SYNTHETIC_ROWS,
+    });
+    fetchCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: COLLISIONS_SYNTHETIC_SOQL,
+      rows: COLLISIONS_SYNTHETIC_ROWS,
+    });
+    fetchRepairedCollisionsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: REPAIRED_SYNTHETIC_SOQL,
+      rows: REPAIRED_SYNTHETIC_ROWS,
+    });
+    fetchArrestsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: ARRESTS_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (five-way test, arrests)",
+    });
+
+    await renderHome();
+
+    expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: /injuries/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: COLLISIONS_TABLE_NAME }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: REPAIRED_TABLE_NAME }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("table", { name: /arrests/i }),
+    ).not.toBeInTheDocument();
+    expect(callsFor("arrests")).toHaveLength(0);
+    expect(
+      screen.getByText(/Socrata responded 503 \(five-way test, arrests\)/i),
+    ).toBeInTheDocument();
+
+    // All five disclosures still render regardless of each metric's status
+    // (FR-8's unconditional-disclosure guarantee, extended to five).
+    expect(document.querySelectorAll("details")).toHaveLength(5);
   });
 });
 
@@ -1586,7 +2101,7 @@ describe("/ (Home) — four independent metrics on one page (this SPEC's Edge Ca
 
     // All four disclosures still render regardless of each metric's status
     // (FR-8's unconditional-disclosure guarantee, extended to four).
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
   });
 
   it("mixed combination (another): deaths error, injuries empty, collisions ok, repaired collisions empty — each of the four renders its own defined state independently", async () => {
@@ -1633,7 +2148,7 @@ describe("/ (Home) — four independent metrics on one page (this SPEC's Edge Ca
       screen.queryByRole("table", { name: REPAIRED_TABLE_NAME }),
     ).not.toBeInTheDocument();
 
-    expect(container.querySelectorAll("details")).toHaveLength(4);
+    expect(container.querySelectorAll("details")).toHaveLength(5);
   });
 });
 

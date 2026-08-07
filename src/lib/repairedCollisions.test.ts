@@ -431,12 +431,13 @@ describe("src/lib/repairedCollisions.ts — source-level greps (the only net for
     expect(source).not.toMatch(/SOCRATA_APP_TOKEN/);
   });
 
-  it("no file under src/lib other than socrata.ts references process.env — generalizes the confinement check to the whole lib directory now that a fourth caller exists", () => {
+  it("no file under src/lib other than socrata.ts and arrests.ts references process.env — generalizes the confinement check to the whole lib directory, now with arrests.ts as a second, SPEC-accepted exception (FR-5 Constraint 3)", () => {
     const libDir = join(SRC_DIR, "lib");
     const offenders = listFilesRecursive(libDir)
       .filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
       .filter((f) => !isTestFile(f))
       .filter((f) => !f.endsWith(`${join("lib", "socrata.ts")}`))
+      .filter((f) => !f.endsWith(`${join("lib", "arrests.ts")}`))
       .filter((f) => readFileSync(f, "utf8").includes("process.env"));
     expect(offenders).toEqual([]);
   });
