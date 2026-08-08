@@ -13,10 +13,12 @@
 // fragment (AND-ed onto the fixed 2018-2025 window), the one axis that
 // varies today (repairedCollisions.ts's casualty filter); the $select
 // aggregate expression and field alias still vary per caller as before.
-
-import { z } from "zod";
+// FR-6 added a second such conjunct, `borough`, on the same axis — typed
+// BoroughCode rather than string, so a URL value cannot reach $where without
+// passing boroughs.ts's parseBoroughParam() first (NFR-2).
 
 import { crashesBoroughWhere, type BoroughCode } from "./boroughs";
+import { z } from "zod";
 
 const BASE_URL = "https://data.cityofnewyork.us/resource/h9gi-nx95.json";
 
@@ -46,19 +48,18 @@ function selectClause(aggregateExpr: string, fieldAlias: string): string {
   return `date_extract_y(crash_date) AS year, ${aggregateExpr} AS ${fieldAlias}`;
 }
 
-// FR-12: the only clause that ever varies per caller beyond $select is
-// $where, and only by AND-ing one additional fragment onto the fixed window.
-// $group/$order stay fixed constants, untouched by this parameter.
-//
-// FR-6 Phase 1: a fourth, optional borough conjunct. Pinned composition
-// order — window AND extraWhere AND borough — with no added parentheses; a
-// value can only reach here as a BoroughCode, never a raw string, so the
-// borough fragment is always one of the five closed literals.
+// FR-12/FR-6: the only clause that ever varies per caller beyond $select is
+// $where, and only by AND-ing further fragments onto the fixed window, in a
+// pinned order — window AND extraWhere AND borough. Joining rather than
+// concatenating keeps the single-space separator structural: with both
+// omitted the result is WHERE_CLAUSE itself, byte-identical to what the four
+// already-displayed FR-8 contracts render today. $group/$order stay fixed
+// constants, untouched by either parameter.
 function whereClause(extraWhere?: string, borough?: BoroughCode): string {
-  const parts = [WHERE_CLAUSE];
-  if (extraWhere) parts.push(extraWhere);
-  if (borough) parts.push(crashesBoroughWhere(borough));
-  return parts.join(" AND ");
+  const fragments = [WHERE_CLAUSE];
+  if (extraWhere) fragments.push(extraWhere);
+  if (borough) fragments.push(crashesBoroughWhere(borough));
+  return fragments.join(" AND ");
 }
 
 // FR-8: the displayed query and the sent request are derived from the same

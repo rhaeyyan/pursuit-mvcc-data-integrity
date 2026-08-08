@@ -1,15 +1,16 @@
-// The pinned NYC borough vocabulary — FR-6 Phase 1 (SPEC.md).
+// The pinned NYC borough vocabulary (FR-6) — pure, zero I/O, and the only
+// place in the tree that knows how each borough is spelled in each dataset.
 //
-// Pure, zero I/O, zero runtime imports. This is the one place in the repo
-// that knows trap 2 (`B` is the Bronx, not Brooklyn) and the asymmetry
-// between the two datasets' spellings: h9gi-nx95's `borough` field spells
-// out the name in uppercase ("BROOKLYN"); 8h9b-rp9u's `arrest_boro` field
-// uses the single-letter code ("K"). Every caller gets both literals from
-// this one table so the mapping is asserted once, not re-derived at each
-// call site (SPEC's Intellectual Control 2-3).
+// Trap 2 of the `mvcc-data` skill lives here and nowhere else: `B` is the
+// BRONX, and Brooklyn is `K` (Kings). That transposition only has to be wrong
+// once to be wrong everywhere, so it gets exactly one file — one with no I/O,
+// which is why it can be tested exhaustively in milliseconds with no mocking.
 //
-// socrata.ts imports this module; this module must never import socrata.ts
-// (Constraint 2 — the dependency runs one way).
+// The dependency runs one way, socrata.ts -> boroughs.ts, so nothing here
+// imports, fetches, or reads the environment. The five crashes spellings were
+// confirmed by live query on 2026-08-07 (SPEC.md, "Verification probe"); they
+// are dataset facts, never typed from recollection. A spelling mismatch is a
+// halt and a request for a revised SPEC, not a local repair.
 
 export const BOROUGH_CODES = ["B", "K", "M", "Q", "S"] as const;
 
@@ -21,11 +22,12 @@ export type BoroughEntry = {
   arrestsValue: string; // the 8h9b-rp9u `arrest_boro` literal, e.g. "K"
 };
 
-// Pinned exactly as SPEC.md's Inputs/Outputs table. `arrestsValue` is
-// written out as an explicit literal per borough rather than derived from
-// the key — that it equals the key here is a coincidence of this dataset's
-// encoding, not a rule, and deriving it would silently break under any
-// future re-coding.
+// Each arrestsValue is stored explicitly rather than derived from its key.
+// That the two coincide is this dataset's encoding, not a rule: interpolating
+// the code straight into the arrests fragment would keep working right up
+// until a re-coding, then be wrong silently. Storing it also puts one
+// borough's two spellings on adjacent lines, which is the documentation trap
+// 2 needs.
 export const BOROUGHS: Record<BoroughCode, BoroughEntry> = {
   B: { label: "Bronx", crashesValue: "BRONX", arrestsValue: "B" },
   K: { label: "Brooklyn", crashesValue: "BROOKLYN", arrestsValue: "K" },
@@ -43,44 +45,42 @@ export type BoroughParam =
   | { status: "ok"; code: BoroughCode }
   | { status: "invalid"; received: string };
 
+// A rejected value is named back to the reader rather than silently dropped,
+// so the URL and the page can never disagree in silence. It is a display
+// string only — trimmed and capped so a long one cannot break the layout.
 const RECEIVED_MAX_LENGTH = 24;
 
-function truncateReceived(value: string): string {
-  return value.slice(0, RECEIVED_MAX_LENGTH);
+function invalid(received: string): BoroughParam {
+  return {
+    status: "invalid",
+    received: received.trim().slice(0, RECEIVED_MAX_LENGTH),
+  };
 }
 
-function isBoroughCode(value: string): value is BoroughCode {
-  return (BOROUGH_CODES as readonly string[]).includes(value);
-}
-
-// The trust boundary (FORCES 1): a URL search param cannot reach a $where
-// clause without passing through here first. Array input (a repeated query
-// parameter) is ambiguous by construction and is always rejected, never
-// resolved by first-wins (Edge Case 4).
+// NFR-2: the single door from a URL search param into this vocabulary.
+// Anything unrecognised leaves as a display string that no caller can hand to
+// either $where builder, because both are closed over BoroughCode.
 export function parseBoroughParam(
   raw: string | string[] | undefined,
 ): BoroughParam {
-  if (raw === undefined) {
-    return { status: "none" };
-  }
+  if (raw === undefined) return { status: "none" };
 
-  if (Array.isArray(raw)) {
-    return { status: "invalid", received: truncateReceived(raw.join(", ")) };
-  }
+  // A repeated ?borough= is ambiguous by construction: first-wins would pick
+  // one silently and render a page the URL does not describe.
+  if (Array.isArray(raw)) return invalid(raw.join(", "));
 
   const trimmed = raw.trim();
-  if (trimmed === "") {
-    return { status: "none" };
-  }
+  if (trimmed === "") return { status: "none" };
 
-  const upper = trimmed.toUpperCase();
-  if (isBoroughCode(upper)) {
-    return { status: "ok", code: upper };
-  }
+  const candidate = trimmed.toUpperCase();
+  const code = BOROUGH_CODES.find((known) => known === candidate);
 
-  return { status: "invalid", received: truncateReceived(trimmed) };
+  return code ? { status: "ok", code } : invalid(trimmed);
 }
 
+// Two datasets, two literal vocabularies, one code vocabulary — hence one
+// builder each. Both take a BoroughCode rather than a string, which is what
+// makes an injected value unrepresentable here instead of merely rejected.
 export function crashesBoroughWhere(code: BoroughCode): string {
   return `borough = '${BOROUGHS[code].crashesValue}'`;
 }
