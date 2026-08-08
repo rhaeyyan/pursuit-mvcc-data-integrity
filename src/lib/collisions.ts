@@ -15,6 +15,7 @@ import {
   type YearlyMetricResult,
   type YearlyMetricRow,
 } from "./socrata";
+import { type BoroughCode } from "./boroughs";
 
 const AGGREGATE_EXPR = "count(collision_id)";
 const FIELD_ALIAS = "collisions" as const;
@@ -23,13 +24,15 @@ const FIELD_ALIAS = "collisions" as const;
 // two constants above so they cannot drift apart.
 export const COLLISIONS_SOQL = buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS);
 
-export function buildCollisionsUrl(): URL {
-  return buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS);
+export function buildCollisionsUrl(borough?: BoroughCode): URL {
+  return buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS, undefined, borough);
 }
 
 export type CollisionsRow = YearlyMetricRow<"collisions">;
 export type CollisionsResult = YearlyMetricResult<"collisions">;
 
-export function fetchCollisionsPerYear(): Promise<CollisionsResult> {
-  return fetchYearlyMetric(AGGREGATE_EXPR, FIELD_ALIAS);
+export function fetchCollisionsPerYear(
+  borough?: BoroughCode,
+): Promise<CollisionsResult> {
+  return fetchYearlyMetric(AGGREGATE_EXPR, FIELD_ALIAS, undefined, borough);
 }
