@@ -1,12 +1,23 @@
 # Sprint Ledger — MVCC Data
 
 **Current objective:** **FR-6 (borough filter) + FR-7 (coverage warning)** — the last two open FRs,
-both P1. The recommended `/grill-me` round ran on 2026-08-07 and settled four decisions before any
-SPEC existed (see Active). Cedar is planning the phase split; `SPEC.md` still empty pending its
-phase-1 SPEC and the human's approval.
+both P1. Phase 1 of 6 is implemented and green. Phase 2 (crash-metric propagation, 4 files, Redwood)
+is next — needs Cedar to write its `[SPEC]` before dispatch.
 
 ## Active
 
+- **FR-6 Phase 1 CLOSED (2026-08-07)** — `src/lib/boroughs.ts` (new, pure, ~90 lines: pinned
+  `BOROUGH_CODES`/`BOROUGHS` table, `BoroughParam` union, `parseBoroughParam`,
+  `crashesBoroughWhere`/`arrestsBoroughWhere`) and `src/lib/socrata.ts` (widened — `whereClause`,
+  `buildYearlySoql`, `buildYearlyUrl`, `fetchYearlyMetric` each gain optional 4th `borough?:
+  BoroughCode`, composed `window AND extraWhere AND borough`). Byte-identity on the four frozen
+  FR-8 SOQL constants confirmed both by test and by `git diff` showing additive-only changes. No
+  caller passes a borough yet (Phase 2 is first), so the rendered page is provably unchanged.
+  Redwood built this in one pass against Cypress's already-red `boroughs.test.ts` (committed
+  `5ec8f9c`) and `socrata.test.ts`'s additive block — no rejection cycle needed.
+  **Verified (node v22.23.2):** `tsc --noEmit` clean; `eslint` on both files clean; full suite
+  **478/478** across 18 files (up from the 374/374 pre-phase baseline — Cypress's 104 new
+  assertions); `boroughs.test.ts` + `socrata.test.ts` alone: 114/114. Not yet committed to git.
 - **FR-6/FR-7 `/grill-me` round complete (2026-08-07) — four decisions settled, all on the
   recommended option.** (1) **Wiring: URL search param**, not client state — `?borough=K` drives a
   server re-render, `page.tsx` stays a server component, deep-linkable, ISR caches each borough
