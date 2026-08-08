@@ -38,6 +38,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { COLLISIONS_SOQL } from "./collisions";
+import { DEATHS_SOQL } from "./deaths";
+import { INJURIES_SOQL } from "./injuries";
+import { REPAIRED_COLLISIONS_SOQL } from "./repairedCollisions";
 import {
   buildYearlySoql,
   buildYearlyUrl,
@@ -232,3 +236,389 @@ describe("fetchYearlyMetric() — the widened third parameter forwards correctly
     expect(result.rows).toHaveLength(8);
   });
 });
+
+// ===========================================================================
+// FR-6 Phase 1 — the fourth, optional `borough?: BoroughCode` parameter.
+//
+// Everything above this line is FR-12's original coverage and is deliberately
+// untouched: those two/three-argument assertions passing *unmodified* against
+// a four-parameter socrata.ts is itself half the byte-identity proof this
+// phase owes. The other half is the explicit unfiltered-output pins below.
+//
+// Written BEFORE socrata.ts accepts a fourth argument. These blocks must fail
+// red because no borough fragment is appended — not because of a mistake in
+// their own expectations. The four `*_SOQL` byte-identity assertions are the
+// exception and must be green both before and after: they are the regression
+// net, not the red test.
+//
+// The borough fragments below are pinned literals, transcribed from the SPEC's
+// Inputs/Outputs table (`K` -> BROOKLYN, `B` -> BRONX — the mvcc-data skill's
+// trap 2) rather than imported from ./boroughs, so this file cross-checks that
+// module's table instead of reading it back.
+// ===========================================================================
+
+const BOROUGH_WHERE = {
+  B: "borough = 'BRONX'",
+  K: "borough = 'BROOKLYN'",
+  M: "borough = 'MANHATTAN'",
+  Q: "borough = 'QUEENS'",
+  S: "borough = 'STATEN ISLAND'",
+} as const;
+
+const SELECT_LINE = `$select=${FIXED_GROUP} AS year, ${AGGREGATE_EXPR} AS ${FIELD_ALIAS}`;
+
+// Edge Case 1 — window AND borough, no extraWhere in between.
+const BOROUGH_ONLY_SOQL = [
+  SELECT_LINE,
+  `$where=${FIXED_WHERE} AND ${BOROUGH_WHERE.K}`,
+  `$group=${FIXED_GROUP}`,
+  `$order=${FIXED_ORDER}`,
+].join("\n");
+
+// Edge Case 2 — the pinned composition order: window AND extraWhere AND borough.
+const FOUR_ARG_SOQL = [
+  SELECT_LINE,
+  `$where=${FIXED_WHERE} AND ${EXTRA_WHERE} AND ${BOROUGH_WHERE.K}`,
+  `$group=${FIXED_GROUP}`,
+  `$order=${FIXED_ORDER}`,
+].join("\n");
+
+// ---------------------------------------------------------------------------
+// The byte-identity guarantee. These four constants are already rendered on
+// the page under FR-8; widening the transport must not move one byte of them.
+// Each expectation is written out from this file's own pinned clause text, not
+// read back from the module under test.
+// ---------------------------------------------------------------------------
+
+const PINNED_DEATHS_SOQL = [
+  `$select=${FIXED_GROUP} AS year, sum(number_of_persons_killed) AS deaths`,
+  `$where=${FIXED_WHERE}`,
+  `$group=${FIXED_GROUP}`,
+  `$order=${FIXED_ORDER}`,
+].join("\n");
+
+const PINNED_INJURIES_SOQL = [
+  `$select=${FIXED_GROUP} AS year, sum(number_of_persons_injured) AS injuries`,
+  `$where=${FIXED_WHERE}`,
+  `$group=${FIXED_GROUP}`,
+  `$order=${FIXED_ORDER}`,
+].join("\n");
+
+const PINNED_COLLISIONS_SOQL = [
+  `$select=${FIXED_GROUP} AS year, count(collision_id) AS collisions`,
+  `$where=${FIXED_WHERE}`,
+  `$group=${FIXED_GROUP}`,
+  `$order=${FIXED_ORDER}`,
+].join("\n");
+
+const PINNED_REPAIRED_COLLISIONS_SOQL = [
+  `$select=${FIXED_GROUP} AS year, count(collision_id) AS repaired`,
+  `$where=${FIXED_WHERE} AND (number_of_persons_injured > 0 OR number_of_persons_killed > 0)`,
+  `$group=${FIXED_GROUP}`,
+  `$order=${FIXED_ORDER}`,
+].join("\n");
+
+describe("FR-8 byte-identity — the four already-displayed query contracts are unchanged by this phase", () => {
+  it("DEATHS_SOQL is byte-for-byte its current value", () => {
+    expect(DEATHS_SOQL).toBe(PINNED_DEATHS_SOQL);
+  });
+
+  it("INJURIES_SOQL is byte-for-byte its current value", () => {
+    expect(INJURIES_SOQL).toBe(PINNED_INJURIES_SOQL);
+  });
+
+  it("COLLISIONS_SOQL is byte-for-byte its current value", () => {
+    expect(COLLISIONS_SOQL).toBe(PINNED_COLLISIONS_SOQL);
+  });
+
+  it("REPAIRED_COLLISIONS_SOQL is byte-for-byte its current value", () => {
+    expect(REPAIRED_COLLISIONS_SOQL).toBe(PINNED_REPAIRED_COLLISIONS_SOQL);
+  });
+
+  it("none of the four carries a borough fragment — no caller passes one in this phase", () => {
+    for (const soql of [
+      DEATHS_SOQL,
+      INJURIES_SOQL,
+      COLLISIONS_SOQL,
+      REPAIRED_COLLISIONS_SOQL,
+    ]) {
+      expect(soql).not.toContain("borough");
+      expect(soql).not.toContain("arrest_boro");
+    }
+  });
+});
+
+describe("the unfiltered call path is unchanged by the fourth parameter (Constraint 3, FORCES 2)", () => {
+  it("buildYearlySoql(agg, alias) is identical to buildYearlySoql(agg, alias, undefined, undefined)", () => {
+    expect(
+      buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, undefined, undefined),
+    ).toBe(buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS));
+  });
+
+  it("an explicit `undefined` borough leaves the two-argument string byte-identical", () => {
+    expect(
+      buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, undefined, undefined),
+    ).toBe(TWO_ARG_SOQL);
+  });
+
+  it("an explicit `undefined` borough leaves the three-argument (extraWhere) string byte-identical", () => {
+    expect(
+      buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE, undefined),
+    ).toBe(THREE_ARG_SOQL);
+  });
+
+  it("buildYearlyUrl() is likewise unchanged when the borough is omitted or explicitly undefined", () => {
+    expect(
+      buildYearlyUrl(
+        AGGREGATE_EXPR,
+        FIELD_ALIAS,
+        undefined,
+        undefined,
+      ).toString(),
+    ).toBe(buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS).toString());
+  });
+});
+
+describe("buildYearlySoql() — the new fourth, optional borough argument", () => {
+  it("Edge Case 1: borough without extraWhere AND-s exactly one fragment onto the window", () => {
+    expect(buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, undefined, "K")).toBe(
+      BOROUGH_ONLY_SOQL,
+    );
+  });
+
+  it("Edge Case 2: with both present, the order is window AND extraWhere AND borough", () => {
+    const soql = buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE, "K");
+
+    expect(soql).toBe(FOUR_ARG_SOQL);
+    expect(soql.indexOf(EXTRA_WHERE)).toBeLessThan(
+      soql.indexOf(BOROUGH_WHERE.K),
+    );
+  });
+
+  it("adds no stray AND, no double space, and no parentheses around the window or the borough fragment", () => {
+    for (const soql of [
+      buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, undefined, "K"),
+      buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE, "K"),
+    ]) {
+      const whereLine = soql
+        .split("\n")
+        .find((line) => line.startsWith("$where="));
+
+      expect(whereLine).toBeDefined();
+      const clause = (whereLine as string).slice("$where=".length);
+
+      expect(clause).not.toMatch(/ {2}/);
+      expect(clause).not.toMatch(/\bAND\s+AND\b/);
+      expect(clause).not.toMatch(/AND\s*$/);
+      expect(clause).not.toContain("(borough");
+      expect(clause.startsWith(`${FIXED_WHERE} AND `)).toBe(true);
+      expect(clause.endsWith(BOROUGH_WHERE.K)).toBe(true);
+      expect(clause.split(" AND borough").length - 1).toBe(1);
+    }
+  });
+
+  it("trap 2 at the transport level: each code produces its own pinned fragment, and B is the BRONX", () => {
+    const codes = ["B", "K", "M", "Q", "S"] as const;
+
+    for (const code of codes) {
+      expect(
+        buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, undefined, code),
+      ).toContain(`$where=${FIXED_WHERE} AND ${BOROUGH_WHERE[code]}`);
+    }
+
+    expect(
+      buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS, undefined, "B"),
+    ).not.toContain("BROOKLYN");
+  });
+
+  it("leaves $select, $group and $order untouched when a borough is present", () => {
+    const lines = buildYearlySoql(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      EXTRA_WHERE,
+      "K",
+    ).split("\n");
+
+    expect(lines[0]).toBe(SELECT_LINE);
+    expect(lines[2]).toBe(`$group=${FIXED_GROUP}`);
+    expect(lines[3]).toBe(`$order=${FIXED_ORDER}`);
+    expect(lines).toHaveLength(4);
+  });
+});
+
+describe("buildYearlyUrl() — the same invariant, expressed as a URL", () => {
+  it("borough only: $where is the window AND-ed with exactly the borough fragment", () => {
+    const url = buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS, undefined, "K");
+
+    expect(url.origin + url.pathname).toBe(PINNED_BASE_URL);
+    expect(url.searchParams.get("$where")).toBe(
+      `${FIXED_WHERE} AND ${BOROUGH_WHERE.K}`,
+    );
+  });
+
+  it("both: $where is window AND extraWhere AND borough, in that order", () => {
+    const url = buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE, "K");
+
+    expect(url.searchParams.get("$where")).toBe(
+      `${FIXED_WHERE} AND ${EXTRA_WHERE} AND ${BOROUGH_WHERE.K}`,
+    );
+  });
+
+  it("leaves $select/$group/$order untouched and still sets no $limit (trap 5, Edge Case 7)", () => {
+    const url = buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE, "K");
+
+    expect(url.searchParams.get("$select")).toBe(
+      `${FIXED_GROUP} AS year, ${AGGREGATE_EXPR} AS ${FIELD_ALIAS}`,
+    );
+    expect(url.searchParams.get("$group")).toBe(FIXED_GROUP);
+    expect(url.searchParams.get("$order")).toBe(FIXED_ORDER);
+    expect(url.searchParams.has("$limit")).toBe(false);
+  });
+});
+
+describe("fetchYearlyMetric() — the fourth parameter forwards to both builders", () => {
+  it("requests exactly buildYearlyUrl(agg, alias, undefined, code)'s URL and returns the matching soql", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(syntheticOkBody()));
+
+    const result = await fetchYearlyMetric(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      undefined,
+      "K",
+    );
+
+    expect(result.soql).toBe(BOROUGH_ONLY_SOQL);
+    const requestedUrl = fetchMock.mock.calls[0][0] as URL;
+    expect(requestedUrl.toString()).toBe(
+      buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS, undefined, "K").toString(),
+    );
+  });
+
+  it("forwards extraWhere and borough together, in the pinned order", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(syntheticOkBody()));
+
+    const result = await fetchYearlyMetric(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      EXTRA_WHERE,
+      "K",
+    );
+
+    expect(result.soql).toBe(FOUR_ARG_SOQL);
+    const requestedUrl = fetchMock.mock.calls[0][0] as URL;
+    expect(requestedUrl.searchParams.get("$where")).toBe(
+      `${FIXED_WHERE} AND ${EXTRA_WHERE} AND ${BOROUGH_WHERE.K}`,
+    );
+  });
+
+  it("casts the string aggregate explicitly on the borough path — Socrata sends strings, the rows carry numbers", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(syntheticOkBody()));
+
+    const result = (await fetchYearlyMetric(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      undefined,
+      "K",
+    )) as Extract<YearlyMetricResult<"widgets">, { status: "ok" }>;
+
+    expect(result.status).toBe("ok");
+    expect(result.rows).toHaveLength(8);
+    for (const row of result.rows) {
+      expect(typeof row.year).toBe("number");
+      expect(typeof row.widgets).toBe("number");
+    }
+  });
+
+  it("Constraint 5: the 8-year coverage requirement is NOT relaxed for a borough-filtered query — a missing year is an error, never a gap", async () => {
+    const body = syntheticOkBody().filter((row) => row.year !== "2021");
+    fetchMock.mockResolvedValueOnce(jsonResponse(body));
+
+    const result = (await fetchYearlyMetric(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      undefined,
+      "K",
+    )) as Extract<YearlyMetricResult<"widgets">, { status: "error" }>;
+
+    expect(result.status).toBe("error");
+    expect(result.kind).toBe("contract");
+    expect(result.reason).toMatch(/2021/);
+  });
+
+  it("FR-11 / trap 1: a null aggregate on a borough-filtered year fails loud and is never coerced to zero", async () => {
+    const body = syntheticOkBody().map((row) =>
+      row.year === "2021" ? { year: row.year, widgets: null } : row,
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse(body));
+
+    const result = await fetchYearlyMetric(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      undefined,
+      "K",
+    );
+
+    expect(result.status).toBe("error");
+    if (result.status !== "error") return;
+    expect(result.kind).toBe("contract");
+    expect(result.reason).toMatch(/2021/);
+  });
+
+  it("FR-11 / trap 1: an absent aggregate key on a borough-filtered year fails loud, never zero", async () => {
+    const body = syntheticOkBody().map((row) =>
+      row.year === "2021" ? { year: row.year } : row,
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse(body));
+
+    const result = await fetchYearlyMetric(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      undefined,
+      "K",
+    );
+
+    expect(result.status).toBe("error");
+    if (result.status !== "error") return;
+    expect(result.kind).toBe("contract");
+    expect(result.reason).toMatch(/2021/);
+  });
+
+  it("Edge Case 6: a borough-filtered query returning zero rows takes the existing FR-10 `empty` branch, carrying the filtered soql", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse([]));
+
+    const result = await fetchYearlyMetric(
+      AGGREGATE_EXPR,
+      FIELD_ALIAS,
+      undefined,
+      "K",
+    );
+
+    expect(result.status).toBe("empty");
+    expect(result.soql).toBe(BOROUGH_ONLY_SOQL);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Compile-time assertions, enforced by `tsc --noEmit` rather than by vitest
+// (this project's vitest config does not typecheck). Never called.
+//
+// FORCES 1: the borough parameter is typed BoroughCode, never string, so a
+// value from a URL cannot reach a $where clause without passing
+// parseBoroughParam() first. If the parameter is ever widened to `string`,
+// TypeScript reports "Unused '@ts-expect-error' directive" and the Stop
+// quality gate fails — which is the assertion.
+// ---------------------------------------------------------------------------
+
+export function __typeOnly_boroughParamIsClosed(fromTheUrl: string) {
+  // Short local aliases keep each offending call on a single line, so the
+  // directive above it anchors to the line the compiler reports on.
+  const agg = AGGREGATE_EXPR;
+  const alias = FIELD_ALIAS;
+
+  // @ts-expect-error — an unparsed string from a URL is not a BoroughCode.
+  buildYearlySoql(agg, alias, undefined, fromTheUrl);
+  // @ts-expect-error — 'BROOKLYN' is the dataset literal, not a code.
+  buildYearlyUrl(agg, alias, undefined, "BROOKLYN");
+  // @ts-expect-error — an injection payload is unrepresentable, not rejected.
+  void fetchYearlyMetric(agg, alias, undefined, "K' OR 1=1 --");
+}
