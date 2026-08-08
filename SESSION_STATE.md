@@ -49,19 +49,11 @@
   Layout.
 
 - **FR-6/FR-7 `/grill-me` round complete (2026-08-07) — four decisions settled, all on the
-  recommended option.** (1) **Wiring: URL search param**, not client state — `?borough=K` drives a
-  server re-render, `page.tsx` stays a server component, deep-linkable, ISR caches each borough
-  separately, works with JS off. The existing `/api/*` Route Handlers stay out of the page's fetch
-  path (the page has always imported the lib functions directly). (2) **Scope: all five series** —
-  PRD-literal, matching the intent recorded at FR-5's close; `arrests.ts` gains an `arrest_boro`
-  parameter but stays self-contained, so PRD §5.2 severability survives as a code fact. (3) **FR-7
-  warning: one page-level banner** beside the control, shown only while a filter is active — not
-  the five-way repetition of the existing `note` prop. (4) **FR-7's figures are computed live via
-  SoQL**, never typed in — Rule 1 forbids the literal regardless of correctness, and
-  `guard-data-integrity.sh` would block it. Four open assumptions went to Cedar with the block,
-  the load-bearing one being that the banner must name *which* series its caveat covers:
-  `arrest_boro` is a different field with a different completeness profile, so letting the
-  collisions drift figure imply anything about arrests would violate NFR-5.
+  recommended option** (URL search param wiring; all five series in scope; one page-level FR-7
+  banner; FR-7 figures computed live). **Moved verbatim to `SPEC.md` § Standing decisions on
+  2026-08-08** — they bind Phases 2–6, so they belong where Cedar reads them, not in episodic
+  memory. That is also where the load-bearing open assumption now lives (the banner must name
+  which series its caveat covers, or NFR-5 is violated).
 - **FR-6/FR-7 planned as six phases; Phase 1 approved and in flight (2026-08-07).** Cedar cut the
   work along contract boundaries, not file counts: 1 vocabulary + transport → 2 crash-metric
   propagation → 3 arrests propagation → 4 **FR-6 closed** (UI switch-on) → 5 FR-7 coverage data →
@@ -100,19 +92,27 @@
   project first**, then this becomes buildable (verify Vercel's Node runtime matches
   `engines.node`, record `/`'s First Load JS after both charts + FR-13's markers). Not something
   Cedar can pick next on its own; needs the human to do the Vercel-side setup first.
+- **🔴 ROTATE TWO CREDENTIALS — `~/.bashrc` exports a GitHub PAT and a Context7 API key in
+  plaintext** (found 2026-08-08 while tracing the Node mismatch; both were read into a session
+  transcript, so rotation is the only fix — editing `.bashrc` does not un-leak them). Revoke the
+  PAT at github.com/settings/tokens, rotate the Context7 key, then move both to a `chmod 600` file
+  sourced conditionally. Neither is in the repo; nothing consumes them now (both fed MCP servers
+  the `/doctor` pass disabled). Violates the repo's own Rule 3.
 - **Machine changes outside the repo, needing re-doing on any other machine:** `nvm install 22`
-  (done 2026-08-07 — `~/.nvm` previously held only v24.13.0); `permissions.defaultMode: "auto"` in
-  `~/.claude/settings.json` (2026-08-08 — user-scope, so it applies to *every* project, unlike the
-  `/doctor` skill/MCP disables which are local to this repo). *Superseded:* the former
-  `~/.config/fish/conf.d/fnm.fish` and appended `~/.bashrc` block silenced fnm's "Using Node"
-  banner on stdout; fnm is no longer installed, so both are moot. nvm emits no such banner under
-  `nvm use 22 >/dev/null`, so no equivalent workaround is needed.
-- `ARCHITECTURE.md` is **deferred by decision, not pending**; its absence is not a gap to close.
-  Rationale and revisit trigger in `CLAUDE.md` § Project Layout.
+  (2026-08-07); `permissions.defaultMode: "auto"` in `~/.claude/settings.json` (2026-08-08 —
+  user-scope, applies to *every* project, unlike the `/doctor` skill/MCP disables which are local
+  to this repo); **removed three stale `~/.local/bin/{node,npm,npx}` symlinks → v24.13.0**
+  (2026-08-08 — restore with `ln -s /home/rayan/.nvm/versions/node/v24.13.0/bin/<x> ~/.local/bin/<x>`).
+- **The Node-platform mismatch is solved, and the cause was not what it looked like.** `nvm alias
+  default` was *already* `22`; the block was those three 2026-07-22 symlinks, which `.bashrc`
+  prepends to PATH **after** nvm loads, so they shadowed every nvm selection. That is why
+  `nvm use 22` worked (it prepends ahead of them) while a passive `bash -ic` silently returned v24
+  — the failure mode that made `stop-quality-gate.sh` unverifiable for three sessions. It now
+  self-verifies: "Quality gate clean … (Node v22.23.2)", exit 0. **Do not re-add those symlinks.**
+- `ARCHITECTURE.md` is **deferred by decision, not pending** — see `CLAUDE.md` § Project Layout.
 - **`/doctor` config pass DONE (2026-08-08)** — reasoning in `ARCHIVED_SESSIONS.md`. Load-bearing:
-  **the three handoff schemas now live only in the `handoff-schemas` skill** (load before any
-  dispatch; no agent file defines those fields), and **`github`'s MCP is off on a connection fault,
-  not disuse** (run `/mcp` before judging it).
+  **handoff schemas now live only in the `handoff-schemas` skill** (load before any dispatch — no
+  agent file defines those fields); **`github`'s MCP is off on a fault, not disuse** (run `/mcp`).
 
 
 ## Context Cache
