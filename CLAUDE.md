@@ -42,14 +42,14 @@ the two spellings of the DWI offense, the 1,000-row default limit).
 
 ## Tooling built for this repo
 
-| Use                                     | When                                                                                                                                                                                          |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Skill: `mvcc-data`**                  | Before any query, fetch, figure-asserting test, or chart. Non-optional.                                                                                                                       |
-| **Skill: `dataviz`** (bundled)          | Before the first line of chart code — color, mark, axis, legend, stat tile, or dashboard layout.                                                                                              |
-| **`/verify-figures`**                   | Before any demo, submission, or claim about the data. Re-queries live and diffs against the pinned table; the PRD's risk register names this as the mitigation for the preliminary-feed risk. |
-| **`.claude/scripts/verify-figures.py`** | The deterministic engine behind that command — it computes the diff, you only summarize it (Bounded AI).                                                                                      |
-| **Plan mode**                           | Any non-trivial feature, per Rule 1.                                                                                                                                                          |
-
+| Use | When |
+|---|---|
+| **Skill: `mvcc-data`** | Before any query, fetch, figure-asserting test, or chart. Non-optional. |
+| **Skill: `dataviz`** (bundled) | Before the first line of chart code — color, mark, axis, legend, stat tile, or dashboard layout. |
+| **Skill: `handoff-schemas`** | Before dispatching a subagent, relaying a handoff, or writing `SPEC.md`. Sole definition of the `[SPEC]`/`[COMPLIANCE-REPORT]`/`[COMPLETION-REPORT]` fields. |
+| **`/verify-figures`** | Before any demo, submission, or claim about the data. Re-queries live and diffs against the pinned table; the PRD's risk register names this as the mitigation for the preliminary-feed risk. |
+| **`.claude/scripts/verify-figures.py`** | The deterministic engine behind that command — it computes the diff, you only summarize it (Bounded AI). |
+| **Plan mode** | Any non-trivial feature, per Rule 1. |
 **Hooks — the mechanical layer.** These run whether or not anyone remembers the rule:
 
 | Hook                      | Event                     | Does                                                                                                                                                |
@@ -68,19 +68,9 @@ Each Stop hook blocks at most once per turn (`stop_hook_active`), then escalates
 ---
 
 ## Project Layout
-
-- `docs/` — the PRD and the verified research behind it. `docs/adr/` holds ADRs
-  (`NNNN-slug.md`, Context/Decision/Consequences) for consequential, hard-to-reverse choices;
-  SPECs capture _what_ to build, ADRs capture _why_ a choice was made.
-- `.claude/agents/` — the seven subagent definitions; tool restrictions are enforced by `tools:`
-  frontmatter, not honor system.
-- `.claude/skills/` — **the live skill set Claude reads.** `skills/` is a canonical master copy and
-  `.gemini/skills/` is Gemini CLI's; neither is read by Claude Code and they are no longer checked
-  for lockstep (see Divergence note below).
-- `.claude/hooks/`, `.claude/commands/`, `.claude/scripts/` — the enforcement, command, and
-  deterministic-tooling layers described above.
-- `SESSION_STATE.md` — the Sprint Ledger. `SPEC.md` — the active spec, created at kickoff.
-- **`ARCHITECTURE.md` — deliberately deferred, not missing.** Do not create one to satisfy a
+- `.claude/skills/` is **the live skill set Claude reads.** `skills/` is a canonical master copy
+  and `.gemini/skills/` is Gemini CLI's; neither is read by Claude Code and they are no longer
+  checked for lockstep (see Divergence note below).- **`ARCHITECTURE.md` — deliberately deferred, not missing.** Do not create one to satisfy a
   reference. Its content already lives in three places that are harder to let rot: this file's
   Stack table (the choices), PRD §5.1 (the requirement-level rationale for dropping FastAPI /
   Supabase / Supabase Auth), and README § Technical Notes (the system diagram, build order, and
@@ -161,18 +151,9 @@ record lives here rather than in a file nothing reads.
 
 ## Team Roster (`.claude/agents/`)
 
-Every workflow has one definitive owner, so nothing falls to the bystander effect.
-
-| Agent      | Role                         | May edit?      | Job                                                                                            |
-| ---------- | ---------------------------- | -------------- | ---------------------------------------------------------------------------------------------- |
-| `pine`     | API Gateway / Intake         | No             | Route tasks to the right specialist                                                            |
-| `birch`    | Systems Analyst              | No             | Gather the exact files/docs a task needs; audit the Context Cache                              |
-| `cedar`    | Tech Lead                    | No             | Goals → `[SPEC]`/`[SPIKE]` + `[FORCES]` (≤5 files); pin every query; sole dependency authority |
-| `cypress`  | Data QA / SDET               | Tests only     | Failing tests first; audit correctness, security, a11y; emit `[COMPLIANCE-REPORT]`             |
-| `redwood`  | Data Engineer                | Yes            | Route Handlers, SoQL aggregation, server-side fetching; emit `[COMPLETION-REPORT]`             |
-| `magnolia` | DataViz / UI Engineer        | Yes            | Recharts visualizations, layout, styling, frontend accessibility                               |
-| `banyan`   | Platform Engineer / Reviewer | Refactors only | Reduce coupling; mediate rejection loops; tree-wide mechanical refactors; merge coordination   |
-
+Every workflow has one definitive owner, so nothing falls to the bystander effect. Each agent's
+role and edit rights are declared in its own `.claude/agents/*.md` frontmatter — `tools:` is the
+enforcement, not this file.
 The fellowship's `aspen` (Archivist) and `willow` (Tutor Assistant) are deliberately absent: both
 operate on `raw/`, `notebook/`, and `wiki/`, which this standalone project does not have.
 
@@ -190,55 +171,11 @@ a handoff between two agents that share no context. The main session therefore o
 
 ## Handoff Schemas
 
-### `[SPEC]` / `[SPIKE]` — Cedar → Cypress → Redwood / Magnolia
-
-```markdown
-[SPEC] / [SPIKE]
-
-- **Objective**: <what the code must achieve>
-- **Requirement**: <PRD FR/NFR this satisfies, e.g. FR-12 [P0]>
-- **Inputs/Outputs**: <types, schemas, JSON shapes>
-- **Query** (data tasks only): <exact dataset ID + SoQL + expected response shape>
-- **Design Pattern**: <GoF pattern + justification, or "none — simple case">
-- **UI Scope** (UI tasks only): structural — the layout/DOM must change | cosmetic — styling/motion on the existing layout
-- **Intellectual Control**: <why this approach, and why it won't break at scale>
-- **Constraints**: <performance, forbidden libraries, style>
-- **Edge Cases**: <error handling, null states>
-- **Files**: <max 5 files this task may touch>
-- **Tipping Point**: <threshold at which this component must be refactored/decomposed>
-
-[FORCES]
-
-1. <Primary force> > <Secondary force>
-2. Simplicity > Pattern purity (always present unless explicitly overridden)
-```
-
-### `[COMPLIANCE-REPORT]` — Cypress → Cedar / Redwood
-
-```markdown
-[COMPLIANCE-REPORT]
-
-- **Status**: PASS | FAIL
-- **Critical violations**: <must fix before merge; empty if PASS>
-- **Recommendations**: <non-blocking improvements>
-- **Test results**: <command run + summary of output>
-```
-
-### `[COMPLETION-REPORT]` — Redwood / Magnolia → Cypress
-
-```markdown
-[COMPLETION-REPORT]
-
-- **Files changed**: <list>
-- **Spec items satisfied**: <checklist against the SPEC>
-- **Complexity Justification**: <prove Jevon's Paradox was avoided; defend added lines against bloat>
-- **Known gaps**: <anything deferred, or "none">
-- **Tipping Point Progress**: <how close this is to the defined Tipping Point>
-```
-
-`[ROUTING-DECISION]` (Pine), `[CONTEXT-PACKET]` (Birch), and `[HEALING-REPORT]` (Banyan) each
-define their exact block in their own `.claude/agents/*.md` file.
-
+The exact block formats — `[SPEC]`/`[SPIKE]` + `[FORCES]`, `[COMPLIANCE-REPORT]`, and
+`[COMPLETION-REPORT]` — live in the **`handoff-schemas` skill**. Nothing else in the repo defines
+their fields, so **load that skill before dispatching a subagent, relaying a handoff, or writing a
+SPEC to `SPEC.md`.** `[ROUTING-DECISION]` (Pine), `[CONTEXT-PACKET]` (Birch), and
+`[HEALING-REPORT]` (Banyan) each define their own block in their `.claude/agents/*.md` file.
 ## Rejection Loop (circuit breaker)
 
 1. Cypress FAILs → Redwood/Magnolia gets the `[COMPLIANCE-REPORT]` plus the original task and retries — continue that same invocation, don't respawn cold.
