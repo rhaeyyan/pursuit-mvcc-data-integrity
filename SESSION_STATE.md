@@ -78,19 +78,19 @@
   ruled that `arrest_boro` coverage **will** be measured, so FR-7's banner speaks to all five
   filtered series. That trips `arrests.ts`'s Tipping Point (a second `8h9b-rp9u` caller) and
   widens FR-7 past its literal PRD text; Cedar is revising Phases 5–6 only. Phases 1–4 unaffected.
-- **Live query findings, 2026-08-07 — all verified, none recalled.** (a) **The five `borough`
-  literals are confirmed exactly as pinned**, uppercase: `BRONX`, `BROOKLYN`, `MANHATTAN`,
-  `QUEENS`, `STATEN ISLAND`. (b) **Unpopulated rows arrive as an absent `borough` key** — not
-  `null`, not `""`; the probe's sixth bucket was `{"rows": "343448"}` with no `borough` field at
-  all. That is **trap 1 (Socrata omits keys) surfacing in a new place**, and it is why FR-7's
-  numerator enumerates the five values positively via `IN (...)` rather than using `IS NOT NULL`.
-  (c) **`borough IN (...)` works** — the pre-authorised five-way `OR` fallback is not needed.
-  (d) **Coverage rate per year: 64.4, 64.8, 65.3, 65.3, 66.2, 68.0, 71.4, 80.1%** (2018→2025),
-  reproducing the pinned 64.4%/80.1% endpoints exactly; 2019's 64.8% independently reproduces the
-  `mvcc-data` skill's Staten Island natural-experiment note, which was never fed to the query.
-  **Window unpopulated share derives to 32.9%, row-weighted** — not the ~31.8% mean-of-yearly-rates;
-  the two differ by ~1.1pp so the choice is pinned explicitly in code and test. FR-7's PRD prose
-  says "~30%": that gap is **rounding in the prose, not drift** — `/verify-figures` must not flag it.
+- **Live query findings, 2026-08-07/08 — all verified, none recalled.** Full probe output in
+  `ARCHIVED_SPECS.md` (Phase 1 entry). The four still load-bearing: (a) **unpopulated rows arrive
+  as an absent `borough` key** — not `null`, not `""` — trap 1 in a new place, and why FR-7's
+  numerator enumerates the five values via `IN (...)` rather than `IS NOT NULL`; (b) **`borough IN
+  (...)` works**, so the pre-authorised five-way `OR` fallback is dead; (c) **window unpopulated
+  share is 32.9% row-weighted**, *not* the ~31.8% mean-of-yearly-rates — they differ ~1.1pp, so
+  the choice is pinned in code and test, and FR-7's "~30%" prose is rounding, **not drift**
+  (`/verify-figures` must not flag it); (d) Cypress re-confirmed **`B`=Bronx by live row count**
+  at the Phase 1 audit (Q1 2019 `arrest_boro`: `K` 15,809 > `B` 13,410), not by recollection.
+- **FR-6/FR-7 Phase 1 of 6 CLOSED (2026-08-08)** — `boroughs.ts` (new) + `socrata.ts` (+23/−9),
+  Cypress **PASS**; 478/478, tsc/eslint/guard clean on Node 22.23.2. Page provably unchanged:
+  **byte-identity computed, not asserted** (HEAD vs tree extracted to two scratch trees, all four
+  FR-8 contracts diffed). Three open items in `SPEC.md`; load-bearing: `parseBoroughParam([])`.
 - **FR-5 CLOSED (2026-08-07)** — arrests panel; `9d1be76`/`123aada`/`672b16a`. Narrative in
   `ARCHIVED_SESSIONS.md`, SPEC in `ARCHIVED_SPECS.md`; its two live facts are carried forward above.
 - **Deploy `[SPEC]` obligation — the open question is answered (2026-08-07): no Vercel project is
