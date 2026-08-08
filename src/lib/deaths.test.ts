@@ -19,6 +19,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { BOROUGHS, type BoroughCode } from "./boroughs";
 import {
   DEATHS_SOQL,
   buildDeathsUrl,
@@ -334,5 +335,76 @@ describe("FR-8 invariant — DEATHS_SOQL and buildDeathsUrl() cannot drift apart
       expect(DEATHS_SOQL).toContain(clause);
       expect(decodedParamText).toContain(clause);
     }
+  });
+});
+
+// ===========================================================================
+// FR-6 Phase 2 (SPEC.md) — widen buildDeathsUrl()/fetchDeathsPerYear() to
+// accept an optional `borough?: BoroughCode`, forwarded unchanged to
+// socrata.ts's already-widened transport. Written BEFORE deaths.ts accepts a
+// borough argument, so the borough-supplied assertions below must fail red
+// today (buildDeathsUrl()/fetchDeathsPerYear() currently take zero
+// arguments, so a passed-in code is silently ignored at runtime and
+// rejected by `tsc --noEmit`) — not because of a mistake in their own
+// expectations. `BOROUGH_CODE`'s `crashesValue` is read from boroughs.ts
+// rather than retyped, per the dispatch instructions.
+// ===========================================================================
+
+describe("FR-6 Phase 2 — borough parameter propagation", () => {
+  const BOROUGH_CODE: BoroughCode = "K"; // Brooklyn
+  const BOROUGH_WHERE = `borough = '${BOROUGHS[BOROUGH_CODE].crashesValue}'`;
+  const FILTERED_WHERE = `${PINNED_CLAUSES.where} AND ${BOROUGH_WHERE}`;
+
+  it("regression pin (b): buildDeathsUrl() called with zero arguments is byte-identical to today's $where", () => {
+    const url = buildDeathsUrl();
+    expect(url.searchParams.get("$where")).toBe(PINNED_CLAUSES.where);
+  });
+
+  it("regression pin (b): DEATHS_SOQL's $where line stays byte-identical to today's, unaffected by the widened signature existing", () => {
+    expect(DEATHS_SOQL).toBe(
+      [
+        `$select=${PINNED_CLAUSES.select}`,
+        `$where=${PINNED_CLAUSES.where}`,
+        `$group=${PINNED_CLAUSES.group}`,
+        `$order=${PINNED_CLAUSES.order}`,
+      ].join("\n"),
+    );
+  });
+
+  it("(a) buildDeathsUrl(borough) composes window AND borough = '<crashesValue>' exactly, per SPEC.md's Query section", () => {
+    // No @ts-expect-error here on purpose: deaths.ts does not accept a
+    // borough argument yet, so this line is expected to be a `tsc --noEmit`
+    // compile error today (per this phase's dispatch instructions, "must
+    // fail now — TS errors or runtime failures") and to compile cleanly only
+    // once Redwood widens buildDeathsUrl()'s signature. At runtime today the
+    // extra argument is silently dropped, so the assertion below fails red
+    // for the same reason: no borough fragment is forwarded.
+    const url = buildDeathsUrl(BOROUGH_CODE);
+    expect(url.searchParams.get("$where")).toBe(FILTERED_WHERE);
+  });
+
+  it("(a) fetchDeathsPerYear(borough) sends the same composed $where in its returned soql", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(syntheticOkBody()));
+
+    // See the comment above: intentionally a `tsc --noEmit` error today,
+    // valid once fetchDeathsPerYear() is widened.
+    const result = await fetchDeathsPerYear(BOROUGH_CODE);
+
+    expect(result.soql).toContain(`$where=${FILTERED_WHERE}`);
+  });
+
+  it("(c) Edge Case 4, the positional-argument trap: the borough-filtered $where carries no phantom `AND undefined` and the raw borough code never lands where extraWhere would", () => {
+    // See the comment on the first borough-supplied test above: intentionally
+    // a `tsc --noEmit` error today, valid once buildDeathsUrl() is widened.
+    const url = buildDeathsUrl(BOROUGH_CODE);
+    const where = url.searchParams.get("$where") ?? "";
+
+    expect(where).not.toMatch(/AND\s+undefined/i);
+    // If `borough` were forwarded as the third (extraWhere) positional
+    // argument instead of the fourth, it would surface as a bare,
+    // unprefixed code (e.g. "AND K") rather than the borough = '<value>'
+    // fragment this SPEC pins.
+    expect(where).not.toMatch(new RegExp(`AND\\s+${BOROUGH_CODE}(\\s|$)`));
+    expect(where.endsWith(BOROUGH_WHERE)).toBe(true);
   });
 });

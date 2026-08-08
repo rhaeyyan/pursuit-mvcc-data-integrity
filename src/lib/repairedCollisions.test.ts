@@ -35,6 +35,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { BOROUGHS, type BoroughCode } from "./boroughs";
 import {
   REPAIRED_COLLISIONS_SOQL,
   buildRepairedCollisionsUrl,
@@ -383,6 +384,86 @@ describe("FR-8 invariant — REPAIRED_COLLISIONS_SOQL and buildRepairedCollision
   it("$select's field alias is the plain lowercase word `repaired`, matching the deaths/injuries/collisions naming convention — never `repairedCollisions`", () => {
     expect(REPAIRED_COLLISIONS_SOQL).toContain("AS repaired");
     expect(REPAIRED_COLLISIONS_SOQL).not.toContain("repairedCollisions");
+  });
+});
+
+// ===========================================================================
+// FR-6 Phase 2 (SPEC.md) — widen buildRepairedCollisionsUrl()/
+// fetchRepairedCollisionsPerYear() to accept an optional
+// `borough?: BoroughCode`. `borough` becomes the fifth logical value flowing
+// through the fourth positional parameter of buildYearlyUrl()/
+// fetchYearlyMetric(), unchanged in position — the third (extraWhere)
+// position stays occupied by this file's own frozen `EXTRA_WHERE` casualty
+// filter (SPEC.md's Inputs/Outputs section). Written BEFORE
+// repairedCollisions.ts accepts a borough argument, so the borough-supplied
+// assertions below must fail red today (both functions currently take zero
+// arguments, so a passed-in code is silently ignored at runtime, and the
+// call is separately rejected by `tsc --noEmit`) — not because of a mistake
+// in their own expectations. `BOROUGH_CODE`'s `crashesValue` is read from
+// boroughs.ts rather than retyped, per the dispatch instructions. Unlike
+// deaths.test.ts/injuries.test.ts/collisions.test.ts, this file does not
+// carry a dedicated Edge Case 4 positional-argument-trap test — the SPEC's
+// budget scopes that trap to the three wrappers whose extraWhere slot is
+// normally empty; here it's already pinned to occupy the third slot, and
+// Edge Case 2's ordering assertion below is this file's equivalent guard.
+// ===========================================================================
+
+describe("FR-6 Phase 2 — borough parameter propagation", () => {
+  const BOROUGH_CODE: BoroughCode = "M"; // Manhattan
+  const BOROUGH_WHERE = `borough = '${BOROUGHS[BOROUGH_CODE].crashesValue}'`;
+  // PINNED_CLAUSES.where here is already "window AND casualty-filter"; the
+  // borough fragment is AND-ed after it (Edge Case 2's pinned order).
+  const FILTERED_WHERE = `${PINNED_CLAUSES.where} AND ${BOROUGH_WHERE}`;
+
+  it("regression pin (b): buildRepairedCollisionsUrl() called with zero arguments is byte-identical to today's $where", () => {
+    const url = buildRepairedCollisionsUrl();
+    expect(url.searchParams.get("$where")).toBe(PINNED_CLAUSES.where);
+  });
+
+  it("regression pin (b): REPAIRED_COLLISIONS_SOQL's $where line stays byte-identical to today's, unaffected by the widened signature existing", () => {
+    expect(REPAIRED_COLLISIONS_SOQL).toBe(
+      [
+        `$select=${PINNED_CLAUSES.select}`,
+        `$where=${PINNED_CLAUSES.where}`,
+        `$group=${PINNED_CLAUSES.group}`,
+        `$order=${PINNED_CLAUSES.order}`,
+      ].join("\n"),
+    );
+  });
+
+  it("(a) buildRepairedCollisionsUrl(borough) composes window AND casualty-filter AND borough = '<crashesValue>' exactly, per SPEC.md's Query section", () => {
+    // No @ts-expect-error here on purpose: repairedCollisions.ts does not
+    // accept a borough argument yet, so this line is expected to be a
+    // `tsc --noEmit` compile error today (per this phase's dispatch
+    // instructions, "must fail now — TS errors or runtime failures") and to
+    // compile cleanly only once Redwood widens
+    // buildRepairedCollisionsUrl()'s signature. At runtime today the extra
+    // argument is silently dropped, so the assertion below fails red for
+    // the same reason: no borough fragment is forwarded.
+    const url = buildRepairedCollisionsUrl(BOROUGH_CODE);
+    expect(url.searchParams.get("$where")).toBe(FILTERED_WHERE);
+  });
+
+  it("(a) fetchRepairedCollisionsPerYear(borough) sends the same composed $where in its returned soql", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(syntheticOkBody()));
+
+    // See the comment above: intentionally a `tsc --noEmit` error today,
+    // valid once fetchRepairedCollisionsPerYear() is widened.
+    const result = await fetchRepairedCollisionsPerYear(BOROUGH_CODE);
+
+    expect(result.soql).toContain(`$where=${FILTERED_WHERE}`);
+  });
+
+  it("Edge Case 2: composition order is window AND casualty-filter AND borough — the casualty filter must never be pushed after the borough fragment", () => {
+    const url = buildRepairedCollisionsUrl(BOROUGH_CODE);
+    const where = url.searchParams.get("$where") ?? "";
+
+    expect(where.indexOf(EXTRA_WHERE)).toBeGreaterThan(-1);
+    expect(where.indexOf(BOROUGH_WHERE)).toBeGreaterThan(-1);
+    expect(where.indexOf(EXTRA_WHERE)).toBeLessThan(
+      where.indexOf(BOROUGH_WHERE),
+    );
+    expect(where.endsWith(BOROUGH_WHERE)).toBe(true);
   });
 });
 
