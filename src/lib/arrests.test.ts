@@ -44,6 +44,7 @@ import {
   type ArrestsResult,
   type ArrestsRow,
 } from "./arrests";
+import { BOROUGHS, type BoroughCode } from "./boroughs";
 
 // ---------------------------------------------------------------------------
 // Pinned query fragments — SPEC.md's "Query" section, copied verbatim
@@ -417,7 +418,7 @@ describe("FR-8 invariant — ARRESTS_SOQL and the sent request cannot drift apar
     expect(ARRESTS_SOQL).not.toContain("UNAUTHORIZED USE OF A VEHICLE");
   });
 
-  it("FR-6 out-of-scope: arrest_boro never appears in ARRESTS_SOQL — FR-6 is explicitly not part of this task, not merely unused", () => {
+  it("the frozen zero-arg ARRESTS_SOQL constant never carries a borough filter, even though fetchArrestsPerYear() now optionally accepts one (SPEC.md Phase 3, Constraint 2 byte-identity)", () => {
     expect(ARRESTS_SOQL).not.toContain("arrest_boro");
   });
 
@@ -534,7 +535,27 @@ describe("src/lib/arrests.ts — source-level greps (the only net for these cons
     expect(offenders).toEqual([]);
   });
 
-  it("never references arrest_boro, perp_race, perp_sex, or age_group anywhere in its own source (PRD §6, Constraint 2 — permanent exclusion, not merely unused)", () => {
+  it("never references perp_race, perp_sex, or age_group anywhere in its own source (PRD §6, Constraint 2 — permanent exclusion, not merely unused)", () => {
+    if (!existsSync(ARRESTS_PATH)) {
+      throw new Error(
+        `${ARRESTS_PATH} does not exist yet — this is expected red until Redwood implements it.`,
+      );
+    }
+    const source = readFileSync(ARRESTS_PATH, "utf8");
+    expect(source).not.toMatch(/perp_race/);
+    expect(source).not.toMatch(/perp_sex/);
+    expect(source).not.toMatch(/age_group/);
+  });
+
+  // Re-scoped per SPEC.md Edge Case 8 / Constraint 6 (FR-6 Phase 3): unlike
+  // the three demographic fields above, arrest_boro is not a permanent
+  // exclusion — this file gains borough-filtering capability in this very
+  // phase. What still holds, and is worth guarding on its own, is narrower:
+  // the literal substring never appears *inline* in arrests.ts's own
+  // source, because composition happens only by calling the imported
+  // arrestsBoroughWhere() from ./boroughs — the single place that owns the
+  // Bronx/Brooklyn mapping (trap 2).
+  it("never references the literal substring arrest_boro inline in its own source — composition happens only via the imported arrestsBoroughWhere() from ./boroughs (SPEC.md Constraint 6)", () => {
     if (!existsSync(ARRESTS_PATH)) {
       throw new Error(
         `${ARRESTS_PATH} does not exist yet — this is expected red until Redwood implements it.`,
@@ -542,9 +563,6 @@ describe("src/lib/arrests.ts — source-level greps (the only net for these cons
     }
     const source = readFileSync(ARRESTS_PATH, "utf8");
     expect(source).not.toMatch(/arrest_boro/);
-    expect(source).not.toMatch(/perp_race/);
-    expect(source).not.toMatch(/perp_sex/);
-    expect(source).not.toMatch(/age_group/);
   });
 
   it("Constraint 2 (mvcc-data skill): none of the three pinned arrest figures (29007, 8330, 21123) appears as a literal anywhere in non-test src/**", () => {
@@ -557,5 +575,89 @@ describe("src/lib/arrests.ts — source-level greps (the only net for these cons
       .filter((f) => !isTestFile(f))
       .filter((f) => pinnedFigurePattern.test(readFileSync(f, "utf8")));
     expect(offenders).toEqual([]);
+  });
+});
+
+// ===========================================================================
+// FR-6 Phase 3 (SPEC.md) — widen fetchArrestsPerYear() to accept an optional
+// `borough?: BoroughCode`, composed onto the fixed window-AND-offense
+// $where via boroughs.ts's pinned arrestsBoroughWhere(). Written BEFORE
+// arrests.ts accepts a borough argument, so the borough-supplied
+// assertions below must fail red today for two independent reasons:
+// fetchArrestsPerYear() currently declares zero parameters, so passing one
+// is a `tsc --noEmit` compile error, and — because JS silently drops extra
+// call arguments a function doesn't declare — the fragment is never
+// composed or sent at runtime either. Per SPEC.md's Inputs/Outputs note,
+// `buildArrestsUrl` stays module-private, so — mirroring this file's
+// existing FR-8 tests — the composed request is inspected via the stubbed
+// fetch's own call arguments, never a `buildArrestsUrl` export.
+// `BOROUGH_CODE`'s `arrestsValue` is read from boroughs.ts rather than
+// retyped, per the dispatch instructions.
+// ===========================================================================
+
+describe("FR-6 Phase 3 — borough parameter propagation", () => {
+  const BOROUGH_CODE: BoroughCode = "K"; // Brooklyn (trap 2: not "B")
+  const BOROUGH_WHERE = `arrest_boro = '${BOROUGHS[BOROUGH_CODE].arrestsValue}'`;
+  const FILTERED_WHERE = `${PINNED_WHERE} AND ${BOROUGH_WHERE}`;
+
+  it("(b) regression pin: fetchArrestsPerYear() called with zero arguments sends a $where and returns a soql byte-identical to today's", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(syntheticOkBody()));
+
+    const result = await fetchArrestsPerYear();
+
+    assertOk(result);
+    expect(result.soql).toBe(ARRESTS_SOQL);
+
+    const [calledUrl] = fetchMock.mock.calls[0] as [string | URL, unknown];
+    const url = new URL(calledUrl.toString());
+    expect(url.searchParams.get("$where")).toBe(PINNED_WHERE);
+  });
+
+  it("(b) regression pin: ARRESTS_SOQL itself stays byte-identical to today's frozen contract, unaffected by the widened signature existing", () => {
+    expect(ARRESTS_SOQL).toBe(
+      [
+        `$select=${PINNED_SELECT}`,
+        `$where=${PINNED_WHERE}`,
+        `$group=${PINNED_GROUP}`,
+        `$order=${PINNED_ORDER}`,
+      ].join("\n"),
+    );
+  });
+
+  it("(a) fetchArrestsPerYear(borough) sends the composed window AND offense AND arrest_boro = '<arrestsValue>' $where exactly, per SPEC.md's Query section", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(syntheticOkBody()));
+
+    // fetchArrestsPerYear declares zero parameters today, so passing
+    // BOROUGH_CODE here is expected to be a `tsc --noEmit` compile error
+    // (per this phase's dispatch instructions, "must fail now — TS errors
+    // or runtime failures") and to compile cleanly only once Redwood widens
+    // the signature. At runtime today the extra argument is silently
+    // dropped by JS, so the assertion below fails red for the same reason:
+    // no borough fragment is composed or sent.
+    const result = await fetchArrestsPerYear(BOROUGH_CODE);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [calledUrl] = fetchMock.mock.calls[0] as [string | URL, unknown];
+    const url = new URL(calledUrl.toString());
+
+    expect(url.searchParams.get("$where")).toBe(FILTERED_WHERE);
+    expect(result.soql).toContain(`$where=${FILTERED_WHERE}`);
+  });
+
+  it("(c) trap 4 survives composition: both ofns_desc spellings still independently appear, verbatim, in a borough-filtered $where — not just the unfiltered one", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(syntheticOkBody()));
+
+    // Same tsc --noEmit / runtime-drop caveat as the test directly above.
+    await fetchArrestsPerYear(BOROUGH_CODE);
+
+    const [calledUrl] = fetchMock.mock.calls[0] as [string | URL, unknown];
+    const url = new URL(calledUrl.toString());
+    const where = url.searchParams.get("$where") ?? "";
+
+    expect(where).toContain(OFNS_SPELLING_A);
+    expect(where).toContain(OFNS_SPELLING_B);
+    // Edge Case 2: composition order fixed — borough is appended after the
+    // parenthesized offense clause, never interleaved or placed before it.
+    expect(where.endsWith(BOROUGH_WHERE)).toBe(true);
   });
 });
