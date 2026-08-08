@@ -4934,3 +4934,18 @@ duplication should be resolved instead.
 2. Matching FR-3's small-multiples precedent (avoiding the scale-mismatch misreading the risk register names) > the PRD's literal FR-5 "secondary axis" text
 3. Simplicity > Pattern purity
 ```
+
+---
+
+## Archived 2026-08-07 — FR-6/FR-7 Phase 1: borough vocabulary + transport (COMPLETE)
+
+**Outcome:** `src/lib/boroughs.ts` created (pure, ~90 lines) and `src/lib/socrata.ts` widened with
+an optional 4th `borough?: BoroughCode` parameter on `whereClause`/`buildYearlySoql`/
+`buildYearlyUrl`/`fetchYearlyMetric`. No caller passed a borough yet, so the phase was provably
+invisible on the rendered page — byte-identity on all four frozen FR-8 SOQL constants confirmed
+by test and by `git diff`. Built by Redwood in one pass against Cypress's already-red tests
+(`5ec8f9c`); no rejection cycle. Verified node v22.23.2: `tsc --noEmit` clean, `eslint` clean,
+full suite 478/478 (up from 374/374). Committed `4035262` (feat) / `22dcc20` (docs), pushed to
+`origin/main`. This is 1 of 6 phases of the FR-6/FR-7 objective — the objective itself is not yet
+closed; Phase 2 (crash-metric propagation) follows in the reset `SPEC.md`.
+

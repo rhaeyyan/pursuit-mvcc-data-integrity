@@ -8,6 +8,73 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-07 — FR-6/FR-7 planned as six phases; Phases 1–2 closed
+
+A second `/grill-me` round settled four decisions before Cedar wrote any SPEC: URL search-param
+wiring (not client state — server re-render, deep-linkable, ISR-friendly, works with JS off); all
+five series in scope (matching FR-5's precedent, `arrests.ts` gains an `arrest_boro` param but
+stays self-contained); one page-level FR-7 banner rather than five repeated `note` props; FR-7's
+figures computed live via SoQL, never typed in. Cedar then cut the work into six phases along
+contract boundaries (vocabulary+transport → crash-metric propagation → arrests propagation →
+FR-6 UI switch-on → FR-7 coverage data → FR-7 banner) and declined its own pre-named Strategy/
+registry escalation for `socrata.ts`. Phases 1 and 2 both closed this session, each in one
+Cypress→Redwood pass with no rejection cycle. Full phase table and both closed SPECs are in
+`SPEC.md` / `ARCHIVED_SPECS.md`; this entry keeps only the reasoning that isn't there.
+
+- *Why the phase boundary sits between 3 and 4, not somewhere file-count-driven.* Phases 1–3 are
+  each provably invisible — every caller still defaults to no borough — so they can land
+  independently without ever producing a wrong number on the page. Phase 4 is a single switch-on.
+  The alternative (shipping the picker before arrests propagates) would render four panels
+  labelled "Brooklyn" beside a fifth silently still citywide — the exact mislabelled-figure failure
+  this product exists to criticize, so the cut had to fall exactly there and nowhere else.
+- *Why Cedar declined the Strategy/registry pattern it had itself flagged as likely, back when FR-6
+  was still hypothetical.* With the concrete case in hand, "metric × borough" turned out to be one
+  more AND-ed conjunct on an axis `socrata.ts` already parameterized, not a second dimension a
+  pattern would need to encapsulate. The real new force was a trust boundary — a URL param reaching
+  a SoQL string — and a closed union type (`BoroughCode`) solves that directly; a pattern would
+  have wrapped a single forwarded parameter in ceremony. New Tipping Point recorded in its place: a
+  third orthogonal filter axis, or a caller needing to vary `$group`/`$order`/the dataset ID.
+- *Why the human's one override (arrest_boro coverage **will** be measured, against Cedar's
+  recommendation) forced a real re-plan rather than a small tweak.* It trips `arrests.ts`'s
+  already-recorded Tipping Point (a second `8h9b-rp9u` caller) and widens FR-7 past its literal PRD
+  text. Cedar's response was to split Phase 5 in two and earn the `arrestsSocrata.ts` extraction it
+  had previously declined — the deciding fact it didn't have at the first pass was that the
+  coverage denominator must be the arrests panel's own row set, needing the trap-4 five-spelling
+  `ofns_desc` clause, not just fetch scaffolding. Declining extraction would have meant a *third*
+  copy of the fetch pipeline and a second, silently divergent copy of the offense list. The full
+  six-rule honesty framing this override created (no shared visual frame, no computed
+  difference/ratio ever existing in code, forbidden-vocabulary list, independent per-field error
+  status) is recorded in `SPEC.md`'s "Phases 5–6 revised" section, not repeated here.
+- *Why Phase 1's verification probe (live borough-literal query) was made non-closable rather than
+  typed from the `mvcc-data` skill's recollection.* The five spellings were expected to match, and
+  they did (`BRONX`/`BROOKLYN`/`MANHATTAN`/`QUEENS`/`STATEN ISLAND`, uppercase), but Rule 1 doesn't
+  grade on expected outcomes — a figure or a fact typed from memory is a violation even when
+  correct. The probe also answered a question recollection couldn't: unpopulated rows arrive as an
+  *absent* `borough` key, not `null` or `""` — trap 1 (Socrata omits keys) surfacing somewhere new,
+  and the reason FR-7's future numerator must enumerate the five values positively via `IN (...)`
+  rather than `IS NOT NULL`. Derived coverage rates (64.4%→80.1%, 2018→2025; 32.9% row-weighted
+  window-unpopulated share) are carried forward in `SESSION_STATE.md` since Phase 5b hasn't
+  consumed them into code yet.
+- *Why Phase 2's one real risk was a positional-argument trap, not a logic error.* `deaths.ts`/
+  `injuries.ts`/`collisions.ts` forward `borough` as `fetchYearlyMetric`'s 4th argument, but their
+  3rd (`extraWhere`) slot had never been filled by these callers before — passing `borough` without
+  first passing an explicit `undefined` for `extraWhere` would silently shift it into the wrong
+  slot and corrupt the `$where` clause without raising a type error a careless read would catch.
+  Cedar named this in the SPEC's Edge Case 4 before Redwood ever touched the files, and Cypress
+  asserted against it directly (no phantom `AND undefined`, no borough literal in the `extraWhere`
+  position) rather than trusting the happy path — the trap was caught by test design, not by
+  Redwood happening to get it right.
+- *Why Cypress flagging a stale-ledger mismatch at Phase 2's dispatch was correct process, not
+  friction.* `SESSION_STATE.md` still read "blocked on HITL approval... not yet answered" when
+  Cypress was dispatched, because the human's "go" had arrived in conversation but the ledger
+  hadn't been updated yet before the next dispatch. Per CLAUDE.md's "fail loud on mismatch" rule,
+  Cypress surfaced this instead of silently trusting the dispatch instructions over the file it
+  could see — the right call even though the approval was in fact real. Lesson for future phases:
+  update the ledger *before* dispatching the next agent, not after, so this class of false-positive
+  flag doesn't recur.
+
+---
+
 ## 2026-08-07 — FR-5 closed: arrests as a fifth witness, and the first `/grill-me` round this project ran
 
 Added traffic-enforcement arrest counts (2018–2025, five offense categories) as a fifth

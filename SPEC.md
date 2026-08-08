@@ -1,225 +1,207 @@
 # Active SPEC
 
-**Phase 1 of 6** — FR-6/FR-7. Cedar, 2026-08-07. Awaiting HITL approval before Cypress dispatch.
+**Phase 2 of 6** — FR-6/FR-7. Cedar, 2026-08-07. Awaiting HITL approval before Cypress dispatch.
 
-Preceded by a `/grill-me` round that settled four decisions (URL search param wiring; all five
-series in scope; one page-level FR-7 banner; FR-7 figures computed live). Full phase plan and the
-reasoning behind the cuts are in the session transcript and summarised in `SESSION_STATE.md`.
-
-## Verification probe — RUN 2026-08-07, PASS
-
-Cedar made Phase 1 non-closable until the borough spellings were confirmed by live query rather
-than typed from recollection. Result:
-
-- **Five literals confirmed exactly as pinned**, uppercase: `BRONX`, `BROOKLYN`, `MANHATTAN`,
-  `QUEENS`, `STATEN ISLAND`.
-- **Unpopulated rows arrive as an absent `borough` key** — not `null`, not `""`. The probe's sixth
-  bucket was `{"rows": "343448"}` with no `borough` field. This is trap 1 (Socrata omits keys)
-  appearing in a new place, and it is why Q7 enumerates the five values positively instead of
-  using `IS NOT NULL`.
-
-Two Phase 5 risks were also retired early, since both were cheap and read-only:
-
-- **`borough IN (...)` works** against `h9gi-nx95` — returns 8 rows. Cedar's pre-authorised
-  five-way `OR` fallback is **not needed**.
-- **The derived coverage rates reproduce the pins**: 2018 → 64.4%, 2025 → 80.1%. Window
-  unpopulated share derives to **32.9%** (FR-7's PRD text says "~30%"; the banner must show the
-  derived figure, not the prose approximation). 2019 → 64.8% independently reproduces the
-  `mvcc-data` skill's Staten Island natural-experiment note.
-
-## HITL decisions — approved 2026-08-07
-
-1. **Invalid `?borough=` → citywide figures plus a visible, named rejection.** Cedar's §2b
-   adopted as written: correct unfiltered page, a `role="status"` notice naming the rejected
-   value and the five valid codes, picker showing "All boroughs", no FR-7 banner. Not FR-10's
-   error state (no figure is absent) and never a silent fallback (the URL and the page must not
-   disagree silently).
-2. **`arrest_boro` coverage WILL be measured — Cedar's §2c recommendation was overridden.** The
-   banner is to speak to all five filtered series, not four. Consequences Cedar must now re-plan,
-   and which are *not* covered by the sketches below: this adds a second `8h9b-rp9u` caller, which
-   **trips `arrests.ts`'s recorded Tipping Point**, and it widens FR-7 past its literal PRD text
-   (line 203 names only the collisions field). **Phases 1–4 are unaffected** — the decision lands
-   wholly in Phases 5–6, and `BOROUGH_CODES` + `BOROUGHS[code].arrestsValue` already expose
-   everything an arrests-coverage query needs, so no Phase 1 contract changes.
-3. **The absolute-assertion ADR is deferred until after FR-6/FR-7 lands** — not skipped. Cedar was
-   explicit it is not owed by this work.
-4. **Phase 1 approved for dispatch.** Cypress writes failing tests first; Redwood implements only
-   against red.
+Phase 1 (borough vocabulary + `socrata.ts` transport) closed and is archived in
+`ARCHIVED_SPECS.md`. This phase propagates the same optional `borough?: BoroughCode` parameter
+through the four crash-metric wrapper modules. Cedar read all four wrapper files directly rather
+than trusting the phase-table estimate; the table's guess (4 impl / 4 test files) held exactly,
+no deviation.
 
 ---
 
 ```markdown
 [SPEC]
-- **Objective**: Introduce the pinned borough vocabulary as a pure, exhaustively tested module,
-  and widen `socrata.ts`'s yearly-metric transport to accept an optional, type-closed borough
-  code. No caller passes one yet; the rendered page must be byte-for-byte unchanged.
+- **Objective**: Widen `fetchDeathsPerYear`, `fetchInjuriesPerYear`, `fetchCollisionsPerYear`,
+  `fetchRepairedCollisionsPerYear` (and their sibling `buildXUrl` functions) to accept an
+  optional, type-closed `borough?: BoroughCode`, forwarding it unchanged to the now-widened
+  `socrata.ts` transport. No caller passes one yet (Phase 4's job). The four frozen SOQL
+  constants and every currently-rendered figure must stay byte-for-byte unchanged.
 
-- **Requirement**: FR-6 [P1] (the pinned `B`→BRONX / `K`→BROOKLYN / `M`→MANHATTAN /
-  `Q`→QUEENS / `S`→STATEN ISLAND mapping, and the ability to express a borough-filtered
-  query at all). Also serves NFR-2 (untrusted input never reaches a SoQL string) and
-  NFR-4 (no figure inferred).
+- **Requirement**: FR-6 [P1] — extends the borough-filter capability from the shared transport
+  (Phase 1) to the four public entry points a Route Handler actually calls. Also serves NFR-2
+  (a `BoroughCode` is the only type that can reach `$where`; no caller here ever handles a raw
+  string) and NFR-4 (no new figure, count, or literal introduced — this phase moves no data).
 
 - **Inputs/Outputs**:
 
-  `src/lib/boroughs.ts` — new, pure, zero I/O, zero imports beyond types. Exports:
+  Each of the four files gains one import and widens two exported function signatures. Pattern,
+  shown for `deaths.ts` (the other three are structurally identical modulo aggregate/alias/
+  extraWhere):
 
   ```ts
-  export const BOROUGH_CODES = ["B", "K", "M", "Q", "S"] as const;
-  export type BoroughCode = (typeof BOROUGH_CODES)[number];
+  import { type BoroughCode } from "./boroughs";
 
-  export type BoroughEntry = {
-    label: string;        // display name, e.g. "Brooklyn"
-    crashesValue: string; // the h9gi-nx95 `borough` literal, e.g. "BROOKLYN"
-    arrestsValue: string; // the 8h9b-rp9u `arrest_boro` literal, e.g. "K"
-  };
-  export const BOROUGHS: Record<BoroughCode, BoroughEntry>;
+  // unchanged — zero-arg call, byte-identical output (Constraint 2)
+  export const DEATHS_SOQL = buildYearlySoql(AGGREGATE_EXPR, FIELD_ALIAS);
 
-  export type BoroughParam =
-    | { status: "none" }
-    | { status: "ok"; code: BoroughCode }
-    | { status: "invalid"; received: string };
+  export function buildDeathsUrl(borough?: BoroughCode): URL {
+    return buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS, undefined, borough);
+  }
 
-  export function parseBoroughParam(
-    raw: string | string[] | undefined,
-  ): BoroughParam;
-
-  export function crashesBoroughWhere(code: BoroughCode): string; // borough = 'BROOKLYN'
-  export function arrestsBoroughWhere(code: BoroughCode): string; // arrest_boro = 'K'
+  export function fetchDeathsPerYear(
+    borough?: BoroughCode,
+  ): Promise<DeathsResult> {
+    return fetchYearlyMetric(AGGREGATE_EXPR, FIELD_ALIAS, undefined, borough);
+  }
   ```
 
-  `BOROUGHS` is pinned exactly as (label / crashesValue / arrestsValue):
-  `B` → Bronx / BRONX / B; `K` → Brooklyn / BROOKLYN / K; `M` → Manhattan / MANHATTAN / M;
-  `Q` → Queens / QUEENS / Q; `S` → Staten Island / STATEN ISLAND / S.
+  `injuries.ts` and `collisions.ts` follow the identical pattern (their own `AGGREGATE_EXPR`/
+  `FIELD_ALIAS`, `extraWhere` position also `undefined`).
 
-  `arrestsValue` is stored explicitly and never derived from the key. That it equals the key
-  is a coincidence of this dataset's encoding, not a rule; writing `arrest_boro = '${code}'`
-  would silently break under any future re-coding. Storing it also puts `K`→BROOKLYN and
-  `K`→K on adjacent lines, which is exactly the documentation trap 2 needs.
+  `repairedCollisions.ts` differs only in that its `extraWhere` position is already occupied by
+  its own frozen `EXTRA_WHERE` constant — `borough` becomes the *fifth* logical value flowing
+  through the *fourth* positional parameter, unchanged in position:
 
-  `parseBoroughParam` behaviour, exhaustive:
+  ```ts
+  export function buildRepairedCollisionsUrl(borough?: BoroughCode): URL {
+    return buildYearlyUrl(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE, borough);
+  }
 
-  | Input | Result |
-  |---|---|
-  | `undefined` | `{ status: "none" }` |
-  | `""` / whitespace only | `{ status: "none" }` |
-  | `"K"`, `"k"`, `" k "` | `{ status: "ok", code: "K" }` |
-  | `"BROOKLYN"`, `"Kings"`, `"zz"`, `"1"` | `{ status: "invalid", received: <trimmed, ≤24 chars> }` |
-  | `["K","M"]` (repeated param) | `{ status: "invalid", received: "K, M" }` |
-  | `["K"]` (single-element array) | `{ status: "invalid", received: "K" }` — arrays are ambiguous by construction |
-
-  `src/lib/socrata.ts` — edited. `whereClause`, `buildYearlySoql`, `buildYearlyUrl`, and
-  `fetchYearlyMetric` each gain a **fourth** optional parameter `borough?: BoroughCode`,
-  after `extraWhere`. Nothing else in the file changes.
-
-- **Query**: this task sends no new request; it changes how one `$where` string is assembled.
-  Pinned composition order — **window AND extraWhere AND borough**, single spaces, no added
-  parentheses around the window or the borough fragment (`extraWhere` arrives pre-parenthesised
-  by its caller, as `repairedCollisions.ts` already does):
-
-  ```
-  crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
-    [AND <extraWhere>] [AND borough = '<crashesValue>']
+  export function fetchRepairedCollisionsPerYear(
+    borough?: BoroughCode,
+  ): Promise<RepairedCollisionsResult> {
+    return fetchYearlyMetric(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE, borough);
+  }
   ```
 
-  Byte-identity requirement: with `borough` absent or `undefined`, every one of
-  `DEATHS_SOQL` / `INJURIES_SOQL` / `COLLISIONS_SOQL` / `REPAIRED_COLLISIONS_SOQL` must be
-  **string-equal to its current value**. These are frozen contracts already displayed under FR-8.
+  No new type is introduced; `BoroughCode` is imported, never redefined. No new exported
+  constant (a per-borough `DEATHS_SOQL_BROOKLYN` or similar is explicitly **not** this phase's
+  job — see Constraints 3 and Edge Case 5).
 
-  **Verification probe — this phase does not close until it has been run** (Bash, once,
-  by the orchestrator or Redwood; it is a read-only enumeration, not a figure):
+- **Query**: this task sends no new request shape and pins no new SoQL text — it makes the four
+  already-pinned Phase-1 fragments reachable through four new call shapes. For Cypress's
+  contract tests, the expected `$where` per metric when a borough **is** supplied is the
+  composition already pinned in Phase 1 (`window AND extraWhere AND borough`), instantiated per
+  wrapper:
 
   ```
-  https://data.cityofnewyork.us/resource/h9gi-nx95.json
-    ?$select=borough, count(collision_id) AS rows
-    &$where=crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
-    &$group=borough
-    &$order=borough
+  deaths / injuries / collisions  (extraWhere absent):
+    crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+      AND borough = '<crashesValue>'
+
+  repairedCollisions  (extraWhere = the casualty filter):
+    crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+      AND (number_of_persons_injured > 0 OR number_of_persons_killed > 0)
+      AND borough = '<crashesValue>'
   ```
 
-  It must confirm (a) the five literal spellings above, exactly, uppercase; and (b) how
-  unpopulated rows are represented — an absent bucket, a `null`, or an empty string. Record
-  (b) in `SESSION_STATE.md`: Phase 5's numerator depends on it. **Any spelling mismatch is a
-  halt and a request for a revised SPEC, not a local repair** — the five literals in `BOROUGHS`
-  are dataset facts confirmed by query, and must never be typed from anyone's recollection,
-  mine included.
+  `<crashesValue>` is one of the five pinned, live-verified uppercase literals from the
+  `mvcc-data` skill / `boroughs.ts` (`BRONX`, `BROOKLYN`, `MANHATTAN`, `QUEENS`,
+  `STATEN ISLAND` — trap 2: `B` is the Bronx). Expected response shape is the existing
+  `YearlyMetricResult<K>` union, unchanged — `ok` still requires exactly 8 rows, 2018–2025
+  (FR-11's coverage check is not relaxed for a filtered query; see Constraints 4). Byte-identity
+  requirement carried over from Phase 1: calling any of the eight functions with **zero**
+  arguments (or `fetchXPerYear(undefined)`) must produce a request and a `soql` value identical
+  to today's. This is the one thing every one of the four new test files must assert before
+  asserting anything about the borough path.
 
-  > **Orchestrator note, 2026-08-07:** this probe has been run. Both (a) and (b) are answered
-  > above under "Verification probe"; the gate is satisfied and no spelling mismatch exists.
-
-- **Design Pattern**: none — simple case. Full reasoning in §2a of the plan; in short, FR-6
-  adds one more AND-ed conjunct to the axis `socrata.ts` already parameterises, the composition
-  operator is always `AND`, and the fragment vocabulary is closed. A Strategy would encapsulate
-  a single `&&`. The genuine new force is a trust boundary, answered by a closed union type.
+- **Design Pattern**: none — simple case. Phase 1 already earned and paid for the one axis of
+  variation (borough as an optional `AND`-ed conjunct); this phase does not introduce a second
+  axis, it only threads the same value through four more call sites. A Strategy or Decorator
+  here would wrap a single forwarded parameter — pure ceremony.
 
 - **Intellectual Control**:
-  1. `borough` is typed `BoroughCode`, never `string`. A value from a URL cannot reach the
-     `$where` clause without passing `parseBoroughParam` first, and the compiler enforces it —
-     SoQL injection is unrepresentable rather than merely guarded against.
-  2. The mapping lives in one pure module with no I/O, so trap 2 (`B` is the Bronx) is settled
-     in a file that can be exhaustively tested in milliseconds with zero mocking — and is
-     asserted once, not re-derived at five call sites.
-  3. Two datasets, two literal vocabularies, one code vocabulary. `boroughs.ts` is the only
-     place that knows `K` means `'BROOKLYN'` here and `'K'` there.
-  4. It won't break at scale because it does not scale: the set is five, fixed by the geography
-     of New York City.
+  1. `borough` stays typed `BoroughCode` end-to-end from `boroughs.ts` through every wrapper to
+     `socrata.ts`; no wrapper widens it to `string`, so a raw URL value still cannot reach a
+     `$where` clause without passing `parseBoroughParam` first (that call site is Phase 4's,
+     unaffected here).
+  2. Every wrapper forwards, it never re-implements. None of the four files gains its own
+     borough-to-literal mapping, its own `AND` composition, or its own validation — `boroughs.ts`
+     and `socrata.ts` remain the only two places that know those things, per Phase 1's
+     Intellectual Control 2–3. Adding a fifth mapping table here would be exactly the trap-2 risk
+     Phase 1 closed, reopened.
+  3. The four wrappers stay structurally identical to each other (mirroring how
+     `socrata.test.ts` already documents that deaths/injuries/collisions/repairedCollisions share
+     one shape) — a reviewer who reads `deaths.ts`'s diff has read all four.
+  4. It won't break at scale because nothing here scales: four call sites, one forwarded
+     parameter, zero new branches.
 
 - **Constraints**:
-  1. No new dependencies (Rule 9). No new npm package is needed or authorised for this phase.
-  2. `src/lib/boroughs.ts` must not import `socrata.ts` (one-way dependency: `socrata.ts` →
-     `boroughs.ts`), must perform no I/O, and must not read `process.env` — `arrests.test.ts`'s
-     "no lib file other than socrata.ts and arrests.ts reads process.env" assertion stays true
-     and must not be touched.
-  3. No behaviour change to any rendered output. `src/app/page.tsx`, the five `src/app/api/*`
-     Route Handlers, and every component are **out of this phase's budget and must not be
-     edited**; all existing callers keep working via the optional parameter.
-  4. No figure, count, or percentage anywhere in either file (Rule 1 / NFR-4).
-  5. `validateYearCoverage`'s 8-year requirement is **not** relaxed for filtered queries, now
-     or later. A borough-year that genuinely returns no rows is an FR-11 error state, never a
-     gap and never a zero.
+  1. No new dependencies (Rule 9).
+  2. Byte-identity: `DEATHS_SOQL`, `INJURIES_SOQL`, `COLLISIONS_SOQL`, `REPAIRED_COLLISIONS_SOQL`
+     — each still computed by a zero-borough call at module load — must remain string-equal to
+     their current values. These are frozen FR-8 contracts already displayed on the page.
+  3. No new exported constant, type, or per-borough SOQL string in any of the four files. A
+     borough-filtered query's `soql` is obtained by *calling* `fetchXPerYear(code)` and reading
+     `result.soql` (already computed correctly by the widened `fetchYearlyMetric`, unchanged
+     since Phase 1) — never by pre-computing and exporting a second frozen string per borough.
+  4. `validateYearCoverage`'s 8-year requirement is not relaxed for a borough-filtered call, now
+     or later. A borough-year that genuinely returns no rows is an FR-11 error state.
+  5. `src/app/page.tsx`, all five `src/app/api/*` Route Handlers, and every component remain out
+     of this phase's budget and must not be edited. Every existing zero-argument call site
+     (Route Handlers, existing tests) keeps working unmodified via the optional parameter.
+  6. No figure, count, or percentage literal anywhere in any of the four files (Rule 1 / NFR-4) —
+     unchanged from today, this phase adds none.
+  7. Constraint of Three: this SPEC cites three background resources — Phase 1's `SPEC.md`
+     entry, `src/lib/socrata.ts`, `src/lib/boroughs.ts` — no more.
 
 - **Edge Cases**:
-  1. `borough` present, `extraWhere` absent → window AND borough. No stray `AND`, no double space.
-  2. Both present → window AND extraWhere AND borough, in that order.
-  3. Both absent → the current string, byte-identical.
-  4. `parseBoroughParam` given a `string[]` → invalid, never first-wins.
-  5. `received` on the invalid branch is trimmed and truncated to 24 characters. It is a display
-     string only; it must never be interpolated into SoQL, a URL, or a fetch. (React escapes it
-     on render, so this is a layout guard, not an XSS one.)
-  6. A filtered query returning zero rows → the existing FR-10 `empty` branch, unchanged.
-  7. The `$limit` default (trap 5) is untouched: these queries stay server-aggregated to 8 rows.
+  1. `borough` omitted on all four `fetchXPerYear`/`buildXUrl` calls → output byte-identical to
+     today (Constraint 2's proof obligation).
+  2. `repairedCollisions.ts` with both `EXTRA_WHERE` and `borough` supplied → composition order
+     is window AND casualty-filter AND borough, per Phase 1's pinned order — never borough before
+     the casualty filter.
+  3. A filtered query returning zero rows → the existing FR-10 `empty` branch, unchanged; no new
+     branch is added for "filtered and empty" vs. "unfiltered and empty".
+  4. TypeScript positional-parameter mechanics: `deaths.ts`/`injuries.ts`/`collisions.ts` must
+     pass `undefined` explicitly for the (now-skipped) third `extraWhere` position when forwarding
+     `borough` as the fourth argument — omitting it would shift `borough` into the `extraWhere`
+     slot and silently corrupt the `$where` clause. This is the one mechanical mistake this phase
+     is most likely to make; Cypress's test for each of the three simple wrappers must assert the
+     `$where` clause has no fifth phantom `AND undefined` and no borough value living where
+     `extraWhere` should be.
+  5. Calling `fetchXPerYear(code)` with a valid `BoroughCode` but before Phase 4 exists → fully
+     functional and testable in isolation (this is the point of a walking-skeleton-style
+     propagation phase); simply unreachable from the rendered page until Phase 4 lands.
+  6. The `$limit` default (trap 5) stays untouched — still 8-row server-side aggregation, no
+     pagination introduced by adding a filter conjunct.
 
-- **Files** (max 5 — two used):
-  1. **`src/lib/boroughs.ts`** — *new.* The five exports above. Expected ~50 lines.
-  2. **`src/lib/socrata.ts`** — *edited.* One import, one widened private helper, three widened
-     signatures. No other change; the token read, fetch, Zod validation, and coverage check are
-     untouched.
+- **Files** (max 5 — four used, matching the phase table exactly, confirmed by reading each file
+  rather than assumed):
+  1. **`src/lib/deaths.ts`** — *edited.* Widen `buildDeathsUrl`, `fetchDeathsPerYear`. ~4 lines.
+  2. **`src/lib/injuries.ts`** — *edited.* Widen `buildInjuriesUrl`, `fetchInjuriesPerYear`.
+     ~4 lines.
+  3. **`src/lib/collisions.ts`** — *edited.* Widen `buildCollisionsUrl`, `fetchCollisionsPerYear`.
+     ~4 lines.
+  4. **`src/lib/repairedCollisions.ts`** — *edited.* Widen `buildRepairedCollisionsUrl`,
+     `fetchRepairedCollisionsPerYear`. ~4 lines.
 
-  **Cypress's budget for this phase (2 files, dispatched first):**
-  `src/lib/boroughs.test.ts` (new) and `src/lib/socrata.test.ts` (edited — additive only; every
-  existing assertion must still pass unmodified, and that is itself the byte-identity proof).
+  **Cypress's budget for this phase (4 files, dispatched first, matching the phase table's "4
+  test"):** `src/lib/deaths.test.ts`, `src/lib/injuries.test.ts`, `src/lib/collisions.test.ts`,
+  `src/lib/repairedCollisions.test.ts` — each edited additive-only. Every existing assertion in
+  all four must still pass unmodified (that is the byte-identity proof for this phase, mirroring
+  how Phase 1 used `socrata.test.ts`'s untouched assertions the same way). New assertions per
+  file: (a) a borough-supplied call produces the exact composed `$where` from this SPEC's Query
+  section, for at least one borough code per file; (b) the zero-borough call's `soql`/URL output
+  is unchanged (explicit regression pin, not just reliance on old tests still passing); (c) the
+  positional-argument trap in Edge Case 4 is directly asserted for the three non-repaired
+  wrappers (no phantom `AND undefined`, no borough literal landing in the `extraWhere` slot).
 
-  **Not in this budget, and not owed by this phase:** the four crash wrappers (Phase 2),
-  `arrests.ts` and its two stale assertions (Phase 3), `page.tsx` / the picker (Phase 4), FR-7
-  in any form (Phases 5–6), the `result.soql` swap (Phase 4), the five Route Handlers (no phase).
-  **If Redwood believes a third file is required, halt and request a revision naming it.**
+  **Not in this budget, and not owed by this phase:** `src/lib/boroughs.ts` / `socrata.ts`
+  (Phase 1, closed), `arrests.ts` (Phase 3), `page.tsx` / the picker / all five Route Handlers
+  (Phase 4), any FR-7 file (Phases 5–6). **If Redwood believes a fifth file is required, halt and
+  request a revision naming it.**
 
-- **Tipping Point**: `socrata.ts`'s new one, replacing the retired FR-12 note — revisit when
-  **either** a third orthogonal filter axis appears, **or** a caller needs to vary `$group`,
-  `$order`, or the dataset ID. Neither is expressible by AND-ing a conjunct, and either earns a
-  query builder. `boroughs.ts`'s own: a sixth entry, or a third dataset needing a third literal
-  column, at which point the flat record should become a per-dataset lookup.
+- **Tipping Point**: revisit if a fifth crash-metric wrapper is ever added needing this same
+  widening — at that point, hand-editing a fifth near-identical file stops being the cheap option
+  and a small factory (`makeYearlyMetricWrapper(aggregateExpr, fieldAlias, extraWhere?)`)
+  returning `{ SOQL, buildUrl, fetchPerYear }` earns its keep. Not earned at four. Composition
+  order itself (window AND extraWhere AND borough) and any need to vary `$group`/`$order`/dataset
+  ID remain `socrata.ts`'s own Tipping Point (Phase 1, unchanged) — this phase does not touch it.
 ```
 
 ```
 [FORCES]
-1. Type-closed vocabulary > string parameters — the borough value's origin is a URL search
-   param, and the only durable defence against SoQL injection is making the unsafe state
-   unrepresentable rather than validated-at-each-call-site.
-2. Byte-identical unfiltered output > any cleanup of socrata.ts while it is open — four
-   frozen FR-8 contracts are already on the page; a "tidier" clause builder that shifts one
-   space is a regression.
-3. One pinned mapping table > five correct call sites — trap 2 (`B` is the Bronx) has to be
-   wrong in only one place to be wrong everywhere, so it gets exactly one place.
+1. Byte-identical unfiltered output > any cleanup of the four wrapper files while they are
+   open — four frozen FR-8 contracts (DEATHS_SOQL etc.) are already on the page; this phase's
+   only job is additive forwarding, not tidying.
+2. Forward, never re-implement > convenience — no wrapper gets its own copy of the
+   borough-to-literal mapping or the AND-composition rule; both stay singular in `boroughs.ts`
+   and `socrata.ts` per Phase 1.
+3. One shared shape across all four wrappers > four independently-reasoned diffs — keeps the
+   review and the test structure mechanically comparable, the same way the four existing wrapper
+   files already mirror each other's shape.
 4. Simplicity > Pattern purity.
 ```
 
@@ -229,8 +211,8 @@ Two Phase 5 risks were also retired early, since both were cheap and read-only:
 
 | # | Closes | Impl | Test | Agent |
 |---|---|---|---|---|
-| 1 | FR-6 vocabulary + transport | 2 | 2 | Redwood |
-| 2 | FR-6 crash-metric propagation | 4 | 4 | Redwood |
+| 1 | ~~FR-6 vocabulary + transport~~ CLOSED | 2 | 2 | Redwood |
+| **2** | **FR-6 crash-metric propagation (this phase)** | 4 | 4 | Redwood |
 | 3 | FR-6 arrests propagation | 1 | 1 | Redwood |
 | 4 | **FR-6 closed** — UI, end-to-end | 3 | 2 | Magnolia |
 | **5a** | structural only — no FR | 2 | 1 | **Banyan** |

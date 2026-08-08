@@ -1,88 +1,42 @@
 # Sprint Ledger — MVCC Data
 
 **Current objective:** **FR-6 (borough filter) + FR-7 (coverage warning)** — the last two open FRs,
-both P1. Phase 1 of 6 is implemented and green. Phase 2 (crash-metric propagation, 4 files, Redwood)
-is next — needs Cedar to write its `[SPEC]` before dispatch.
+both P1. Phases 1 and 2 of 6 are both closed. Phase 1 is committed/pushed; Phase 2 is implemented
+and green but **not yet committed** — human approval to commit/push wasn't asked this round the
+way it was for Phase 1, so don't assume it.
 
 ## Active
 
-- **FR-6 Phase 1 CLOSED (2026-08-07)** — `src/lib/boroughs.ts` (new, pure, ~90 lines: pinned
-  `BOROUGH_CODES`/`BOROUGHS` table, `BoroughParam` union, `parseBoroughParam`,
-  `crashesBoroughWhere`/`arrestsBoroughWhere`) and `src/lib/socrata.ts` (widened — `whereClause`,
-  `buildYearlySoql`, `buildYearlyUrl`, `fetchYearlyMetric` each gain optional 4th `borough?:
-  BoroughCode`, composed `window AND extraWhere AND borough`). Byte-identity on the four frozen
-  FR-8 SOQL constants confirmed both by test and by `git diff` showing additive-only changes. No
-  caller passes a borough yet (Phase 2 is first), so the rendered page is provably unchanged.
-  Redwood built this in one pass against Cypress's already-red `boroughs.test.ts` (committed
-  `5ec8f9c`) and `socrata.test.ts`'s additive block — no rejection cycle needed.
-  **Verified (node v22.23.2):** `tsc --noEmit` clean; `eslint` on both files clean; full suite
-  **478/478** across 18 files (up from the 374/374 pre-phase baseline — Cypress's 104 new
-  assertions); `boroughs.test.ts` + `socrata.test.ts` alone: 114/114. Not yet committed to git.
-- **FR-6/FR-7 `/grill-me` round complete (2026-08-07) — four decisions settled, all on the
-  recommended option.** (1) **Wiring: URL search param**, not client state — `?borough=K` drives a
-  server re-render, `page.tsx` stays a server component, deep-linkable, ISR caches each borough
-  separately, works with JS off. The existing `/api/*` Route Handlers stay out of the page's fetch
-  path (the page has always imported the lib functions directly). (2) **Scope: all five series** —
-  PRD-literal, matching the intent recorded at FR-5's close; `arrests.ts` gains an `arrest_boro`
-  parameter but stays self-contained, so PRD §5.2 severability survives as a code fact. (3) **FR-7
-  warning: one page-level banner** beside the control, shown only while a filter is active — not
-  the five-way repetition of the existing `note` prop. (4) **FR-7's figures are computed live via
-  SoQL**, never typed in — Rule 1 forbids the literal regardless of correctness, and
-  `guard-data-integrity.sh` would block it. Four open assumptions went to Cedar with the block,
-  the load-bearing one being that the banner must name *which* series its caveat covers:
-  `arrest_boro` is a different field with a different completeness profile, so letting the
-  collisions drift figure imply anything about arrests would violate NFR-5.
-- **FR-6/FR-7 planned as six phases; Phase 1 approved and in flight (2026-08-07).** Cedar cut the
-  work along contract boundaries, not file counts: 1 vocabulary + transport → 2 crash-metric
-  propagation → 3 arrests propagation → 4 **FR-6 closed** (UI switch-on) → 5 FR-7 coverage data →
-  6 **FR-7 closed** (banner). *The 3 | 4 cut is the forced one* — Phases 1–3 are each provably
-  invisible (every caller still defaults to no borough), and shipping the picker before arrests
-  propagates would render four panels labelled "Brooklyn" beside a fifth silently still citywide,
-  the mislabelled-figure failure this product exists to criticise. **Cedar declined the
-  `socrata.ts` Strategy/registry escalation it had itself pre-named for FR-6** — with the concrete
-  case in hand, "metric × borough" turns out to be one more AND-ed conjunct on the axis already
-  parameterised, not a second dimension; the real new force is a *trust boundary* (a URL param
-  reaching a SoQL string), which a closed union type solves and a pattern does not. New Tipping
-  Point recorded in its place: a third orthogonal filter axis, or a caller needing to vary
-  `$group`/`$order`/the dataset ID. **HITL: three calls approved, one overridden** — the human
-  ruled that `arrest_boro` coverage **will** be measured, so FR-7's banner speaks to all five
-  filtered series. That trips `arrests.ts`'s Tipping Point (a second `8h9b-rp9u` caller) and
-  widens FR-7 past its literal PRD text; Cedar is revising Phases 5–6 only. Phases 1–4 unaffected.
-- **Live query findings, 2026-08-07 — all verified, none recalled.** (a) **The five `borough`
-  literals are confirmed exactly as pinned**, uppercase: `BRONX`, `BROOKLYN`, `MANHATTAN`,
-  `QUEENS`, `STATEN ISLAND`. (b) **Unpopulated rows arrive as an absent `borough` key** — not
-  `null`, not `""`; the probe's sixth bucket was `{"rows": "343448"}` with no `borough` field at
-  all. That is **trap 1 (Socrata omits keys) surfacing in a new place**, and it is why FR-7's
-  numerator enumerates the five values positively via `IN (...)` rather than using `IS NOT NULL`.
-  (c) **`borough IN (...)` works** — the pre-authorised five-way `OR` fallback is not needed.
-  (d) **Coverage rate per year: 64.4, 64.8, 65.3, 65.3, 66.2, 68.0, 71.4, 80.1%** (2018→2025),
-  reproducing the pinned 64.4%/80.1% endpoints exactly; 2019's 64.8% independently reproduces the
-  `mvcc-data` skill's Staten Island natural-experiment note, which was never fed to the query.
-  **Window unpopulated share derives to 32.9%, row-weighted** — not the ~31.8% mean-of-yearly-rates;
-  the two differ by ~1.1pp so the choice is pinned explicitly in code and test. FR-7's PRD prose
-  says "~30%": that gap is **rounding in the prose, not drift** — `/verify-figures` must not flag it.
-- **FR-5 CLOSED (2026-08-07)** — arrests as a fifth small-multiples panel. Committed in `9d1be76`
-  (red tests) / `123aada` (implementation) / `672b16a` (close-out docs). *Condensed here on
-  2026-08-07 once the entry became redundant: the full narrative — why `arrests.ts` ships
-  self-contained rather than widening `socrata.ts`, why `colorSlot: 1` was reused, and the third
-  occurrence of the stale-absolute-assertion bug shape — is already in `ARCHIVED_SESSIONS.md`, and
-  the closed SPEC in `ARCHIVED_SPECS.md`. The two facts from it still load-bearing for current
-  work are carried forward above: FR-5's Tipping Point (a second `8h9b-rp9u` caller) and the
-  severability rationale, both now in play under the FR-7 `arrest_boro` override.*
-- **Deploy `[SPEC]` obligation — the open question is answered (2026-08-07): no Vercel project is
-  connected yet.** Rayan confirmed directly ("not yet"), settling what three sessions of Cedar
-  planning rounds couldn't resolve by reading the repo alone. This SPEC stays blocked, but on a
-  known, named precondition now rather than an unresolved mystery — **create/connect the Vercel
-  project first**, then this becomes buildable (verify Vercel's Node runtime matches
-  `engines.node`, record `/`'s First Load JS after both charts + FR-13's markers). Not something
-  Cedar can pick next on its own; needs the human to do the Vercel-side setup first.
-- **Machine changes outside the repo, needing re-doing on any other machine:** `nvm install 22`
-  (done 2026-08-07 — `~/.nvm` previously held only v24.13.0). *Superseded:* the former
-  `~/.config/fish/conf.d/fnm.fish` and appended `~/.bashrc` block silenced fnm's "Using Node"
-  banner on stdout; fnm is no longer installed, so both are moot. nvm emits no such banner under
-  `nvm use 22 >/dev/null`, so no equivalent workaround is needed.
-- `ARCHITECTURE.md` is **deferred by decision, not pending**; its absence is not a gap to close.
-  Rationale and revisit trigger in `CLAUDE.md` § Project Layout.
+- **FR-6 Phase 2 CLOSED (2026-08-07), not yet committed.** Human approved dispatch ("go");
+  Cypress→Redwood in one pass, no rejection cycle. All four crash-metric wrappers
+  (`deaths.ts`/`injuries.ts`/`collisions.ts`/`repairedCollisions.ts`) forward an optional
+  `borough?: BoroughCode` to `socrata.ts`'s Phase-1 transport; no caller passes one yet.
+  Verified: `tsc --noEmit` clean, full suite **498/498** (up from 478/478). **Next: Phase 3**
+  (FR-6 arrests propagation, 1 file, Redwood) needs a Cedar `[SPEC]` before dispatch — **ask the
+  human about committing Phase 2 first**, since that wasn't asked this round the way it was for
+  Phase 1. Full reasoning (the Edge Case 4 positional-argument trap, Cypress's stale-ledger catch
+  at dispatch) is in `ARCHIVED_SESSIONS.md`.
+- **FR-6 Phase 1 CLOSED (2026-08-07), committed `4035262`/`22dcc20`, pushed.** `boroughs.ts`
+  (pinned vocabulary) + widened `socrata.ts` transport; byte-identity on the four frozen FR-8 SOQL
+  constants held. Closed SPEC in `ARCHIVED_SPECS.md`; reasoning in `ARCHIVED_SESSIONS.md`.
+- **FR-6/FR-7's six-phase plan and its four `/grill-me` HITL decisions — full text in `SPEC.md`**
+  and reasoning in `ARCHIVED_SESSIONS.md`. Load-bearing summary for phases still ahead: URL
+  search-param wiring, all five series in scope, one page-level FR-7 banner, figures computed live
+  never typed; the human overrode Cedar's recommendation so `arrest_boro` coverage **will** be
+  measured, which trips `arrests.ts`'s Tipping Point and is fully re-planned in `SPEC.md`'s
+  "Phases 5–6 revised" section.
+- **Live query findings, 2026-08-07 — pinned, not yet consumed by code (needed at Phase 5b).**
+  Coverage rate per year: 64.4, 64.8, 65.3, 65.3, 66.2, 68.0, 71.4, 80.1% (2018→2025). Window
+  unpopulated share is **32.9%, row-weighted** — not the ~31.8% mean-of-yearly-rates; the ~1.1pp
+  gap must stay an explicit choice in code and test once Phase 5b lands. FR-7's PRD prose says
+  "~30%" — that's rounding, not drift; `/verify-figures` must not flag it.
+- **Deploy `[SPEC]` obligation — blocked on a named precondition:** no Vercel project is connected
+  yet (human confirmed 2026-08-07, "not yet"). Create/connect it first, then this becomes
+  buildable (verify Vercel's Node runtime matches `engines.node`, record `/`'s First Load JS).
+- **Machine: `nvm install 22` done 2026-08-07** (`~/.nvm` now has v22.23.2, previously only
+  v24.13.0). fnm is gone from this machine; its old output-silencing workarounds are moot.
+- `ARCHITECTURE.md` is **deferred by decision, not pending**; rationale in `CLAUDE.md` § Project
+  Layout.
 
 ## Context Cache
 
@@ -139,7 +93,11 @@ is next — needs Cedar to write its `[SPEC]` before dispatch.
 *(Empty — closed work is archived directly to `ARCHIVED_SESSIONS.md` as it closes, rather than
 accumulating here first.)*
 
-Thirteen entries are now in `ARCHIVED_SESSIONS.md`, newest first: **FR-5 closed — the first
+Fourteen entries are now in `ARCHIVED_SESSIONS.md`, newest first: **FR-6/FR-7 planned as six
+phases, Phases 1–2 closed** (2026-08-07, the forced 3|4 phase cut, why Cedar declined its own
+pre-named Strategy escalation, why the human's `arrest_boro` override earned the `arrestsSocrata.ts`
+extraction Cedar had first declined, the Phase 2 positional-argument trap, and why Cypress's
+stale-ledger flag at dispatch was correct process); **FR-5 closed — the first
 `/grill-me` round this project ran** (2026-08-07, why product-judgment risk is the actual trigger
 for the interview, and the third occurrence of the "old test's absolute claim" bug shape); **FR-13
 closed — policy-date markers, a bug class caught twice** (2026-08-07, why the deaths panel got
