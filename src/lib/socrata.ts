@@ -16,6 +16,8 @@
 
 import { z } from "zod";
 
+import { crashesBoroughWhere, type BoroughCode } from "./boroughs";
+
 const BASE_URL = "https://data.cityofnewyork.us/resource/h9gi-nx95.json";
 
 const WHERE_CLAUSE =
@@ -47,8 +49,16 @@ function selectClause(aggregateExpr: string, fieldAlias: string): string {
 // FR-12: the only clause that ever varies per caller beyond $select is
 // $where, and only by AND-ing one additional fragment onto the fixed window.
 // $group/$order stay fixed constants, untouched by this parameter.
-function whereClause(extraWhere?: string): string {
-  return extraWhere ? `${WHERE_CLAUSE} AND ${extraWhere}` : WHERE_CLAUSE;
+//
+// FR-6 Phase 1: a fourth, optional borough conjunct. Pinned composition
+// order — window AND extraWhere AND borough — with no added parentheses; a
+// value can only reach here as a BoroughCode, never a raw string, so the
+// borough fragment is always one of the five closed literals.
+function whereClause(extraWhere?: string, borough?: BoroughCode): string {
+  const parts = [WHERE_CLAUSE];
+  if (extraWhere) parts.push(extraWhere);
+  if (borough) parts.push(crashesBoroughWhere(borough));
+  return parts.join(" AND ");
 }
 
 // FR-8: the displayed query and the sent request are derived from the same
@@ -57,10 +67,11 @@ export function buildYearlySoql(
   aggregateExpr: string,
   fieldAlias: string,
   extraWhere?: string,
+  borough?: BoroughCode,
 ): string {
   return [
     `$select=${selectClause(aggregateExpr, fieldAlias)}`,
-    `$where=${whereClause(extraWhere)}`,
+    `$where=${whereClause(extraWhere, borough)}`,
     `$group=${GROUP_CLAUSE}`,
     `$order=${ORDER_CLAUSE}`,
   ].join("\n");
@@ -70,10 +81,11 @@ export function buildYearlyUrl(
   aggregateExpr: string,
   fieldAlias: string,
   extraWhere?: string,
+  borough?: BoroughCode,
 ): URL {
   const url = new URL(BASE_URL);
   url.searchParams.set("$select", selectClause(aggregateExpr, fieldAlias));
-  url.searchParams.set("$where", whereClause(extraWhere));
+  url.searchParams.set("$where", whereClause(extraWhere, borough));
   url.searchParams.set("$group", GROUP_CLAUSE);
   url.searchParams.set("$order", ORDER_CLAUSE);
   return url;
@@ -169,9 +181,10 @@ export async function fetchYearlyMetric<K extends string>(
   aggregateExpr: string,
   fieldAlias: K,
   extraWhere?: string,
+  borough?: BoroughCode,
 ): Promise<YearlyMetricResult<K>> {
-  const soql = buildYearlySoql(aggregateExpr, fieldAlias, extraWhere);
-  const url = buildYearlyUrl(aggregateExpr, fieldAlias, extraWhere);
+  const soql = buildYearlySoql(aggregateExpr, fieldAlias, extraWhere, borough);
+  const url = buildYearlyUrl(aggregateExpr, fieldAlias, extraWhere, borough);
 
   const token = process.env.SOCRATA_APP_TOKEN;
   const headers: Record<string, string> = {};
