@@ -8,6 +8,7 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+
 ## 2026-08-12 — Staten Island pilot panel, chart/UI half
 
 - _Why we wrote `StatenIslandPilotPanel.tsx` as a separate component:_ `YearlyLineChart` and `MetricSection` are structurally yearly components (mapping fields like `row.year`, checking policy markers by year). The Staten Island pilot is a 24-row monthly dataset (Jan 2018–Dec 2019) with its own statistics payload. Forcing a unified component or type would have created premature, wrong-shaped generic complexity (`Simplicity > Pattern Purity`).
@@ -308,6 +309,51 @@ Cypress→Redwood pass with no rejection cycle. Full phase table and both closed
   could see — the right call even though the approval was in fact real. Lesson for future phases:
   update the ledger _before_ dispatching the next agent, not after, so this class of false-positive
   flag doesn't recur.
+
+## 2026-08-08 — `/doctor` config pass: what got cut from `CLAUDE.md`, and why the kept parts stayed
+
+A tooling-maintenance session, no FR work touched and no `.ts` file modified. Install verified
+healthy: native 2.1.226 (= latest on the `latest` channel), all five config files parse, all seven
+agent definitions carry valid frontmatter with unique names. Disabled 7 never-used skills and 3
+never-used MCP servers, trimmed `CLAUDE.md` 272 → 217 lines, migrated the handoff schemas to a
+skill. Net ~1.1k est. tokens/session.
+
+- *Why these specific `CLAUDE.md` cuts, and why the neighbouring content survived.* The test
+  applied was **derivability**: can a session working in this repo reconstruct the line by reading
+  the code? The **Team Roster table** went because the harness already injects every agent's role
+  and tool set into each session — the `May edit?` column was a hand-maintained copy of `tools:`
+  frontmatter, i.e. a second source of truth that could silently drift from the enforcement. The
+  **Project Layout bullets** went because they were `ls` output. The **Design Principles** list
+  went because it was generic advice under a heading that already said "apply, don't recite". What
+  stayed, and why it is *not* derivable: the **`ARCHITECTURE.md` deferral** (a decision plus a
+  standing prohibition — the file tree cannot express "deliberately absent"), the **Divergence
+  note** (GEMINI.md's staleness is a fact about intent, not structure), the **Stack table** (its
+  Note column is rationale — "no hand-rolled D3 for two line series" — not a dependency list
+  `package.json` already carries), and the **Hooks table** (the `Does` column would otherwise cost
+  reading six shell scripts).
+- *Why the handoff schemas moved to a skill rather than being cut.* They are needed only at
+  dispatch time, not on every turn, which is the textbook lazy-load case. But **nothing else in the
+  repo defines their fields** — `cedar.md`, `cypress.md`, `redwood.md` and `magnolia.md` all
+  reference `[SPEC]`/`[COMPLIANCE-REPORT]`/`[COMPLETION-REPORT]` by name only. That made a plain
+  cut impossible and the migration load-bearing: both `CLAUDE.md` § Handoff Schemas and the Tooling
+  table now carry an explicit load-before-dispatch pointer, because a schema that fails to load at
+  the moment of a handoff is worse than one that costs tokens every turn.
+- *Why the disables are believable, and where they are not.* Zero invocations across 50 transcripts
+  / 20 days / 9 project directories is real disuse evidence for skills, which have per-dispatch
+  counters. The MCP servers have **no usage counter at all** — transcripts were the only signal —
+  and their tool schemas are deferred, so disabling them saved **no context**; the case was purely
+  one less connection to maintain. Recorded as reversible: the skill folders were left on disk and
+  every override is a key in the gitignored `.claude/settings.local.json`.
+- *One finding that is a fault, not disuse.* `github`'s MCP tools were absent from the session even
+  though it was listed as enabled, while `context7` and `playwright` loaded normally. That is a
+  connection failure, so its zero-call count proves nothing about whether it is wanted. Run `/mcp`
+  and fix the connection before concluding it should stay off.
+- *A signal-quality caveat worth not re-deriving.* Two skills declare a frontmatter `name` that
+  differs from their directory — `composition-patterns` declares `vercel-composition-patterns`,
+  `react-best-practices` declares `vercel-react-best-practices`. Usage may be recorded under either
+  key, so their zero counters are marginally less certain than the other five. Both name forms were
+  written into `skillOverrides` so the disable lands regardless.
+
 
 ---
 

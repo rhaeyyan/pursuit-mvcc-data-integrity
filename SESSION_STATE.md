@@ -4,6 +4,7 @@
 
 ## Active
 
+
 - **Plain-English copy pass over the whole workspace — done, gate-clean, UNCOMMITTED
   (2026-08-13). NEXT STEP: commit it** — self-contained copy/UX change on top of `8651222`,
   belongs in its own commit. Settled vocabulary and the regression that caused this are recorded
@@ -46,6 +47,73 @@
   Analytics, a new SPEC, not a retry.
 - `ARCHITECTURE.md` is **deferred by decision, not pending**; rationale in `CLAUDE.md` § Project
   Layout.
+
+- **FR-6/FR-7 `/grill-me` round complete (2026-08-07) — four decisions settled, all on the
+  recommended option.** (1) **Wiring: URL search param**, not client state — `?borough=K` drives a
+  server re-render, `page.tsx` stays a server component, deep-linkable, ISR caches each borough
+  separately, works with JS off. The existing `/api/*` Route Handlers stay out of the page's fetch
+  path (the page has always imported the lib functions directly). (2) **Scope: all five series** —
+  PRD-literal, matching the intent recorded at FR-5's close; `arrests.ts` gains an `arrest_boro`
+  parameter but stays self-contained, so PRD §5.2 severability survives as a code fact. (3) **FR-7
+  warning: one page-level banner** beside the control, shown only while a filter is active — not
+  the five-way repetition of the existing `note` prop. (4) **FR-7's figures are computed live via
+  SoQL**, never typed in — Rule 1 forbids the literal regardless of correctness, and
+  `guard-data-integrity.sh` would block it. Four open assumptions went to Cedar with the block,
+  the load-bearing one being that the banner must name *which* series its caveat covers:
+  `arrest_boro` is a different field with a different completeness profile, so letting the
+  collisions drift figure imply anything about arrests would violate NFR-5.
+- **FR-6/FR-7 planned as six phases; Phase 1 approved and in flight (2026-08-07).** Cedar cut the
+  work along contract boundaries, not file counts: 1 vocabulary + transport → 2 crash-metric
+  propagation → 3 arrests propagation → 4 **FR-6 closed** (UI switch-on) → 5 FR-7 coverage data →
+  6 **FR-7 closed** (banner). *The 3 | 4 cut is the forced one* — Phases 1–3 are each provably
+  invisible (every caller still defaults to no borough), and shipping the picker before arrests
+  propagates would render four panels labelled "Brooklyn" beside a fifth silently still citywide,
+  the mislabelled-figure failure this product exists to criticise. **Cedar declined the
+  `socrata.ts` Strategy/registry escalation it had itself pre-named for FR-6** — with the concrete
+  case in hand, "metric × borough" turns out to be one more AND-ed conjunct on the axis already
+  parameterised, not a second dimension; the real new force is a *trust boundary* (a URL param
+  reaching a SoQL string), which a closed union type solves and a pattern does not. New Tipping
+  Point recorded in its place: a third orthogonal filter axis, or a caller needing to vary
+  `$group`/`$order`/the dataset ID. **HITL: three calls approved, one overridden** — the human
+  ruled that `arrest_boro` coverage **will** be measured, so FR-7's banner speaks to all five
+  filtered series. That trips `arrests.ts`'s Tipping Point (a second `8h9b-rp9u` caller) and
+  widens FR-7 past its literal PRD text; Cedar is revising Phases 5–6 only. Phases 1–4 unaffected.
+- **Live query findings, 2026-08-07 — all verified, none recalled.** (a) **The five `borough`
+  literals are confirmed exactly as pinned**, uppercase: `BRONX`, `BROOKLYN`, `MANHATTAN`,
+  `QUEENS`, `STATEN ISLAND`. (b) **Unpopulated rows arrive as an absent `borough` key** — not
+  `null`, not `""`; the probe's sixth bucket was `{"rows": "343448"}` with no `borough` field at
+  all. That is **trap 1 (Socrata omits keys) surfacing in a new place**, and it is why FR-7's
+  numerator enumerates the five values positively via `IN (...)` rather than using `IS NOT NULL`.
+  (c) **`borough IN (...)` works** — the pre-authorised five-way `OR` fallback is not needed.
+  (d) **Coverage rate per year: 64.4, 64.8, 65.3, 65.3, 66.2, 68.0, 71.4, 80.1%** (2018→2025),
+  reproducing the pinned 64.4%/80.1% endpoints exactly; 2019's 64.8% independently reproduces the
+  `mvcc-data` skill's Staten Island natural-experiment note, which was never fed to the query.
+  **Window unpopulated share derives to 32.9%, row-weighted** — not the ~31.8% mean-of-yearly-rates;
+  the two differ by ~1.1pp so the choice is pinned explicitly in code and test. FR-7's PRD prose
+  says "~30%": that gap is **rounding in the prose, not drift** — `/verify-figures` must not flag it.
+- **FR-5 CLOSED (2026-08-07)** — arrests panel; `9d1be76`/`123aada`/`672b16a`. Narrative in
+  `ARCHIVED_SESSIONS.md`, SPEC in `ARCHIVED_SPECS.md`; its two live facts are carried forward above.
+- **Deploy `[SPEC]` obligation — the open question is answered (2026-08-07): no Vercel project is
+  connected yet.** Rayan confirmed directly ("not yet"), settling what three sessions of Cedar
+  planning rounds couldn't resolve by reading the repo alone. This SPEC stays blocked, but on a
+  known, named precondition now rather than an unresolved mystery — **create/connect the Vercel
+  project first**, then this becomes buildable (verify Vercel's Node runtime matches
+  `engines.node`, record `/`'s First Load JS after both charts + FR-13's markers). Not something
+  Cedar can pick next on its own; needs the human to do the Vercel-side setup first.
+- **Machine changes outside the repo, needing re-doing on any other machine:** `nvm install 22`
+  (done 2026-08-07 — `~/.nvm` previously held only v24.13.0); `permissions.defaultMode: "auto"` in
+  `~/.claude/settings.json` (2026-08-08 — user-scope, so it applies to *every* project, unlike the
+  `/doctor` skill/MCP disables which are local to this repo). *Superseded:* the former
+  `~/.config/fish/conf.d/fnm.fish` and appended `~/.bashrc` block silenced fnm's "Using Node"
+  banner on stdout; fnm is no longer installed, so both are moot. nvm emits no such banner under
+  `nvm use 22 >/dev/null`, so no equivalent workaround is needed.
+- `ARCHITECTURE.md` is **deferred by decision, not pending**; its absence is not a gap to close.
+  Rationale and revisit trigger in `CLAUDE.md` § Project Layout.
+- **`/doctor` config pass DONE (2026-08-08)** — reasoning in `ARCHIVED_SESSIONS.md`. Load-bearing:
+  **the three handoff schemas now live only in the `handoff-schemas` skill** (load before any
+  dispatch; no agent file defines those fields), and **`github`'s MCP is off on a connection fault,
+  not disuse** (run `/mcp` before judging it).
+
 
 ## Context Cache
 
