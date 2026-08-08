@@ -4949,3 +4949,23 @@ full suite 478/478 (up from 374/374). Committed `4035262` (feat) / `22dcc20` (do
 `origin/main`. This is 1 of 6 phases of the FR-6/FR-7 objective — the objective itself is not yet
 closed; Phase 2 (crash-metric propagation) follows in the reset `SPEC.md`.
 
+
+---
+
+## Archived 2026-08-07 — FR-6/FR-7 Phase 2: crash-metric propagation (COMPLETE)
+
+**Outcome:** `deaths.ts`, `injuries.ts`, `collisions.ts`, `repairedCollisions.ts` each widened
+with an optional 4th `borough?: BoroughCode`, forwarded to `socrata.ts`'s Phase-1 transport,
+`undefined` passed explicitly for the skipped `extraWhere` slot on the three simple wrappers per
+the SPEC's Edge Case 4 positional-argument trap. No caller passed a borough yet, so the phase was
+provably invisible — byte-identity on all four frozen `*_SOQL` constants held. Cypress wrote 12
+new failing assertions (borough-composition + the positional trap) across the four test files,
+all 114 pre-existing assertions in those files left passing; Redwood implemented in one pass, no
+rejection cycle. Verified: `tsc --noEmit` clean, full suite 498/498 (up from 478/478). Committed
+`f6cdea7` (test) / `c6b8017` (feat) / `72ed7e0` (docs), pushed to `origin/main`. This is 2 of 6
+phases of the FR-6/FR-7 objective — the objective itself is not yet closed. Full reasoning
+(the forced 3|4 phase cut, why Cedar declined its own pre-named Strategy escalation, the
+`arrest_boro` override re-plan, the positional-argument trap, Cypress's stale-ledger catch at
+dispatch) is in `ARCHIVED_SESSIONS.md`, "2026-08-07 — FR-6/FR-7 planned as six phases; Phases 1–2
+closed." Phase 3 (arrests propagation) follows in the reset `SPEC.md`.
+
