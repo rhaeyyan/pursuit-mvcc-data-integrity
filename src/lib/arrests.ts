@@ -16,9 +16,10 @@
 // module reads it directly because it does not call into that module's
 // fetch path.
 //
-// FR-6 (the arrest-borough filter) is out of scope: that field never
-// appears here. Demographic offender fields are permanently excluded
-// (PRD §6).
+// FR-6 Phase 3: the arrest-borough filter is composed via the imported
+// arrestsBoroughWhere() from ./boroughs — the literal field name never
+// appears inline here (SPEC.md Constraint 6). Demographic offender
+// fields are permanently excluded (PRD §6).
 //
 // Query is a frozen contract (CLAUDE.md Rule 4, SPEC.md "Query"). Do not
 // edit, reorder, or extend a clause here; a Socrata rejection is a halt and
@@ -26,6 +27,7 @@
 
 import { z } from "zod";
 
+import { arrestsBoroughWhere, type BoroughCode } from "./boroughs";
 import type { YearlyMetricResult, YearlyMetricRow } from "./socrata";
 
 const BASE_URL = "https://data.cityofnewyork.us/resource/8h9b-rp9u.json";
@@ -52,19 +54,29 @@ const ORDER_CLAUSE = "year";
 
 const EXPECTED_YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
 
+function whereClause(borough?: BoroughCode): string {
+  const parts = [WHERE_CLAUSE];
+  if (borough) parts.push(arrestsBoroughWhere(borough));
+  return parts.join(" AND ");
+}
+
+function buildArrestsSoql(borough?: BoroughCode): string {
+  return [
+    `$select=${SELECT_CLAUSE}`,
+    `$where=${whereClause(borough)}`,
+    `$group=${GROUP_CLAUSE}`,
+    `$order=${ORDER_CLAUSE}`,
+  ].join("\n");
+}
+
 // FR-8: the displayed query and the sent request are built from the same
 // clause constants above so they cannot drift apart.
-export const ARRESTS_SOQL = [
-  `$select=${SELECT_CLAUSE}`,
-  `$where=${WHERE_CLAUSE}`,
-  `$group=${GROUP_CLAUSE}`,
-  `$order=${ORDER_CLAUSE}`,
-].join("\n");
+export const ARRESTS_SOQL = buildArrestsSoql();
 
-function buildArrestsUrl(): URL {
+function buildArrestsUrl(borough?: BoroughCode): URL {
   const url = new URL(BASE_URL);
   url.searchParams.set("$select", SELECT_CLAUSE);
-  url.searchParams.set("$where", WHERE_CLAUSE);
+  url.searchParams.set("$where", whereClause(borough));
   url.searchParams.set("$group", GROUP_CLAUSE);
   url.searchParams.set("$order", ORDER_CLAUSE);
   return url;
@@ -156,9 +168,11 @@ function validateYearCoverage(rows: ArrestsRow[]): string | null {
   return null;
 }
 
-export async function fetchArrestsPerYear(): Promise<ArrestsResult> {
-  const soql = ARRESTS_SOQL;
-  const url = buildArrestsUrl();
+export async function fetchArrestsPerYear(
+  borough?: BoroughCode,
+): Promise<ArrestsResult> {
+  const soql = buildArrestsSoql(borough);
+  const url = buildArrestsUrl(borough);
 
   const token = process.env.SOCRATA_APP_TOKEN;
   const headers: Record<string, string> = {};
