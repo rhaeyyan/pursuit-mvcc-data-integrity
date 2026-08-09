@@ -115,23 +115,13 @@
 // a necessary consequence of this file's own new default, not scope creep;
 // the assertions' original intent (this specific disclosure is present and
 // reachable) is preserved exactly, only the total-count arithmetic changes.
-// page.tsx places the arrests block after the repaired-collisions block and
-// before Caveats (SPEC.md's Files item 3), so the unscoped
-// `container.querySelector("details")` call sites (which only ever want the
-// *first* details, the deaths one) remain correct unchanged. Unlike
-// YearlyLineChart, MetricSection is NOT mocked anywhere in this file — every
-// pre-existing table assertion above renders the real component — so the
-// new arrests table assertions below follow that same real-render idiom
-// (getByRole("table", { name: /arrests/i }) etc.) rather than inspecting
-// mock call props, consistent with this file as it exists today (the actual
-// reference for how prior SPEC iterations extended this pattern). The
-// arrests chart mount, by contrast, is asserted the same way the deaths/
-// collisions chart mounts already are — via `callsFor("arrests")` against
-// the shared YearlyLineChart mock — since that component IS mocked here.
-// Edge Case 9's four-way independence coverage is extended with a fifth
-// describe block below exercising five-way independence at the two
-// combinations the dispatch instructions name explicitly: arrests alone
-// failing while the other four succeed, and the inverse.
+// This-SPEC addition (FR-7 Phase 6, "Dataset coverage warning banner UI"):
+// ../lib/arrestsCoverage is mocked (fetchCoverageData), defaulting to a
+// resolved "ok" result in beforeEach, so every pre-existing test gets a well-formed
+// coverageResult to Promise.all against without having to touch that test's body.
+// Because a default "ok" CoverageWarning render adds a *sixth* unconditional
+// <details> disclosure to every render, the pre-existing assertions that
+// hard-coded "5 disclosures total" are updated in place to "6" throughout.
 
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -145,6 +135,7 @@ const {
   fetchCollisionsPerYear,
   fetchRepairedCollisionsPerYear,
   fetchArrestsPerYear,
+  fetchCoverageData,
   SYNTHETIC_SOQL,
   INJURIES_SYNTHETIC_SOQL,
   COLLISIONS_SYNTHETIC_SOQL,
@@ -158,6 +149,7 @@ const {
   fetchCollisionsPerYear: vi.fn(),
   fetchRepairedCollisionsPerYear: vi.fn(),
   fetchArrestsPerYear: vi.fn(),
+  fetchCoverageData: vi.fn(),
   SYNTHETIC_SOQL:
     "SYNTHETIC SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   INJURIES_SYNTHETIC_SOQL:
@@ -229,6 +221,10 @@ vi.mock("../lib/repairedCollisions", () => ({
 vi.mock("../lib/arrests", () => ({
   fetchArrestsPerYear,
   ARRESTS_SOQL: ARRESTS_SYNTHETIC_SOQL,
+}));
+
+vi.mock("../lib/arrestsCoverage", () => ({
+  fetchCoverageData,
 }));
 
 vi.mock("../components/YearlyLineChart", () => ({ YearlyLineChart }));
@@ -314,6 +310,40 @@ const ARRESTS_SYNTHETIC_ROWS = [
   { year: 2025, arrests: 15500 },
 ];
 
+const COVERAGE_SYNTHETIC_RESULT = {
+  status: "ok" as const,
+  collisions: {
+    yearly: [
+      { year: 2018, total: 100, populated: 70, coverageRatePercent: 70 },
+      { year: 2019, total: 100, populated: 70, coverageRatePercent: 70 },
+      { year: 2020, total: 100, populated: 70, coverageRatePercent: 70 },
+      { year: 2021, total: 100, populated: 70, coverageRatePercent: 70 },
+      { year: 2022, total: 100, populated: 70, coverageRatePercent: 70 },
+      { year: 2023, total: 100, populated: 70, coverageRatePercent: 70 },
+      { year: 2024, total: 100, populated: 70, coverageRatePercent: 70 },
+      { year: 2025, total: 100, populated: 70, coverageRatePercent: 70 },
+    ],
+    totalWindow: 800,
+    populatedWindow: 560,
+    windowUnpopulatedSharePercent: 30,
+  },
+  arrests: {
+    yearly: [
+      { year: 2018, total: 100, populated: 67, coverageRatePercent: 67 },
+      { year: 2019, total: 100, populated: 67, coverageRatePercent: 67 },
+      { year: 2020, total: 100, populated: 67, coverageRatePercent: 67 },
+      { year: 2021, total: 100, populated: 67, coverageRatePercent: 67 },
+      { year: 2022, total: 100, populated: 67, coverageRatePercent: 67 },
+      { year: 2023, total: 100, populated: 67, coverageRatePercent: 67 },
+      { year: 2024, total: 100, populated: 67, coverageRatePercent: 67 },
+      { year: 2025, total: 100, populated: 67, coverageRatePercent: 67 },
+    ],
+    totalWindow: 800,
+    populatedWindow: 536,
+    windowUnpopulatedSharePercent: 33,
+  },
+};
+
 // This-SPEC addition (FR-9) — verbatim per SPEC.md's page.tsx Output section,
 // copied exactly, not paraphrased. Appended (string concatenation, not a
 // rewrite) to the end of both COLLISIONS_NOTE_TEXT and REPAIRED_NOTE_TEXT
@@ -386,6 +416,7 @@ beforeEach(() => {
     soql: ARRESTS_SYNTHETIC_SOQL,
     rows: ARRESTS_SYNTHETIC_ROWS,
   });
+  fetchCoverageData.mockResolvedValue(COVERAGE_SYNTHETIC_RESULT);
 });
 
 afterEach(() => {
@@ -394,6 +425,7 @@ afterEach(() => {
   fetchCollisionsPerYear.mockReset();
   fetchRepairedCollisionsPerYear.mockReset();
   fetchArrestsPerYear.mockReset();
+  fetchCoverageData.mockReset();
   YearlyLineChart.mockClear();
   Caveats.mockClear();
 });
@@ -728,7 +760,7 @@ describe("/ (Home) — injuries block (FR-2, Task 3)", () => {
     // 2, because this-SPEC's default "ok" collisions mock (see beforeEach)
     // also renders its own unconditional disclosure on every test in this
     // file unless overridden.
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
   });
 });
 
@@ -804,7 +836,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     ).toBeInTheDocument();
   });
 
-  it("disambiguates the five <details> disclosures by summary text, all reachable by accessible name (FR-8)", async () => {
+  it("disambiguates the six <details> disclosures by summary text, all reachable by accessible name (FR-8, FR-7)", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
@@ -834,7 +866,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     const { container } = await renderHome();
 
     const disclosures = Array.from(container.querySelectorAll("details"));
-    expect(disclosures).toHaveLength(5);
+    expect(disclosures).toHaveLength(6);
 
     const summaries = disclosures.map(
       (d) => d.querySelector("summary")?.textContent ?? "",
@@ -854,12 +886,10 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(
       summaries.some((s) => /soql query/i.test(s) && /arrests/i.test(s)),
     ).toBe(true);
-    // Distinct accessible names, so assistive tech can reach any of the
-    // five disclosures independently — this extends the pre-existing
-    // deaths/injuries/collisions/repaired-collisions distinct-summary
-    // guarantee (SPEC.md Output 5) to the fifth, arrests disclosure this
-    // SPEC adds.
-    expect(new Set(summaries).size).toBe(5);
+    expect(
+      summaries.some((s) => /coverage details by year/i.test(s)),
+    ).toBe(true);
+    expect(new Set(summaries).size).toBe(6);
   });
 
   it("has no axe-core violations across the injuries table and all three SoQL disclosures", async () => {
@@ -888,7 +918,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(
       screen.getByRole("table", { name: /injuries/i }),
     ).toBeInTheDocument();
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -999,7 +1029,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
     // must still be present, proving this assertion actually exercises
     // collisions and isn't a false-positive pass off the other two blocks'
     // unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
     expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
   });
 
@@ -1027,7 +1057,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
     // trivially "pass" against a page that doesn't implement the collisions
     // block at all, which would be exactly the kind of spuriously-passing
     // test the dispatch instructions warn against.
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
     expect(document.body.textContent ?? "").not.toContain(COLLISIONS_NOTE_TEXT);
   });
 
@@ -1057,7 +1087,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
       screen.getByRole("table", { name: COLLISIONS_TABLE_NAME }),
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -1187,7 +1217,7 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
 
     // All three disclosures still render regardless of each metric's status
     // (FR-8's unconditional-disclosure guarantee, extended to three).
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
   });
 
   it("mixed combination (another): deaths error, injuries empty, collisions ok — each of the three renders its own defined state independently", async () => {
@@ -1226,7 +1256,7 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
 
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
   });
 });
 
@@ -1473,7 +1503,7 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
     // disclosure must still be present, proving this assertion actually
     // exercises repaired collisions and isn't a false-positive pass off the
     // other three blocks' unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
     expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
   });
 
@@ -1490,7 +1520,7 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
 
     const { container } = await renderHome();
 
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
     expect(document.body.textContent ?? "").not.toContain(REPAIRED_NOTE_TEXT);
   });
 
@@ -1510,7 +1540,7 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
       screen.getByRole("table", { name: REPAIRED_TABLE_NAME }),
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(REPAIRED_NOTE_TEXT);
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -1652,7 +1682,7 @@ describe("/ (Home) — arrests block (FR-5, FR-8, FR-10, NFR-3, NFR-5 label-only
     // must still be present, proving this assertion actually exercises
     // arrests and isn't a false-positive pass off the other four blocks'
     // unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
     expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
   });
 
@@ -1711,7 +1741,7 @@ describe("/ (Home) — arrests block (FR-5, FR-8, FR-10, NFR-3, NFR-5 label-only
     const { container } = await renderHome();
 
     expect(screen.getByRole("table", { name: /arrests/i })).toBeInTheDocument();
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -1957,7 +1987,7 @@ describe("/ (Home) — five independent metrics on one page (this SPEC's Edge Ca
 
     // All five disclosures still render regardless of each metric's status
     // (FR-8's unconditional-disclosure guarantee, extended to five).
-    expect(document.querySelectorAll("details")).toHaveLength(5);
+    expect(document.querySelectorAll("details")).toHaveLength(6);
   });
 });
 
@@ -2103,7 +2133,7 @@ describe("/ (Home) — four independent metrics on one page (this SPEC's Edge Ca
 
     // All four disclosures still render regardless of each metric's status
     // (FR-8's unconditional-disclosure guarantee, extended to four).
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
   });
 
   it("mixed combination (another): deaths error, injuries empty, collisions ok, repaired collisions empty — each of the four renders its own defined state independently", async () => {
@@ -2150,7 +2180,7 @@ describe("/ (Home) — four independent metrics on one page (this SPEC's Edge Ca
       screen.queryByRole("table", { name: REPAIRED_TABLE_NAME }),
     ).not.toBeInTheDocument();
 
-    expect(container.querySelectorAll("details")).toHaveLength(5);
+    expect(container.querySelectorAll("details")).toHaveLength(6);
   });
 });
 
@@ -2563,5 +2593,47 @@ describe("/ (Home) — source-level grep (standing clause: no @/ alias imports)"
     const { join } = await import("node:path");
     const source = readFileSync(join(__dirname, "page.tsx"), "utf8");
     expect(source).not.toMatch(/from\s+["']@\//);
+  });
+});
+
+describe("/ (Home) — FR-7 Phase 6: Dataset coverage warning banner (page integration)", () => {
+  it("fetches coverage metadata via fetchCoverageData() during page render", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    expect(fetchCoverageData).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the <CoverageWarning> banner landmark (aside[aria-label='Dataset coverage warning'])", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    const banner = screen.getByRole("complementary", {
+      name: "Dataset coverage warning",
+    });
+    expect(banner).toBeInTheDocument();
+  });
+
+  it("has zero axe-core accessibility violations on full page with coverage banner present", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
   });
 });

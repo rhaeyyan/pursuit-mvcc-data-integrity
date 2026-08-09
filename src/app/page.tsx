@@ -25,9 +25,11 @@
 
 import { BoroughPicker } from "../components/BoroughPicker";
 import { Caveats } from "../components/Caveats";
+import { CoverageWarning } from "../components/CoverageWarning";
 import { MetricSection } from "../components/MetricSection";
 import { YearlyLineChart } from "../components/YearlyLineChart";
 import { ARRESTS_SOQL, fetchArrestsPerYear } from "../lib/arrests";
+import { fetchCoverageData } from "../lib/arrestsCoverage";
 import { BOROUGHS, parseBoroughParam } from "../lib/boroughs";
 import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../lib/collisions";
 import { DEATHS_SOQL, fetchDeathsPerYear } from "../lib/deaths";
@@ -78,12 +80,14 @@ export default async function Home({
     collisionsResult,
     repairedResult,
     arrestsResult,
+    coverageResult,
   ] = await Promise.all([
     fetchDeathsPerYear(activeCode),
     fetchInjuriesPerYear(activeCode),
     fetchCollisionsPerYear(activeCode),
     fetchRepairedCollisionsPerYear(activeCode),
     fetchArrestsPerYear(activeCode),
+    fetchCoverageData(),
   ]);
 
   return (
@@ -125,6 +129,8 @@ export default async function Home({
         result={result}
         soql={DEATHS_SOQL}
       />
+
+      <CoverageWarning coverageResult={coverageResult} />
 
       <MetricSection
         fieldAlias="injuries"
