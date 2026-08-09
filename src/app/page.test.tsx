@@ -2636,4 +2636,57 @@ describe("/ (Home) — FR-7 Phase 6: Dataset coverage warning banner (page integ
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
   });
+describe("/ (Home) — Phase 8: Storytelling Layout", () => {
+  it("renders the KPIRow component with data from the most recent year (2025)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    // injuries, collisions, repaired, and arrests are defaulted to ok in beforeEach
+
+    await renderHome();
+
+    const kpiRegion = screen.getByRole("region", { name: "Key Performance Indicators" });
+    expect(kpiRegion).toBeInTheDocument();
+    
+    // Check if the specific latest values from our fixtures appear inside the KPIRow region.
+    // 2025 values: deaths: 88, collisions: 8000, arrests: 15500
+    expect(within(kpiRegion).getByText("88")).toBeInTheDocument();
+    expect(within(kpiRegion).getByText("8000")).toBeInTheDocument();
+    expect(within(kpiRegion).getByText("15500")).toBeInTheDocument();
+  });
+
+  it("renders the three storytelling sections with correct headings and contents", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    // The sections could use aria-labelledby matching the heading, or we can just find the headings
+    // and check what's inside their containing <section>
+    const tollHeading = screen.getByRole("heading", { name: /The Human Toll/i });
+    expect(tollHeading).toBeInTheDocument();
+    const tollSection = tollHeading.closest("section")!;
+    expect(within(tollSection).getByRole("table", { name: /deaths/i })).toBeInTheDocument();
+    expect(within(tollSection).getByRole("table", { name: /injuries/i })).toBeInTheDocument();
+
+    const dataHeading = screen.getByRole("heading", { name: /Data Integrity & Policy Impact/i });
+    expect(dataHeading).toBeInTheDocument();
+    const dataSection = dataHeading.closest("section")!;
+    
+    // CoverageWarning banner is rendered here
+    expect(within(dataSection).getByRole("complementary", { name: "Dataset coverage warning" })).toBeInTheDocument();
+    expect(within(dataSection).getByRole("table", { name: COLLISIONS_TABLE_NAME })).toBeInTheDocument();
+    expect(within(dataSection).getByRole("table", { name: REPAIRED_TABLE_NAME })).toBeInTheDocument();
+
+    const enforcementHeading = screen.getByRole("heading", { name: /Enforcement/i });
+    expect(enforcementHeading).toBeInTheDocument();
+    const enforcementSection = enforcementHeading.closest("section")!;
+    expect(within(enforcementSection).getByRole("table", { name: /arrests/i })).toBeInTheDocument();
+  });
+});
 });
