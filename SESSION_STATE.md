@@ -1,27 +1,14 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** **FR-7 (coverage warning)** — the final remaining P1 FR.
-Phases 1–4 of 6 are closed (FR-6 is **CLOSED**). Next is Phase 5a (`arrestsSocrata.ts` structural extraction by Banyan) and Phase 5b (FR-7 coverage data by Redwood).
+**Current objective:** **ALL FUNCTIONAL REQUIREMENTS (FR-1 through FR-13) COMPLETE.**
+All 6 phases of FR-6/FR-7 are closed, committed, and pushed.
 
 ## Active
 
-- **FR-6 CLOSED; Phases 1–4 committed (`40d9946`).**
-  - Phase 1: `boroughs.ts` + widened `socrata.ts` transport (`4035262`/`22dcc20`).
-  - Phase 2: four crash-metric wrappers forward `borough?: BoroughCode` (`f6cdea7`/`c6b8017`/`72ed7e0`).
-  - Phase 3: `arrests.ts` widened to accept `borough?: BoroughCode` (`d5ef971`).
-  - Phase 4: `BoroughPicker` UI component + `searchParams` wiring on `page.tsx` (`40d9946`).
-  **Next step: Cedar writes Phase 5a `[SPEC]` for `arrestsSocrata.ts` structural extraction.**
-- **FR-6/FR-7's six-phase plan and its four `/grill-me` HITL decisions — full text in `SPEC.md`**
-  and reasoning in `ARCHIVED_SESSIONS.md`. Load-bearing summary for phases still ahead: URL
-  search-param wiring, all five series in scope, one page-level FR-7 banner, figures computed live
-  never typed; the human overrode Cedar's recommendation so `arrest_boro` coverage **will** be
-  measured, which trips `arrests.ts`'s Tipping Point and is fully re-planned in `SPEC.md`'s
-  "Phases 5–6 revised" section.
-- **Live query findings, 2026-08-07 — pinned, not yet consumed by code (needed at Phase 5b).**
-  Coverage rate per year: 64.4, 64.8, 65.3, 65.3, 66.2, 68.0, 71.4, 80.1% (2018→2025). Window
-  unpopulated share is **32.9%, row-weighted** — not the ~31.8% mean-of-yearly-rates; the ~1.1pp
-  gap must stay an explicit choice in code and test once Phase 5b lands. FR-7's PRD prose says
-  "~30%" — that's rounding, not drift; `/verify-figures` must not flag it.
+- **ALL FRs CLOSED (FR-1 through FR-13).**
+  - FR-6 (borough filter) closed in Phases 1–4 (`40d9946`).
+  - FR-7 (coverage warning banner) closed in Phases 5a–6 (`bbd8a07`).
+  - All 561 tests passing across 21 test files. Lint clean, type check clean.
 - **Deploy `[SPEC]` obligation — blocked on a named precondition:** no Vercel project is connected
   yet (human confirmed 2026-08-07, "not yet"). Create/connect it first, then this becomes
   buildable (verify Vercel's Node runtime matches `engines.node`, record `/`'s First Load JS).
