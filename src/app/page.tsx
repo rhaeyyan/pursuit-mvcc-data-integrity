@@ -38,6 +38,7 @@ import {
   REPAIRED_COLLISIONS_SOQL,
   fetchRepairedCollisionsPerYear,
 } from "../lib/repairedCollisions";
+import styles from "./page.module.css";
 
 // FR-9: the one-sentence forward pointer appended to both existing inline
 // notes below, closing the deferred "forward reference to nothing" decision
@@ -91,105 +92,126 @@ export default async function Home({
   ]);
 
   return (
-    <main>
-      <h1>
-        NYC traffic deaths per year, 2018–2025
-        {boroughParam.status === "ok" ? ` (${BOROUGHS[boroughParam.code].label})` : ""}
-      </h1>
-      <p>
-        Reported collisions, injuries, and deaths move very differently over
-        this period; collisions are the most discretionary figure (an officer
-        decides whether to file), injuries typically involve an ambulance or
-        hospital record, and deaths are the least discretionary, the medical
-        examiner&apos;s count.
-      </p>
-
-      <BoroughPicker currentBorough={activeCode ?? ""} />
-      {boroughParam.status === "invalid" && (
-        <p role="alert">
-          Invalid borough parameter: &quot;{boroughParam.received}&quot;. Displaying citywide data.
+    <main className={styles.main}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>
+          NYC traffic deaths per year, 2018–2025
+          {boroughParam.status === "ok" ? ` (${BOROUGHS[boroughParam.code].label})` : ""}
+        </h1>
+        <p className={styles.intro}>
+          Reported collisions, injuries, and deaths move very differently over
+          this period; collisions are the most discretionary figure (an officer
+          decides whether to file), injuries typically involve an ambulance or
+          hospital record, and deaths are the least discretionary, the medical
+          examiner&apos;s count.
         </p>
-      )}
+      </header>
 
-      {result.status === "ok" && (
-        <YearlyLineChart
-          rows={result.rows}
-          fieldAlias="deaths"
-          seriesLabel="Deaths"
-          strokeStyle="solid"
-          colorSlot={1}
-          ariaLabel="Line chart of NYC traffic deaths per year from 2018 to 2025."
-          captionText="NYC traffic deaths per year, 2018–2025. Every plotted figure is listed in the table below."
-        />
-      )}
-      <MetricSection
-        fieldAlias="deaths"
-        columnLabel="Deaths"
-        captionText="NYC traffic deaths per year, 2018–2025"
-        result={result}
-        soql={DEATHS_SOQL}
-      />
+      <div className={styles.controls}>
+        <BoroughPicker currentBorough={activeCode ?? ""} />
+        {boroughParam.status === "invalid" && (
+          <p role="alert" className={styles.error}>
+            Invalid borough parameter: &quot;{boroughParam.received}&quot;. Displaying citywide data.
+          </p>
+        )}
+      </div>
 
-      <CoverageWarning coverageResult={coverageResult} />
+      <div className={styles.dashboard}>
 
-      <MetricSection
-        fieldAlias="injuries"
-        columnLabel="Injuries"
-        captionText="NYC traffic injuries per year, 2018–2025"
-        result={injuriesResult}
-        soql={INJURIES_SOQL}
-      />
+        <section className={styles.card}>
+          {result.status === "ok" && (
+            <YearlyLineChart
+              rows={result.rows}
+              fieldAlias="deaths"
+              seriesLabel="Deaths"
+              strokeStyle="solid"
+              colorSlot={1}
+              ariaLabel="Line chart of NYC traffic deaths per year from 2018 to 2025."
+              captionText="NYC traffic deaths per year, 2018–2025. Every plotted figure is listed in the table below."
+            />
+          )}
+          <MetricSection
+            fieldAlias="deaths"
+            columnLabel="Deaths"
+            captionText="NYC traffic deaths per year, 2018–2025"
+            result={result}
+            soql={DEATHS_SOQL}
+          />
+        </section>
 
-      {collisionsResult.status === "ok" && (
-        <YearlyLineChart
-          rows={collisionsResult.rows}
-          fieldAlias="collisions"
-          seriesLabel="Collisions"
-          strokeStyle="dashed"
-          colorSlot={2}
-          ariaLabel="Line chart of NYC recorded collisions per year from 2018 to 2025."
-          captionText="NYC recorded collisions per year, 2018–2025. Every plotted figure is listed in the table below."
-          note={COLLISIONS_REPORTING_NOTE}
-        />
-      )}
-      <MetricSection
-        fieldAlias="collisions"
-        columnLabel="Collisions"
-        captionText="NYC recorded collisions per year, 2018–2025"
-        result={collisionsResult}
-        soql={COLLISIONS_SOQL}
-        note={COLLISIONS_REPORTING_NOTE}
-      />
+        <section className={`${styles.card} ${styles.fullWidth}`}>
+          <CoverageWarning coverageResult={coverageResult} />
+        </section>
 
-      <MetricSection
-        fieldAlias="repaired"
-        columnLabel="Repaired collisions"
-        captionText="NYC collisions with a recorded injury or death per year, 2018–2025"
-        result={repairedResult}
-        soql={REPAIRED_COLLISIONS_SOQL}
-        note={REPAIRED_COLLISIONS_NOTE}
-      />
+        <section className={styles.card}>
+          <MetricSection
+            fieldAlias="injuries"
+            columnLabel="Injuries"
+            captionText="NYC traffic injuries per year, 2018–2025"
+            result={injuriesResult}
+            soql={INJURIES_SOQL}
+          />
+        </section>
 
-      {arrestsResult.status === "ok" && (
-        <YearlyLineChart
-          rows={arrestsResult.rows}
-          fieldAlias="arrests"
-          seriesLabel="Arrests"
-          strokeStyle="solid"
-          colorSlot={1}
-          ariaLabel="Line chart of NYC traffic-enforcement arrest counts per year from 2018 to 2025."
-          captionText="NYC traffic-enforcement arrests per year, 2018–2025. Every plotted figure is listed in the table below."
-        />
-      )}
-      <MetricSection
-        fieldAlias="arrests"
-        columnLabel="Arrests"
-        captionText="NYC traffic-enforcement arrests per year, 2018–2025 (five offense categories)"
-        result={arrestsResult}
-        soql={ARRESTS_SOQL}
-      />
+        <section className={styles.card}>
+          {collisionsResult.status === "ok" && (
+            <YearlyLineChart
+              rows={collisionsResult.rows}
+              fieldAlias="collisions"
+              seriesLabel="Collisions"
+              strokeStyle="dashed"
+              colorSlot={2}
+              ariaLabel="Line chart of NYC recorded collisions per year from 2018 to 2025."
+              captionText="NYC recorded collisions per year, 2018–2025. Every plotted figure is listed in the table below."
+              note={COLLISIONS_REPORTING_NOTE}
+            />
+          )}
+          <MetricSection
+            fieldAlias="collisions"
+            columnLabel="Collisions"
+            captionText="NYC recorded collisions per year, 2018–2025"
+            result={collisionsResult}
+            soql={COLLISIONS_SOQL}
+            note={COLLISIONS_REPORTING_NOTE}
+          />
+        </section>
 
-      <Caveats />
+        <section className={styles.card}>
+          <MetricSection
+            fieldAlias="repaired"
+            columnLabel="Repaired collisions"
+            captionText="NYC collisions with a recorded injury or death per year, 2018–2025"
+            result={repairedResult}
+            soql={REPAIRED_COLLISIONS_SOQL}
+            note={REPAIRED_COLLISIONS_NOTE}
+          />
+        </section>
+
+        <section className={styles.card}>
+          {arrestsResult.status === "ok" && (
+            <YearlyLineChart
+              rows={arrestsResult.rows}
+              fieldAlias="arrests"
+              seriesLabel="Arrests"
+              strokeStyle="solid"
+              colorSlot={1}
+              ariaLabel="Line chart of NYC traffic-enforcement arrest counts per year from 2018 to 2025."
+              captionText="NYC traffic-enforcement arrests per year, 2018–2025. Every plotted figure is listed in the table below."
+            />
+          )}
+          <MetricSection
+            fieldAlias="arrests"
+            columnLabel="Arrests"
+            captionText="NYC traffic-enforcement arrests per year, 2018–2025 (five offense categories)"
+            result={arrestsResult}
+            soql={ARRESTS_SOQL}
+          />
+        </section>
+      </div>
+
+      <section className={styles.fullWidth}>
+        <Caveats />
+      </section>
     </main>
   );
 }

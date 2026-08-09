@@ -1,27 +1,51 @@
 .nav {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-block: 1rem;
+  gap: 1rem;
+  margin-block: 0;
+  padding: 0.75rem 1.25rem;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  width: fit-content;
 }
 
 .label {
   font-weight: 600;
-  color: var(--foreground);
-  font-size: 0.95rem;
+  color: var(--muted, #64748b);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .select {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.95rem;
-  border-radius: 6px;
-  border: 1px solid currentColor;
-  background-color: var(--background);
-  color: var(--foreground);
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border, #e2e8f0);
+  background-color: var(--background, #ffffff);
+  color: var(--foreground, #0f172a);
   cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Custom chevron SVG using standard gray color */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+}
+
+.select:hover {
+  border-color: var(--muted, #94a3b8);
+  background-color: var(--table-hover, #f8fafc);
 }
 
 .select:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--focus-ring, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
