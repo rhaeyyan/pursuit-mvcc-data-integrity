@@ -4969,3 +4969,19 @@ phases of the FR-6/FR-7 objective — the objective itself is not yet closed. Fu
 dispatch) is in `ARCHIVED_SESSIONS.md`, "2026-08-07 — FR-6/FR-7 planned as six phases; Phases 1–2
 closed." Phase 3 (arrests propagation) follows in the reset `SPEC.md`.
 
+---
+
+## Archived 2026-08-09 — Phase 8: Enterprise Storytelling Layout (COMPLETE)
+
+**Outcome:** `page.tsx` restructured from a flat vertical stack into a header + KPI row + three
+thematic sections ("The Human Toll", "Data Integrity & Policy Impact", "Enforcement"), per NFR-5
+(premium aesthetic). New `KPIRow.tsx` / `KPIRow.module.css` render 2025 Deaths/Collisions/Arrests
+as stat cards; `page.module.css` gained the header/dashboard/section grid rules. The
+`<CoverageWarning>` banner honesty rule held — it stayed inside Section 2, never sharing a frame
+with Arrests. No `fetch` logic or data shape changed; zero comparative math introduced. Committed
+`f1dba25` (feat), pushed to `origin/main`. Verified node v22.23.2: `tsc --noEmit` clean, `eslint .`
+0 errors / 2 pre-existing warnings (`page.test.tsx:2667` unused `container`,
+`percentChange.ts:15` unused type param `K`), full suite 566/566 (up from 561/561). This closes
+Phase 8 of 8 and, with it, the FR-6/FR-7 phased objective and NFR-5 — no further phases are
+queued in `SPEC.md`.
+

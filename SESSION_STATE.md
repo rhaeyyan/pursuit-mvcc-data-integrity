@@ -1,14 +1,14 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** **ALL FUNCTIONAL REQUIREMENTS (FR-1 through FR-13) COMPLETE.**
-All 6 phases of FR-6/FR-7 are closed, committed, and pushed.
+**Current objective:** **ALL FUNCTIONAL REQUIREMENTS (FR-1 through FR-13) and NFR-5 COMPLETE.**
+Phase 8 (Enterprise Storytelling Layout) closed and pushed; `SPEC.md` is reset and empty.
 
 ## Active
 
-- **ALL FRs CLOSED (FR-1 through FR-13).**
-  - FR-6 (borough filter) closed in Phases 1–4 (`40d9946`).
-  - FR-7 (coverage warning banner) closed in Phases 5a–6 (`bbd8a07`).
-  - All 561 tests passing across 21 test files. Lint clean, type check clean.
+- **Phase 8 (Enterprise Storytelling Layout) closed, committed `f1dba25`, pushed to `origin/main`.**
+  Restructured `page.tsx` into header + KPI row + three thematic sections; new `KPIRow.tsx`/
+  `KPIRow.module.css`. Full outcome and verification in `ARCHIVED_SPECS.md`, "Archived
+  2026-08-09 — Phase 8." Suite at 566/566, `tsc`/`eslint` clean. No objective currently active.
 - **Deploy `[SPEC]` obligation — blocked on a named precondition:** no Vercel project is connected
   yet (human confirmed 2026-08-07, "not yet"). Create/connect it first, then this becomes
   buildable (verify Vercel's Node runtime matches `engines.node`, record `/`'s First Load JS).
