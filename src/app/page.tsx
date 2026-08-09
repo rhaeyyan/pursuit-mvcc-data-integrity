@@ -23,10 +23,12 @@
 // correlation-only framing this series needs already lives in Caveats,
 // page-wide (SPEC.md Intellectual Control point 5).
 
+import { BoroughPicker } from "../components/BoroughPicker";
 import { Caveats } from "../components/Caveats";
 import { MetricSection } from "../components/MetricSection";
 import { YearlyLineChart } from "../components/YearlyLineChart";
 import { ARRESTS_SOQL, fetchArrestsPerYear } from "../lib/arrests";
+import { BOROUGHS, parseBoroughParam } from "../lib/boroughs";
 import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../lib/collisions";
 import { DEATHS_SOQL, fetchDeathsPerYear } from "../lib/deaths";
 import { INJURIES_SOQL, fetchInjuriesPerYear } from "../lib/injuries";
@@ -60,7 +62,16 @@ const REPAIRED_COLLISIONS_NOTE =
   "is the more reliable figure for judging whether collisions actually declined." +
   SEE_CAVEATS_POINTER;
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ borough?: string | string[] }> | { borough?: string | string[] };
+}) {
+  const resolvedParams = searchParams ? await searchParams : undefined;
+  const boroughParam = parseBoroughParam(resolvedParams?.borough);
+
+  const activeCode = boroughParam.status === "ok" ? boroughParam.code : undefined;
+
   const [
     result,
     injuriesResult,
@@ -68,16 +79,19 @@ export default async function Home() {
     repairedResult,
     arrestsResult,
   ] = await Promise.all([
-    fetchDeathsPerYear(),
-    fetchInjuriesPerYear(),
-    fetchCollisionsPerYear(),
-    fetchRepairedCollisionsPerYear(),
-    fetchArrestsPerYear(),
+    fetchDeathsPerYear(activeCode),
+    fetchInjuriesPerYear(activeCode),
+    fetchCollisionsPerYear(activeCode),
+    fetchRepairedCollisionsPerYear(activeCode),
+    fetchArrestsPerYear(activeCode),
   ]);
 
   return (
     <main>
-      <h1>NYC traffic deaths per year, 2018–2025</h1>
+      <h1>
+        NYC traffic deaths per year, 2018–2025
+        {boroughParam.status === "ok" ? ` (${BOROUGHS[boroughParam.code].label})` : ""}
+      </h1>
       <p>
         Reported collisions, injuries, and deaths move very differently over
         this period; collisions are the most discretionary figure (an officer
@@ -85,6 +99,13 @@ export default async function Home() {
         hospital record, and deaths are the least discretionary, the medical
         examiner&apos;s count.
       </p>
+
+      <BoroughPicker currentBorough={activeCode ?? ""} />
+      {boroughParam.status === "invalid" && (
+        <p role="alert">
+          Invalid borough parameter: &quot;{boroughParam.received}&quot;. Displaying citywide data.
+        </p>
+      )}
 
       {result.status === "ok" && (
         <YearlyLineChart

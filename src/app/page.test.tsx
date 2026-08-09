@@ -351,10 +351,12 @@ function callsFor(fieldAlias: string) {
   );
 }
 
-async function renderHome() {
+async function renderHome(
+  searchParams?: Promise<{ borough?: string | string[] }> | { borough?: string | string[] },
+) {
   // Home() is an async function component; calling and awaiting it directly
   // resolves the JSX tree the Server Component would have streamed.
-  const ui = await Home();
+  const ui = await Home({ searchParams });
   return render(ui);
 }
 
@@ -2408,6 +2410,150 @@ describe("/ (Home) — the SEE_CAVEATS_POINTER forward-reference (FR-9): appende
     // above (e.g. line ~823, ~950, ~1285) — unmodified.
     expect(text).toContain(COLLISIONS_NOTE_TEXT);
     expect(text).toContain(REPAIRED_NOTE_TEXT);
+  });
+});
+
+describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring", () => {
+  it("fetches all five metrics with borough code 'K' and appends '(Brooklyn)' to section captions when searchParams is { borough: 'K' }", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: "K" });
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchInjuriesPerYear).toHaveBeenCalledWith("K");
+    expect(fetchCollisionsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchArrestsPerYear).toHaveBeenCalledWith("K");
+
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("(Brooklyn)");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("resolves searchParams when passed as a Promise ({ borough: 'K' })", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome(Promise.resolve({ borough: "K" }));
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchInjuriesPerYear).toHaveBeenCalledWith("K");
+    expect(fetchCollisionsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchArrestsPerYear).toHaveBeenCalledWith("K");
+  });
+
+  it("handles case-insensitive borough parameter ('k' resolves to 'K')", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: "k" });
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchInjuriesPerYear).toHaveBeenCalledWith("K");
+    expect(fetchCollisionsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith("K");
+    expect(fetchArrestsPerYear).toHaveBeenCalledWith("K");
+  });
+
+  it("fetches citywide data (undefined borough code) and renders no alert banner when searchParams is omitted or empty ({ borough: '' })", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: "" });
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchInjuriesPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchArrestsPerYear).toHaveBeenCalledWith(undefined);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("renders an accessible error alert banner (<p role=\"alert\">) and falls back safely to citywide fetches when searchParams contains an invalid borough code", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: "INVALID" });
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toBeInTheDocument();
+    expect(alert.textContent).toMatch(/invalid borough parameter/i);
+    expect(alert.textContent).toContain("INVALID");
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchInjuriesPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchArrestsPerYear).toHaveBeenCalledWith(undefined);
+
+    // Citywide table still renders safely
+    expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
+  });
+
+  it("renders an error alert banner and falls back safely to citywide data when searchParams contains a repeated array param", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: ["B", "K"] });
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toBeInTheDocument();
+    expect(alert.textContent).toMatch(/invalid borough parameter/i);
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchInjuriesPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchArrestsPerYear).toHaveBeenCalledWith(undefined);
+  });
+
+  it("has zero axe-core accessibility violations when a valid borough filter is active", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome({ borough: "K" });
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
+  });
+
+  it("has zero axe-core accessibility violations when an invalid borough parameter alert banner is present", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome({ borough: "INVALID" });
+
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
   });
 });
 
