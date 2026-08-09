@@ -474,6 +474,7 @@ describe("FR-8 invariant — ARRESTS_SOQL and the sent request cannot drift apar
 
 const SRC_DIR = join(__dirname, "..");
 const ARRESTS_PATH = join(SRC_DIR, "lib", "arrests.ts");
+const ARRESTS_SOCRATA_PATH = join(SRC_DIR, "lib", "arrestsSocrata.ts");
 const LIB_DIR = join(SRC_DIR, "lib");
 
 function listFilesRecursive(dir: string): string[] {
@@ -497,13 +498,13 @@ function isTestFile(path: string): boolean {
 }
 
 describe("src/lib/arrests.ts — source-level greps (the only net for these constraints)", () => {
-  it("reads process.env.SOCRATA_APP_TOKEN directly — the SPEC's accepted, one-time exception to socrata.ts's exclusivity (Constraint 3)", () => {
-    if (!existsSync(ARRESTS_PATH)) {
+  it("reads process.env.SOCRATA_APP_TOKEN directly — the SPEC's accepted exception to socrata.ts's exclusivity (Constraint 3)", () => {
+    if (!existsSync(ARRESTS_SOCRATA_PATH)) {
       throw new Error(
-        `${ARRESTS_PATH} does not exist yet — this is expected red until Redwood implements it.`,
+        `${ARRESTS_SOCRATA_PATH} does not exist yet — this is expected red until Redwood implements it.`,
       );
     }
-    const source = readFileSync(ARRESTS_PATH, "utf8");
+    const source = readFileSync(ARRESTS_SOCRATA_PATH, "utf8");
     expect(source).toMatch(/process\.env/);
     expect(source).toMatch(/SOCRATA_APP_TOKEN/);
   });
@@ -525,12 +526,13 @@ describe("src/lib/arrests.ts — source-level greps (the only net for these cons
     }
   });
 
-  it("no lib file other than socrata.ts and arrests.ts references process.env — the confinement rule generalized to its one named exception (Constraint 3)", () => {
+  it("no lib file other than socrata.ts, arrests.ts, and arrestsSocrata.ts references process.env — the confinement rule generalized to its named exceptions (Constraint 3)", () => {
     const offenders = listFilesRecursive(LIB_DIR)
       .filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
       .filter((f) => !isTestFile(f))
       .filter((f) => !f.endsWith(join("lib", "socrata.ts")))
       .filter((f) => !f.endsWith(join("lib", "arrests.ts")))
+      .filter((f) => !f.endsWith(join("lib", "arrestsSocrata.ts")))
       .filter((f) => readFileSync(f, "utf8").includes("process.env"));
     expect(offenders).toEqual([]);
   });
@@ -542,6 +544,18 @@ describe("src/lib/arrests.ts — source-level greps (the only net for these cons
       );
     }
     const source = readFileSync(ARRESTS_PATH, "utf8");
+    expect(source).not.toMatch(/perp_race/);
+    expect(source).not.toMatch(/perp_sex/);
+    expect(source).not.toMatch(/age_group/);
+  });
+
+  it("never references perp_race, perp_sex, or age_group anywhere in arrestsSocrata.ts source (PRD §6, Constraint 2 — permanent exclusion, not merely unused)", () => {
+    if (!existsSync(ARRESTS_SOCRATA_PATH)) {
+      throw new Error(
+        `${ARRESTS_SOCRATA_PATH} does not exist yet — this is expected red until Redwood implements it.`,
+      );
+    }
+    const source = readFileSync(ARRESTS_SOCRATA_PATH, "utf8");
     expect(source).not.toMatch(/perp_race/);
     expect(source).not.toMatch(/perp_sex/);
     expect(source).not.toMatch(/age_group/);
@@ -562,6 +576,16 @@ describe("src/lib/arrests.ts — source-level greps (the only net for these cons
       );
     }
     const source = readFileSync(ARRESTS_PATH, "utf8");
+    expect(source).not.toMatch(/arrest_boro/);
+  });
+
+  it("never references the literal substring arrest_boro inline in arrestsSocrata.ts source (SPEC.md Constraint 6)", () => {
+    if (!existsSync(ARRESTS_SOCRATA_PATH)) {
+      throw new Error(
+        `${ARRESTS_SOCRATA_PATH} does not exist yet — this is expected red until Redwood implements it.`,
+      );
+    }
+    const source = readFileSync(ARRESTS_SOCRATA_PATH, "utf8");
     expect(source).not.toMatch(/arrest_boro/);
   });
 
