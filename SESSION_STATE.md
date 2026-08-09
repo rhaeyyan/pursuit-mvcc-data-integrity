@@ -1,26 +1,16 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** **FR-6 (borough filter) + FR-7 (coverage warning)** — the last two open FRs,
-both P1. Phases 1 and 2 of 6 are closed and pushed. Phase 3's `[SPEC]` (arrests propagation,
-1 file, Redwood) is written and persisted to `SPEC.md`, **awaiting HITL approval** before Cypress
-dispatch.
+**Current objective:** **FR-7 (coverage warning)** — the final remaining P1 FR.
+Phases 1–4 of 6 are closed (FR-6 is **CLOSED**). Next is Phase 5a (`arrestsSocrata.ts` structural extraction by Banyan) and Phase 5b (FR-7 coverage data by Redwood).
 
 ## Active
 
-- **FR-6 Phase 3 `[SPEC]` written (2026-08-07), awaiting HITL approval — nothing dispatched yet.**
-  Cedar read `arrests.ts`/`arrests.test.ts` directly. Two shape differences from Phase 2, both
-  named explicitly rather than assumed: `arrests.ts` has no shared transport to forward into, so
-  the window-AND-offense-AND-borough composition is written once inside this file (severability,
-  PRD §5.2); and only `fetchArrestsPerYear` is exported, so this phase widens one public signature,
-  not two. Phase 2's positional-argument trap **cannot recur here** — no `extraWhere` slot exists
-  to shift into. Cedar also flagged two `arrests.test.ts` assertions whose titles this phase makes
-  stale (the "exactly one of X" staleness shape hit four times already this project) and named the
-  exact retitle/re-scope fix for Cypress. Full SPEC in `SPEC.md`.
-  **Next step: get the human's yes/no on dispatching Cypress then Redwood against this SPEC.**
-- **FR-6 Phases 1–2 CLOSED, committed, pushed.** Phase 1: `boroughs.ts` + widened `socrata.ts`
-  transport (`4035262`/`22dcc20`). Phase 2: the four crash-metric wrappers forward `borough?:
-  BoroughCode` (`f6cdea7`/`c6b8017`/`72ed7e0`). Closed SPECs in `ARCHIVED_SPECS.md`; full
-  reasoning in `ARCHIVED_SESSIONS.md`.
+- **FR-6 CLOSED; Phases 1–4 committed (`40d9946`).**
+  - Phase 1: `boroughs.ts` + widened `socrata.ts` transport (`4035262`/`22dcc20`).
+  - Phase 2: four crash-metric wrappers forward `borough?: BoroughCode` (`f6cdea7`/`c6b8017`/`72ed7e0`).
+  - Phase 3: `arrests.ts` widened to accept `borough?: BoroughCode` (`d5ef971`).
+  - Phase 4: `BoroughPicker` UI component + `searchParams` wiring on `page.tsx` (`40d9946`).
+  **Next step: Cedar writes Phase 5a `[SPEC]` for `arrestsSocrata.ts` structural extraction.**
 - **FR-6/FR-7's six-phase plan and its four `/grill-me` HITL decisions — full text in `SPEC.md`**
   and reasoning in `ARCHIVED_SESSIONS.md`. Load-bearing summary for phases still ahead: URL
   search-param wiring, all five series in scope, one page-level FR-7 banner, figures computed live
