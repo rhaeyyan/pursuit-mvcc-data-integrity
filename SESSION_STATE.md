@@ -9,11 +9,33 @@ Phase 8 (Enterprise Storytelling Layout) closed and pushed; `SPEC.md` is reset a
   Restructured `page.tsx` into header + KPI row + three thematic sections; new `KPIRow.tsx`/
   `KPIRow.module.css`. Full outcome and verification in `ARCHIVED_SPECS.md`, "Archived
   2026-08-09 — Phase 8." Suite at 566/566, `tsc`/`eslint` clean. No objective currently active.
-- **Deploy `[SPEC]` obligation — blocked on a named precondition:** no Vercel project is connected
-  yet (human confirmed 2026-08-07, "not yet"). Create/connect it first, then this becomes
-  buildable (verify Vercel's Node runtime matches `engines.node`, record `/`'s First Load JS).
-- **Machine: `nvm install 22` done 2026-08-07** (`~/.nvm` now has v22.23.2, previously only
-  v24.13.0). fnm is gone from this machine; its old output-silencing workarounds are moot.
+- **DEPLOYED 2026-08-11 — the precondition above has lapsed.** Live at
+  <https://pursuit-mvcc-data-integrity.vercel.app/>, root dir `./`, all build settings left on
+  Vercel's auto-detected defaults, `SOCRATA_APP_TOKEN` set as a server-side env var.
+  Verified by direct HTTP inspection: `200`, all eight years and all five metric sections render
+  (no FR-10 error state), `/api/deaths` returns `status:"ok"` with 2018=231 / 2019=244.
+  **NFR-2 clean** — no `SOCRATA_APP_TOKEN` / `X-App-Token` / `app_token` identifier appears in any
+  of the 8 client chunks or the HTML.
+  **Two open findings from the deploy, neither yet fixed:**
+  1. **NFR-1 is only half-satisfied.** Every response is `x-vercel-cache: MISS` with
+     `cache-control: private, no-cache, no-store` — `/` reads `searchParams` for the borough
+     filter, so the route is fully dynamic and the *HTML* is never CDN-cached. The Socrata
+     Data Cache (`revalidate: 86400`, `socrata.ts:207`) *is* working, so upstream is not re-hit
+     per visitor: unfiltered warm renders are ~0.17–0.22s. But a **cold borough variant
+     (`?borough=K`) took 3.2s unthrottled**, which fails NFR-1's "< 2.5s under Slow 4G" on first
+     visit to each of the five boroughs. Fix direction: pre-render the six variants
+     (`generateStaticParams`-style) or lift the borough filter out of `searchParams`.
+  2. **First Load JS not yet recorded** as the obligation asks. The 8 chunks referenced by `/`
+     total ~867 KB *uncompressed*, which is **not** Next's First Load JS metric — read the real
+     number off the Vercel build log's route table.
+- **ACTIVE SPEC (written 2026-08-11, not yet implemented): borough caching fix for NFR-1.** Move the
+  borough from `searchParams` to a prerendered `[[...borough]]` route segment so all six variants are
+  static and CDN-cached. 4 files, no SoQL touched, `boroughs.ts` deliberately out of scope. Next step
+  is Cypress writing the failing tests from `SPEC.md`, then Redwood.
+- **Machine: nvm was missing on 2026-08-11 and has been REINSTALLED (via Homebrew) and Node 22
+  restored.** Platform is back to the targeted v22.23.2; see the Platform entry in the Context Cache
+  for the current recipe. Node 26.7.0 remains on the machine as the system install — it is *not* the
+  target, and `nvm use` must be run before any gate.
 - `ARCHITECTURE.md` is **deferred by decision, not pending**; rationale in `CLAUDE.md` § Project
   Layout.
 
@@ -25,15 +47,36 @@ Phase 8 (Enterprise Storytelling Layout) closed and pushed; `SPEC.md` is reset a
 - Every pinned figure in PRD Appendix A was **re-verified live on 2026-08-04** via
   `.claude/scripts/verify-figures.py`: all 32 values across four series matched exactly. The
   preliminary-feed revision risk has not materialized as of that date.
-- **Platform: Node v22.23.2 / npm 10.9.8** — unchanged as the *target*, but **the way it is
-  obtained changed on 2026-08-07: `fnm` is gone from this machine, replaced by `nvm`.** The old
-  entry here described an fnm setup plus an `env.PATH` block in `.claude/settings.local.json`;
-  neither exists any more (that file now holds only `permissions` and `enabledMcpjsonServers`).
-  Ignore `stop-quality-gate.sh`'s suggested `fish -i`/`bash -ic` remedy — fnm is absent from
-  interactive shells too, so re-entering a login shell does not help. **Working recipe, verified
-  end-to-end:** prefix commands with
-  `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 22 >/dev/null`.
-  `nvm install 22` resolves to exactly v22.23.2 / npm 10.9.8.
+- **Platform: Node v22.23.2 / npm 10.9.8 — restored 2026-08-11, and the way it is obtained changed
+  again.** fnm (pre-2026-08-07) → nvm-by-unknown-means (2026-08-07) → **nvm installed via Homebrew
+  (2026-08-11)**. `~/.nvm` had been emptied and no version manager remained; `brew install nvm` put
+  nvm 0.40.6 at `/usr/local/opt/nvm` (note: **not** `~/.nvm/nvm.sh` — that path is the *data* dir, so
+  the 2026-08-07 sourcing line fails with exit 127 and is retired).
+  **Working recipe, verified end-to-end:**
+  `export NVM_DIR="$HOME/.nvm"; . /usr/local/opt/nvm/nvm.sh; nvm use >/dev/null`
+  `nvm use` with no argument now reads `.nvmrc` correctly, so the version lives in one place.
+  The sourcing block was also appended to `~/.zshrc`, which is what makes
+  `stop-quality-gate.sh`'s suggested `bash -ic`/`fish -i` remedy actually work — **that advice was
+  unactionable while no version manager existed, and the two prior ledger entries calling it "moot"
+  were right at the time.** It is live again now.
+- **Why 22 and not the system Node 26.7.0, which also passes.** v26.7.0 is *permissible* — it clears
+  `engines.node` (`>=22.22.2`) and satisfies `jsdom@30.0.1`'s `>=26.0.0` branch, and a full run on it
+  on 2026-08-11 was genuinely clean (0 `EBADENGINE`, 0 vulnerabilities, 566/566, `tsc` clean). It is
+  not the *target*: `.nvmrc` pins 22, Vercel's runtime is 22.x, and the pin exists for dev/prod
+  parity, which "permissible by `engines.node`" does not buy. Retargeting to 26 was considered and
+  rejected on 2026-08-11 because **Vercel very likely offers no Node 26 runtime yet**, so it would
+  have inverted the mismatch rather than fixed it — local on 26, production on 22.
+  Keep the jsdom range in mind as the real discriminator: v24.13.0 satisfied *none* of its three
+  branches, which is why that specific version was the trap, not "any non-22 Node".
+- **`node_modules/` was wiped again (2nd occurrence; first was 2026-08-07) and restored 2026-08-11.**
+  The repo itself was intact. Recovery is now just `npm ci` → **`npx next typegen`** → gates. The
+  typegen step remains non-optional for the reason recorded before: `tsconfig.json` includes
+  `.next/types/**/*.ts` and `layout.tsx` uses Next 16's generated `LayoutProps<"/">`, so a wiped
+  `.next/` fails `tsc` with a misleading `TS2304: Cannot find name 'LayoutProps'`.
+- **`node_modules/next/dist/docs/` is the mandated Next reference and it only exists after `npm ci`.**
+  Note for future sessions: **context7 is not a fallback — its API key is invalid in this
+  environment** (`Invalid API key... should start with 'ctx7sk'`). Restore `node_modules` and read the
+  local docs instead.
 - **Recovering a wiped workspace (done 2026-08-07, ~2 min).** `node_modules/` and `.next/` were both
   absent while the repo itself was intact — the `.git/hooks/commit-msg` guard was still installed and
   byte-identical, so this was *not* a fresh clone and that guard did not need reinstalling. Order
@@ -49,6 +92,13 @@ Phase 8 (Enterprise Storytelling Layout) closed and pushed; `SPEC.md` is reset a
 - **Verified baseline before FR-6/FR-7 work began (2026-08-07, node v22.23.2):** vitest **374/374 in
   17 files**, `tsc --noEmit` clean, `eslint .` 0 errors and 1 pre-existing warning (unused type param
   `K` in `percentChange.ts:15`). Matches the 374 recorded at FR-5's close, so the wipe cost nothing.
+- **Current verified baseline (2026-08-11, node v22.23.2 — the targeted platform): vitest 566/566 in
+  22 files, `tsc --noEmit` clean, `eslint .` 0 errors and 2 warnings.** Identical results to the
+  Node 26 run earlier the same day, which is reassuring but not a licence to gate off-target.
+  Note the drift: **the warning count is 2, not the 1 recorded above** — `page.test.tsx:2667` (`container` assigned but never used) joined
+  `percentChange.ts:15` at some point during Phases 6-8 and was never recorded. Neither is a
+  regression from this session; the accurate bar for any future acceptance gate is **0 errors /
+  2 warnings**, and `SPEC.md`'s acceptance criteria now says so.
 - **Standing rule — `@types/node`'s major tracks `engines.node`'s major.** Derived, not chosen;
   moves in the same edit as the floor, no Rule 9 halt required.
 - **Standing acceptance clause (Amendment 3(b)), binds every future SPEC:** acceptance-by-command
