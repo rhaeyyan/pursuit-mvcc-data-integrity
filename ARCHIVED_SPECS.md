@@ -5008,3 +5008,36 @@ why the SPEC's own "record First Load JS" acceptance criterion turned out to be 
 unfulfillable — is in `ARCHIVED_SESSIONS.md`, "2026-08-11 — Deploy verification, platform
 recovery, and the borough-caching fix."
 
+---
+
+## Archived 2026-08-11 — Staten Island Pilot Panel, Data Half (COMPLETE)
+
+**Outcome:** New self-contained module `src/lib/statenIslandPilot.ts` fetches/validates/derives
+the monthly Staten Island collision count for 2018–2019 — the pre-COVID natural experiment PRD §3
+names as a P2 story, retiring the residual "magnitude, not direction" item in PRD §7's top risk
+row. Deliberately not an extension of `socrata.ts` (whose fixed annual/8-row contract doesn't fit
+a 24-row monthly window with a hardcoded, non-optional borough) — mirrors `arrestsSocrata.ts`'s
+precedent as a self-contained sibling module instead. Exact SoQL (`date_trunc_ym(crash_date)`
+grouped, filtered to `borough = 'STATEN ISLAND'`) was verified live against Socrata during the
+SPEC's own drafting, not recalled — the live probe also caught that Socrata returns `month` as a
+full floating timestamp (`"2018-01-01T00:00:00.000"`), not `"YYYY-MM"`, before that could surprise
+implementation. New Route Handler `src/app/api/staten-island-pilot/route.ts` mirrors
+`deaths/route.ts`'s ok/empty/error → 200/200/502-or-422 mapping exactly, with an added `stats`
+field on the ok branch.
+
+Full TDD chain: Cypress wrote failing tests first, pinning the exact export contract
+(`SI_PILOT_SOQL`, `buildStatenIslandPilotUrl()`, `fetchStatenIslandPilot()`,
+`avg2018Monthly`/`avgMayDec2019` as pure functions). Redwood implemented, matching that contract
+exactly, and ran the SPEC's non-closable live-query acceptance check — an unstubbed call
+reproduced every pinned figure exactly (2018 sum 6,171, 2019 sum 3,650, Mar/Apr 2019 = 370/217,
+`stats.avg2018Monthly` = 514.25, `stats.avgMayDec2019` = 271.25). One legitimate cross-cutting
+escalation surfaced and was resolved: two pre-existing Zero-Trust confinement tests
+(`arrests.test.ts`, `repairedCollisions.test.ts`) enumerated a closed 3-file allowlist for
+`process.env` readers in `src/lib`, predating this SPEC; Cypress extended both to a 4th named
+exception after the orchestrating session independently verified the new module's token handling
+matched the existing accepted pattern. Verified node v22.23.2: `tsc --noEmit` clean, `eslint .` 0
+errors / 2 pre-existing warnings, full suite **613/613** (up from 570/570). Chart/UI half remains
+a deliberate follow-up SPEC, not yet written. Full reasoning — why the escalation was routed to
+Cypress rather than hand-fixed, and why `date_trunc_ym` was chosen over `date_extract_m` — is in
+`ARCHIVED_SESSIONS.md`, "2026-08-11 — Staten Island pilot panel, data half."
+

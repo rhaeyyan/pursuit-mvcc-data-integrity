@@ -512,7 +512,7 @@ describe("src/lib/repairedCollisions.ts — source-level greps (the only net for
     expect(source).not.toMatch(/SOCRATA_APP_TOKEN/);
   });
 
-  it("no file under src/lib other than socrata.ts and arrests.ts references process.env — generalizes the confinement check to the whole lib directory, now with arrests.ts as a second, SPEC-accepted exception (FR-5 Constraint 3)", () => {
+  it("no file under src/lib other than socrata.ts, arrests.ts, arrestsSocrata.ts, and statenIslandPilot.ts references process.env — generalizes the confinement check to the whole lib directory, now with a fourth, SPEC-accepted exception for the Staten Island pilot module's self-contained token read (Intellectual Control point 1 — mirrors arrestsSocrata.ts's precedent) (FR-5 Constraint 3)", () => {
     const libDir = join(SRC_DIR, "lib");
     const offenders = listFilesRecursive(libDir)
       .filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
@@ -520,6 +520,7 @@ describe("src/lib/repairedCollisions.ts — source-level greps (the only net for
       .filter((f) => !f.endsWith(`${join("lib", "socrata.ts")}`))
       .filter((f) => !f.endsWith(`${join("lib", "arrests.ts")}`))
       .filter((f) => !f.endsWith(`${join("lib", "arrestsSocrata.ts")}`))
+      .filter((f) => !f.endsWith(`${join("lib", "statenIslandPilot.ts")}`))
       .filter((f) => readFileSync(f, "utf8").includes("process.env"));
     expect(offenders).toEqual([]);
   });

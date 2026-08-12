@@ -8,6 +8,67 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-11 — Staten Island pilot panel, data half
+
+PRD §3's P2 story ("see the Staten Island pilot window on its own") and §7's residual risk item
+("some share of the drop may still be genuine... magnitude, not direction") both point at the same
+gap: the thesis had never been given an actual number for how big the reporting-artifact effect is
+in isolation from COVID. This session closed the data half of that gap. `ARCHIVED_SPECS.md`,
+"Archived 2026-08-11 — Staten Island Pilot Panel, Data Half" holds the mechanical record; this
+entry keeps the reasoning.
+
+- *Why the query was run live during SPEC drafting, before any test or implementation existed.*
+  This project's own precedent (see the FR-6 Phase 1 entry below) is that a query fact is never
+  handed off from recollection, even a basic one. Running `date_trunc_ym(crash_date)` live before
+  pinning it in the SPEC did two things a citation to Appendix A couldn't: confirmed the function
+  name and grouping behavior actually work as expected (not assumed from familiarity with
+  `date_extract_y`), and surfaced that Socrata returns `month` as a full floating timestamp
+  (`"2018-01-01T00:00:00.000"`), not the `"YYYY-MM"` shape a reader of the skill's prose table
+  might reasonably guess. That single probe turned a plausible-sounding SPEC into a verified one
+  and pre-empted an implementation surprise.
+- *Why this became a new, self-contained module rather than a fourth parameter on `socrata.ts`.*
+  `socrata.ts`'s own header already states its `$group`/`$order` "stay fixed internal constants...
+  that generality remains unearned." This panel needed three simultaneous deviations from that
+  file's contract at once — monthly instead of yearly grain, a 2018–2019 window instead of
+  2018–2025, and a hardcoded rather than optional borough. Bending one file to cover both shapes
+  would have been exactly the premature generality Rule 8 warns against; `arrestsSocrata.ts` had
+  already established the alternative (a self-contained sibling module) for an analogous reason.
+- *Why the derived stats functions weren't pulled into their own file, unlike `percentChange.ts`.*
+  `percentChange.ts` earned separation because it's shared across five metrics. `avg2018Monthly`/
+  `avgMayDec2019` have exactly one caller each and no reuse case — splitting them out would have
+  been the same unearned-generality mistake in the opposite direction. The distinction that
+  matters: a precedent justifies extraction only when the *reason* it was extracted also applies,
+  not just because a superficially similar file exists.
+  This SPEC also had a real object lesson in why that instinct pays off: after this SPEC and
+  Cypress's first-pass tests were both already approved/written, a genuinely legitimate
+  cross-cutting issue surfaced anyway — two pre-existing Zero-Trust confinement tests
+  (`arrests.test.ts`, `repairedCollisions.test.ts`) each hardcoded a *closed 3-file* allowlist for
+  who may reference `process.env` in `src/lib`, and neither the SPEC nor Cypress's tests had
+  cross-referenced them, because they predate this feature entirely. `statenIslandPilot.ts`
+  legitimately needed to read the token itself (Cypress's own contract required a zero-argument
+  `fetchStatenIslandPilot()`), so it correctly tripped both as an unlisted 4th offender. Redwood
+  found this, correctly judged it outside its 2-file authorization, and explicitly declined the
+  tempting shortcut — disguising the `process.env` reference to dodge the grep — naming that move
+  as defeating the check's purpose rather than satisfying it. That refusal is the finding worth
+  keeping: a security-relevant test failing on legitimate new code is not the same failure shape as
+  a test failing on a bug, and treating them identically (patch until green) would have quietly
+  broken the actual security property NFR-2 exists to protect.
+- *Why the escalation was routed to Cypress rather than fixed directly by the orchestrating
+  session, unlike an earlier same-session precedent (the `BoroughPicker.test.tsx` `cleanup()` fix,
+  done directly).* The distinguishing question was whether a judgment call about *what should be
+  permitted* was still open, or only a mechanical fix to *already-approved* intent remained. The
+  `cleanup()` case was pure RTL hygiene — the test already correctly expressed its own intent and
+  just needed a bug fixed. This case required widening a Zero-Trust allowlist, which is a judgment
+  call about a security boundary — even though the SPEC's own Intellectual Control section had
+  already implicitly approved the design (self-contained module, mirroring `arrestsSocrata.ts`),
+  actually confirming the new module's token handling was safe before broadening the check is
+  exactly the "audit... security" mandate this project assigns to Cypress by role, not to whichever
+  agent happens to be holding the file. The orchestrating session verified the module's safety
+  independently first (same warn-not-throw pattern, no token logging, no `'use client'`) — but
+  verifying is not the same as being the one authorized to change the boundary.
+
+---
+
 ## 2026-08-11 — Deploy verification, platform recovery, and the borough-caching fix
 
 The project's first production deploy landed this session

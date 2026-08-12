@@ -526,13 +526,14 @@ describe("src/lib/arrests.ts — source-level greps (the only net for these cons
     }
   });
 
-  it("no lib file other than socrata.ts, arrests.ts, and arrestsSocrata.ts references process.env — the confinement rule generalized to its named exceptions (Constraint 3)", () => {
+  it("no lib file other than socrata.ts, arrests.ts, arrestsSocrata.ts, and statenIslandPilot.ts references process.env — the confinement rule generalized to its named exceptions (Constraint 3), now including the Staten Island pilot module's SPEC-accepted self-contained token read (Intellectual Control point 1 — mirrors arrestsSocrata.ts's precedent)", () => {
     const offenders = listFilesRecursive(LIB_DIR)
       .filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
       .filter((f) => !isTestFile(f))
       .filter((f) => !f.endsWith(join("lib", "socrata.ts")))
       .filter((f) => !f.endsWith(join("lib", "arrests.ts")))
       .filter((f) => !f.endsWith(join("lib", "arrestsSocrata.ts")))
+      .filter((f) => !f.endsWith(join("lib", "statenIslandPilot.ts")))
       .filter((f) => readFileSync(f, "utf8").includes("process.env"));
     expect(offenders).toEqual([]);
   });

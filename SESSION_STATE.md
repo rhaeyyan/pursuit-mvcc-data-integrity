@@ -1,26 +1,21 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Staten Island pilot panel (PRD P2 story), data half — **human-approved
-2026-08-11, Cypress dispatched, awaiting its `[COMPLIANCE-REPORT]`.**
+**Current objective:** None active. `SPEC.md` is reset and empty.
 
 ## Active
 
-- **APPROVED, IN FLIGHT — `SPEC.md` holds the Staten Island pilot panel data-half SPEC** (written
-  and approved 2026-08-11). Scope: `src/lib/statenIslandPilot.ts` + test, and
-  `src/app/api/staten-island-pilot/route.ts` + test (4 files) — fetch/validate/derive the monthly
-  Staten Island collision count for 2018–2019 (the pre-COVID natural experiment PRD §3 names as a
-  P2 story), deliberately **not** the chart/UI half, mirroring this project's FR-3 data/chart split.
-  **The exact SoQL was verified live during drafting, not recalled** — `date_trunc_ym(crash_date)`
-  grouped and filtered to `borough = 'STATEN ISLAND'`, confirmed to return 24 gap-free monthly rows
-  matching Appendix A exactly (2018 sum 6,171; 2019 sum 3,650; Mar/Apr 2019 370/217; May–Dec 2019
-  avg ≈271). One implementation detail the probe surfaced: Socrata returns `month` as a full
-  floating timestamp (`"2018-01-01T00:00:00.000"`), not `"YYYY-MM"` — pinned in the SPEC so
-  Redwood doesn't guess. Design choice recorded in the SPEC's Intellectual Control: this is a new
-  self-contained module, not an extension of `socrata.ts` (whose fixed yearly/8-row contract
-  doesn't fit a 24-row monthly window with a hardcoded, non-optional borough).
-  **Cypress is dispatched (background) writing failing tests for `statenIslandPilot.test.ts` and
-  `route.test.ts` — do not hand-implement `statenIslandPilot.ts`/`route.ts` while it's in flight.**
-  Next step: relay its `[COMPLIANCE-REPORT]` to Redwood once it lands.
+- **Staten Island pilot panel, data half — CLOSED 2026-08-11.** `src/lib/statenIslandPilot.ts` +
+  `src/app/api/staten-island-pilot/route.ts` (self-contained module, not an extension of
+  `socrata.ts` — see Intellectual Control reasoning archived below), full TDD chain, live-query
+  acceptance check passed exactly (2018 sum 6,171, 2019 sum 3,650, Mar/Apr 2019 370/217).
+  **One legitimate cross-cutting escalation surfaced and was resolved**: two pre-existing
+  Zero-Trust `process.env` confinement tests didn't know about this new token-reading module;
+  Cypress extended both to a 4th named exception after independent verification that the new
+  module's token handling matched the existing safe pattern. Verified 570→**613/613**, `tsc`
+  clean, `eslint` 0 errors/2 known warnings. **Chart/UI half is a deliberate, not-yet-written
+  follow-up SPEC** — this closes the data half only. Full reasoning (why the escalation went to
+  Cypress rather than a direct fix, why `date_trunc_ym` over `date_extract_m`) archived in
+  `ARCHIVED_SESSIONS.md` / `ARCHIVED_SPECS.md`, "2026-08-11 — Staten Island pilot panel."
 
 - **Deployed and live-verified:** <https://pursuit-mvcc-data-integrity.vercel.app/> — root dir
   `./`, Vercel defaults, `SOCRATA_APP_TOKEN` set server-side only. NFR-2 confirmed clean (no token
