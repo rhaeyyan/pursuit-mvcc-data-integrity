@@ -16,22 +16,33 @@ Phase 8 (Enterprise Storytelling Layout) closed and pushed; `SPEC.md` is reset a
   (no FR-10 error state), `/api/deaths` returns `status:"ok"` with 2018=231 / 2019=244.
   **NFR-2 clean** — no `SOCRATA_APP_TOKEN` / `X-App-Token` / `app_token` identifier appears in any
   of the 8 client chunks or the HTML.
-  **Two open findings from the deploy, neither yet fixed:**
-  1. **NFR-1 is only half-satisfied.** Every response is `x-vercel-cache: MISS` with
-     `cache-control: private, no-cache, no-store` — `/` reads `searchParams` for the borough
-     filter, so the route is fully dynamic and the *HTML* is never CDN-cached. The Socrata
-     Data Cache (`revalidate: 86400`, `socrata.ts:207`) *is* working, so upstream is not re-hit
-     per visitor: unfiltered warm renders are ~0.17–0.22s. But a **cold borough variant
-     (`?borough=K`) took 3.2s unthrottled**, which fails NFR-1's "< 2.5s under Slow 4G" on first
-     visit to each of the five boroughs. Fix direction: pre-render the six variants
-     (`generateStaticParams`-style) or lift the borough filter out of `searchParams`.
-  2. **First Load JS not yet recorded** as the obligation asks. The 8 chunks referenced by `/`
-     total ~867 KB *uncompressed*, which is **not** Next's First Load JS metric — read the real
-     number off the Vercel build log's route table.
-- **ACTIVE SPEC (written 2026-08-11, not yet implemented): borough caching fix for NFR-1.** Move the
-  borough from `searchParams` to a prerendered `[[...borough]]` route segment so all six variants are
-  static and CDN-cached. 4 files, no SoQL touched, `boroughs.ts` deliberately out of scope. Next step
-  is Cypress writing the failing tests from `SPEC.md`, then Redwood.
+  **One deploy finding fixed same-day, one now permanently unfixable as originally worded:**
+  1. **NFR-1 borough-caching gap — FIXED 2026-08-11, uncommitted, ready to land.** `/` moved from
+     `src/app/page.tsx` (searchParams — the whole route was dynamic, every response a cache MISS) to
+     `src/app/[[...borough]]/page.tsx`, an optional catch-all with `generateStaticParams` enumerating
+     the closed six-member set (citywide + 5 boroughs), `dynamicParams = false`, `revalidate = 86400`
+     matching the Socrata Data Cache TTL. `BoroughPicker.tsx` now pushes `/${code}` instead of
+     `/?borough=${code}`. Local build's route table confirms all six paths render `●` (SSG).
+     Full TDD chain ran: Cypress wrote failing tests first (`[COMPLIANCE-REPORT]`: correct red state,
+     2 failures for the right reasons), Redwood implemented (`[COMPLETION-REPORT]`: spec satisfied),
+     I found and fixed one unrelated test bug directly rather than round-tripping through Cypress
+     again — `BoroughPicker.test.tsx`'s new loop test called `render()` 5× with no `cleanup()`
+     between iterations, so RTL found duplicate comboboxes; added `cleanup()` per iteration.
+     **Verified independently, not just relayed:** node v22.23.2, `npx vitest run` → **570/570**,
+     `tsc --noEmit` clean, `eslint .` 0 errors / 2 known warnings, `npm run build` route table read
+     directly (not trusted from the report) — `/`, `/B`, `/K`, `+3 more` all `●`.
+     **Not yet done:** commit, push, and the *live*-deploy half of acceptance (cache HIT on repeat
+     `/K`, cold borough <2.5s, `/X` 404, no token in client bundle) — those need a fresh Vercel
+     deploy of this branch, not just the local build.
+  2. **First Load JS is not merely unrecorded — it cannot be recorded the way the obligation asked,
+     ever, on this Next version.** Confirmed directly from
+     `node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md:989`: **Next.js 16
+     deliberately removed the `size`/`First Load JS` metrics from `next build` output**, calling them
+     inaccurate for RSC architectures; Next's own recommended replacement is Chrome Lighthouse or
+     Vercel Analytics against Core Web Vitals, not a build-log field. **Retire this obligation as
+     originally worded.** If bundle-size tracking is still wanted, the next SPEC should target
+     Lighthouse CI (already named as a maybe-later item elsewhere in this file) or Vercel Analytics,
+     not a number that no longer exists.
 - **Machine: nvm was missing on 2026-08-11 and has been REINSTALLED (via Homebrew) and Node 22
   restored.** Platform is back to the targeted v22.23.2; see the Platform entry in the Context Cache
   for the current recipe. Node 26.7.0 remains on the machine as the system install — it is *not* the
@@ -68,22 +79,17 @@ Phase 8 (Enterprise Storytelling Layout) closed and pushed; `SPEC.md` is reset a
   have inverted the mismatch rather than fixed it — local on 26, production on 22.
   Keep the jsdom range in mind as the real discriminator: v24.13.0 satisfied *none* of its three
   branches, which is why that specific version was the trap, not "any non-22 Node".
-- **`node_modules/` was wiped again (2nd occurrence; first was 2026-08-07) and restored 2026-08-11.**
-  The repo itself was intact. Recovery is now just `npm ci` → **`npx next typegen`** → gates. The
-  typegen step remains non-optional for the reason recorded before: `tsconfig.json` includes
-  `.next/types/**/*.ts` and `layout.tsx` uses Next 16's generated `LayoutProps<"/">`, so a wiped
-  `.next/` fails `tsc` with a misleading `TS2304: Cannot find name 'LayoutProps'`.
-- **`node_modules/next/dist/docs/` is the mandated Next reference and it only exists after `npm ci`.**
-  Note for future sessions: **context7 is not a fallback — its API key is invalid in this
-  environment** (`Invalid API key... should start with 'ctx7sk'`). Restore `node_modules` and read the
-  local docs instead.
-- **Recovering a wiped workspace (done 2026-08-07, ~2 min).** `node_modules/` and `.next/` were both
-  absent while the repo itself was intact — the `.git/hooks/commit-msg` guard was still installed and
-  byte-identical, so this was *not* a fresh clone and that guard did not need reinstalling. Order
-  that works: `nvm use 22` → `npm ci` → **`npx next typegen`** → gates. The typegen step is not
-  optional: `tsconfig.json` includes `.next/types/**/*.ts`, and `layout.tsx` uses Next 16's
-  generated global `LayoutProps<"/">`, so a wiped `.next/` fails `tsc` with a single misleading
-  `TS2304: Cannot find name 'LayoutProps'` that looks like a source bug and is not one.
+- **`node_modules/` wiping is now a recurring pattern, not a one-off — 2 occurrences (2026-08-07,
+  2026-08-11), same recovery recipe both times, repo itself intact both times.** Recovery:
+  `nvm use` → `npm ci` → **`npx next typegen`** → gates. Typegen is non-optional: `tsconfig.json`
+  includes `.next/types/**/*.ts` and `layout.tsx` uses Next 16's generated `LayoutProps<"/">`, so a
+  wiped `.next/` fails `tsc` with a misleading `TS2304: Cannot find name 'LayoutProps'` that reads
+  like a source bug and isn't one. Also check `.git/hooks/commit-msg` is still byte-identical to
+  `.githooks/commit-msg` after any such recovery (confirmed both times) — its presence is what
+  distinguishes "workspace wiped" from "fresh clone," which would need the guard reinstalled.
+  `node_modules/next/dist/docs/` (the CLAUDE.md-mandated Next reference) only exists after `npm ci`,
+  so a wipe blocks that reading too — **context7 is not a fallback for it: its API key is invalid in
+  this environment** (`Invalid API key... should start with 'ctx7sk'`).
 - **Do not run the gates on Node 24.13.0 — it is a genuine dependency gap, not a policy nit.**
   `jsdom@30.0.1` requires `^22.22.2 || ^24.15.0 || >=26.0.0`; v24.13.0 satisfies none of the three
   (too new for the 22 branch, too old for the 24.15 branch) and `npm ci` reports `EBADENGINE`. jsdom

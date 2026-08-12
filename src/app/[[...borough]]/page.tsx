@@ -22,24 +22,41 @@
 // not a socrata.ts caller (see that file's header). No inline note: the
 // correlation-only framing this series needs already lives in Caveats,
 // page-wide (SPEC.md Intellectual Control point 5).
+//
+// NFR-1 addition (SPEC.md, "prerendered/CDN-cacheable borough routes"):
+// moved from src/app/page.tsx (a searchParams-based page, which opted the
+// whole route out of static rendering — every response was a cache MISS) to
+// this optional catch-all route segment. The borough now arrives as a route
+// param (an array of path segments) rather than a query string, enumerated
+// at build time by generateStaticParams below so all six variants
+// (citywide + five boroughs) become static HTML on the CDN. A
+// `params.borough` array of length other than 1 — the root of the catch-all
+// ([]/undefined) or a defensive multi-segment path a misconfigured link
+// could produce — is treated as "no borough" (citywide) rather than reading
+// `[0]` blindly; `dynamicParams = false` 404s any path outside the
+// enumerated six before this code ever runs, but the array-length guard
+// keeps page.tsx correct even if invoked directly. Case-folding and code
+// validation for whichever single segment survives that guard stay owned by
+// src/lib/boroughs.ts's `parseBoroughParam`, unmodified (this task's Query
+// section keeps that file out of scope).
 
-import { BoroughPicker } from "../components/BoroughPicker";
-import { Caveats } from "../components/Caveats";
-import { CoverageWarning } from "../components/CoverageWarning";
-import { KPIRow } from "../components/KPIRow";
-import { MetricSection } from "../components/MetricSection";
-import { YearlyLineChart } from "../components/YearlyLineChart";
-import { ARRESTS_SOQL, fetchArrestsPerYear } from "../lib/arrests";
-import { fetchCoverageData } from "../lib/arrestsCoverage";
-import { BOROUGHS, parseBoroughParam } from "../lib/boroughs";
-import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../lib/collisions";
-import { DEATHS_SOQL, fetchDeathsPerYear } from "../lib/deaths";
-import { INJURIES_SOQL, fetchInjuriesPerYear } from "../lib/injuries";
+import { BoroughPicker } from "../../components/BoroughPicker";
+import { Caveats } from "../../components/Caveats";
+import { CoverageWarning } from "../../components/CoverageWarning";
+import { KPIRow } from "../../components/KPIRow";
+import { MetricSection } from "../../components/MetricSection";
+import { YearlyLineChart } from "../../components/YearlyLineChart";
+import { ARRESTS_SOQL, fetchArrestsPerYear } from "../../lib/arrests";
+import { fetchCoverageData } from "../../lib/arrestsCoverage";
+import { BOROUGH_CODES, BOROUGHS, parseBoroughParam } from "../../lib/boroughs";
+import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../../lib/collisions";
+import { DEATHS_SOQL, fetchDeathsPerYear } from "../../lib/deaths";
+import { INJURIES_SOQL, fetchInjuriesPerYear } from "../../lib/injuries";
 import {
   REPAIRED_COLLISIONS_SOQL,
   fetchRepairedCollisionsPerYear,
-} from "../lib/repairedCollisions";
-import styles from "./page.module.css";
+} from "../../lib/repairedCollisions";
+import styles from "../page.module.css";
 
 // FR-9: the one-sentence forward pointer appended to both existing inline
 // notes below, closing the deferred "forward reference to nothing" decision
@@ -66,15 +83,39 @@ const REPAIRED_COLLISIONS_NOTE =
   "is the more reliable figure for judging whether collisions actually declined." +
   SEE_CAVEATS_POINTER;
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: Promise<{ borough?: string | string[] }> | { borough?: string | string[] };
-}) {
-  const resolvedParams = searchParams ? await searchParams : undefined;
-  const boroughParam = parseBoroughParam(resolvedParams?.borough);
+// NFR-1: the closed, six-member set (citywide + five boroughs) enumerated at
+// build time so every variant is prerendered and CDN-cacheable. Mirrors
+// SPEC.md's Intellectual Control: a closed filter domain is the exact case
+// generateStaticParams is for, versus the project-wide `cacheComponents`
+// change this SPEC declines.
+export function generateStaticParams() {
+  return [
+    { borough: [] },
+    ...BOROUGH_CODES.map((code) => ({ borough: [code] })),
+  ];
+}
 
-  const activeCode = boroughParam.status === "ok" ? boroughParam.code : undefined;
+// Only the six enumerated paths above are ever served; every other path
+// (unknown code, lowercase, multi-segment) 404s here rather than falling
+// back to citywide (Edge Cases 1-3).
+export const dynamicParams = false;
+
+// Matches the Socrata Data Cache TTL in socrata.ts so the prerendered HTML
+// and the upstream aggregate age on the same clock.
+export const revalidate = 86400;
+
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ borough?: string[] }> | { borough?: string[] };
+}) {
+  const resolvedParams = await params;
+  const segments = resolvedParams.borough;
+  const singleSegment = segments?.length === 1 ? segments[0] : undefined;
+  const boroughParam = parseBoroughParam(singleSegment);
+
+  const activeCode =
+    boroughParam.status === "ok" ? boroughParam.code : undefined;
 
   const [
     result,
@@ -94,15 +135,15 @@ export default async function Home({
 
   const deaths2025 =
     result.status === "ok"
-      ? result.rows.find((y) => y.year === 2025)?.deaths ?? 0
+      ? (result.rows.find((y) => y.year === 2025)?.deaths ?? 0)
       : 0;
   const collisions2025 =
     collisionsResult.status === "ok"
-      ? collisionsResult.rows.find((y) => y.year === 2025)?.collisions ?? 0
+      ? (collisionsResult.rows.find((y) => y.year === 2025)?.collisions ?? 0)
       : 0;
   const arrests2025 =
     arrestsResult.status === "ok"
-      ? arrestsResult.rows.find((y) => y.year === 2025)?.arrests ?? 0
+      ? (arrestsResult.rows.find((y) => y.year === 2025)?.arrests ?? 0)
       : 0;
 
   return (
@@ -117,23 +158,28 @@ export default async function Home({
           </h1>
           <p className={styles.intro}>
             Reported collisions, injuries, and deaths move very differently over
-            this period; collisions are the most discretionary figure (an officer
-            decides whether to file), injuries typically involve an ambulance or
-            hospital record, and deaths are the least discretionary, the medical
-            examiner&apos;s count.
+            this period; collisions are the most discretionary figure (an
+            officer decides whether to file), injuries typically involve an
+            ambulance or hospital record, and deaths are the least
+            discretionary, the medical examiner&apos;s count.
           </p>
         </div>
         <div className={styles.controls}>
           <BoroughPicker currentBorough={activeCode ?? ""} />
           {boroughParam.status === "invalid" && (
             <p role="alert" className={styles.error}>
-              Invalid borough parameter: &quot;{boroughParam.received}&quot;. Displaying citywide data.
+              Invalid borough parameter: &quot;{boroughParam.received}&quot;.
+              Displaying citywide data.
             </p>
           )}
         </div>
       </header>
 
-      <KPIRow deaths={deaths2025} collisions={collisions2025} arrests={arrests2025} />
+      <KPIRow
+        deaths={deaths2025}
+        collisions={collisions2025}
+        arrests={arrests2025}
+      />
 
       <section className={styles.storySection}>
         <h2 className={styles.sectionTitle}>The Human Toll</h2>
@@ -172,7 +218,9 @@ export default async function Home({
       </section>
 
       <section className={styles.storySection}>
-        <h2 className={styles.sectionTitle}>Data Integrity &amp; Policy Impact</h2>
+        <h2 className={styles.sectionTitle}>
+          Data Integrity &amp; Policy Impact
+        </h2>
         <div className={styles.fullWidthCard}>
           <CoverageWarning coverageResult={coverageResult} />
         </div>

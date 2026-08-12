@@ -1,5 +1,29 @@
-// Behavioral / black-box test of src/app/page.tsx (the Home Server Component),
-// per Rule 4 and NFR-3.
+// Behavioral / black-box test of src/app/[[...borough]]/page.tsx (the Home
+// Server Component), per Rule 4 and NFR-3.
+//
+// This-SPEC addition (NFR-1, "prerendered/CDN-cacheable borough routes"):
+// moved verbatim from src/app/page.test.tsx, which is deleted as part of this
+// same change. The route moved from a searchParams-based page
+// (`searchParams?: Promise<{ borough?: string | string[] }>`) to an optional
+// catch-all route segment (`params: Promise<{ borough?: string[] }>`). Every
+// relative import one directory shallower (`../lib/...`, `../components/...`)
+// is updated to `../../lib/...` / `../../components/...` to match this file's
+// new location one level deeper; `import Home from "./page"` is unchanged
+// because page.tsx moves into the same directory as this test. Every
+// pre-existing behavioral assertion below this comment block is preserved
+// unmodified except the `renderHome()` helper (now builds `{ params }`
+// instead of `{ searchParams }`) and the single describe block that exercises
+// the borough-filter wiring directly (renamed below; its fixtures are now
+// params-shaped arrays of path segments, not searchParams-shaped strings).
+// Two edge cases new to this SPEC are added there: (1) a `params.borough`
+// array of length other than 1 (empty, per Edge Case 4's "root of an optional
+// catch-all" ambiguity, or 2+, per Edge Case 3's defensive multi-segment
+// case) must be treated as "no borough" (citywide) rather than blindly
+// reading `[0]` or falling into the "invalid" alert-banner branch; (2) the
+// per-code URL-to-fetch mapping is otherwise unchanged, since
+// src/lib/boroughs.ts's `parseBoroughParam` is deliberately out of scope for
+// this task (SPEC.md's Query section) and continues to own case-folding and
+// code validation for whichever single string page.tsx hands it.
 //
 // `Home` is an async Server Component. It is rendered here by awaiting the
 // component function directly and passing the resolved JSX into
@@ -127,7 +151,7 @@ import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axe from "axe-core";
 
-import type { YearlyLineChartProps } from "../components/YearlyLineChart";
+import type { YearlyLineChartProps } from "../../components/YearlyLineChart";
 
 const {
   fetchDeathsPerYear,
@@ -198,37 +222,37 @@ const {
   )),
 }));
 
-vi.mock("../lib/deaths", () => ({
+vi.mock("../../lib/deaths", () => ({
   fetchDeathsPerYear,
   DEATHS_SOQL: SYNTHETIC_SOQL,
 }));
 
-vi.mock("../lib/injuries", () => ({
+vi.mock("../../lib/injuries", () => ({
   fetchInjuriesPerYear,
   INJURIES_SOQL: INJURIES_SYNTHETIC_SOQL,
 }));
 
-vi.mock("../lib/collisions", () => ({
+vi.mock("../../lib/collisions", () => ({
   fetchCollisionsPerYear,
   COLLISIONS_SOQL: COLLISIONS_SYNTHETIC_SOQL,
 }));
 
-vi.mock("../lib/repairedCollisions", () => ({
+vi.mock("../../lib/repairedCollisions", () => ({
   fetchRepairedCollisionsPerYear,
   REPAIRED_COLLISIONS_SOQL: REPAIRED_SYNTHETIC_SOQL,
 }));
 
-vi.mock("../lib/arrests", () => ({
+vi.mock("../../lib/arrests", () => ({
   fetchArrestsPerYear,
   ARRESTS_SOQL: ARRESTS_SYNTHETIC_SOQL,
 }));
 
-vi.mock("../lib/arrestsCoverage", () => ({
+vi.mock("../../lib/arrestsCoverage", () => ({
   fetchCoverageData,
 }));
 
-vi.mock("../components/YearlyLineChart", () => ({ YearlyLineChart }));
-vi.mock("../components/Caveats", () => ({ Caveats }));
+vi.mock("../../components/YearlyLineChart", () => ({ YearlyLineChart }));
+vi.mock("../../components/Caveats", () => ({ Caveats }));
 
 import Home from "./page";
 
@@ -381,12 +405,20 @@ function callsFor(fieldAlias: string) {
   );
 }
 
+// This-SPEC change: the second positional argument is now params-shaped
+// (`{ borough?: string[] }`, a catch-all route's array of path segments)
+// rather than searchParams-shaped (`{ borough?: string | string[] }`, a
+// query-string value). Defaulted to `{}` — never `undefined` — because the
+// real route always resolves a `params` Promise (it is a required prop on
+// the moved page component, not an optional one); every pre-existing call
+// site in this file that invokes `renderHome()` with no argument at all
+// keeps resolving to citywide exactly as before.
 async function renderHome(
-  searchParams?: Promise<{ borough?: string | string[] }> | { borough?: string | string[] },
+  params?: Promise<{ borough?: string[] }> | { borough?: string[] },
 ) {
   // Home() is an async function component; calling and awaiting it directly
   // resolves the JSX tree the Server Component would have streamed.
-  const ui = await Home({ searchParams });
+  const ui = await Home({ params: params ?? {} });
   return render(ui);
 }
 
@@ -886,9 +918,9 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(
       summaries.some((s) => /soql query/i.test(s) && /arrests/i.test(s)),
     ).toBe(true);
-    expect(
-      summaries.some((s) => /coverage details by year/i.test(s)),
-    ).toBe(true);
+    expect(summaries.some((s) => /coverage details by year/i.test(s))).toBe(
+      true,
+    );
     expect(new Set(summaries).size).toBe(6);
   });
 
@@ -2443,15 +2475,15 @@ describe("/ (Home) — the SEE_CAVEATS_POINTER forward-reference (FR-9): appende
   });
 });
 
-describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring", () => {
-  it("fetches all five metrics with borough code 'K' and appends '(Brooklyn)' to section captions when searchParams is { borough: 'K' }", async () => {
+describe("/ (Home) — FR-6 / NFR-1: borough filter catch-all route param wiring", () => {
+  it("fetches all five metrics with borough code 'K' and appends '(Brooklyn)' to section captions when params is { borough: ['K'] }", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
       rows: SYNTHETIC_ROWS,
     });
 
-    await renderHome({ borough: "K" });
+    await renderHome({ borough: ["K"] });
 
     expect(fetchDeathsPerYear).toHaveBeenCalledWith("K");
     expect(fetchInjuriesPerYear).toHaveBeenCalledWith("K");
@@ -2464,14 +2496,14 @@ describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring"
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("resolves searchParams when passed as a Promise ({ borough: 'K' })", async () => {
+  it("resolves params when passed as a Promise ({ borough: ['K'] })", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
       rows: SYNTHETIC_ROWS,
     });
 
-    await renderHome(Promise.resolve({ borough: "K" }));
+    await renderHome(Promise.resolve({ borough: ["K"] }));
 
     expect(fetchDeathsPerYear).toHaveBeenCalledWith("K");
     expect(fetchInjuriesPerYear).toHaveBeenCalledWith("K");
@@ -2480,14 +2512,14 @@ describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring"
     expect(fetchArrestsPerYear).toHaveBeenCalledWith("K");
   });
 
-  it("handles case-insensitive borough parameter ('k' resolves to 'K')", async () => {
+  it("still resolves a single path segment case-insensitively ('k' -> 'K') if Home() is ever invoked directly with one — src/lib/boroughs.ts's case-folding is out of scope for this task and stays unmodified; the dedicated 404 for a lowercase URL is generateStaticParams/dynamicParams's job, not page.tsx's", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
       rows: SYNTHETIC_ROWS,
     });
 
-    await renderHome({ borough: "k" });
+    await renderHome({ borough: ["k"] });
 
     expect(fetchDeathsPerYear).toHaveBeenCalledWith("K");
     expect(fetchInjuriesPerYear).toHaveBeenCalledWith("K");
@@ -2496,14 +2528,14 @@ describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring"
     expect(fetchArrestsPerYear).toHaveBeenCalledWith("K");
   });
 
-  it("fetches citywide data (undefined borough code) and renders no alert banner when searchParams is omitted or empty ({ borough: '' })", async () => {
+  it("fetches citywide data (undefined borough code) and renders no alert banner when params is {} (no borough key at all)", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
       rows: SYNTHETIC_ROWS,
     });
 
-    await renderHome({ borough: "" });
+    await renderHome({});
 
     expect(fetchDeathsPerYear).toHaveBeenCalledWith(undefined);
     expect(fetchInjuriesPerYear).toHaveBeenCalledWith(undefined);
@@ -2514,14 +2546,70 @@ describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring"
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("renders an accessible error alert banner (<p role=\"alert\">) and falls back safely to citywide fetches when searchParams contains an invalid borough code", async () => {
+  it("fetches citywide data and renders no alert banner when params.borough is explicitly undefined", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
       rows: SYNTHETIC_ROWS,
     });
 
-    await renderHome({ borough: "INVALID" });
+    await renderHome({ borough: undefined });
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith(undefined);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("SPEC.md Edge Case 4 (the root-of-catch-all ambiguity): fetches citywide data and renders no alert banner when params.borough is an empty array ([]) — covers whichever shape Next 16.3.0's generateStaticParams actually resolves '/' to", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: [] });
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchInjuriesPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchArrestsPerYear).toHaveBeenCalledWith(undefined);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    const text = document.body.textContent ?? "";
+    expect(text).not.toContain("(Brooklyn)");
+  });
+
+  it("SPEC.md Edge Case 3 (defensive multi-segment handling): treats a params.borough array of length 2 (['K', 'extra']) as 'no borough', not as the [0]='K' borough and not as the invalid-parameter alert — dynamicParams=false 404s this path in production, but page.tsx must not read [0] blindly if ever reached", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: ["K", "extra"] });
+
+    expect(fetchDeathsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchInjuriesPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith(undefined);
+    expect(fetchArrestsPerYear).toHaveBeenCalledWith(undefined);
+
+    // Neither the Brooklyn caption (proving [0] was not read) nor the
+    // invalid-parameter alert (proving the array was not routed into the
+    // "invalid" branch either) may appear.
+    const text = document.body.textContent ?? "";
+    expect(text).not.toContain("(Brooklyn)");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it('renders an accessible error alert banner (<p role="alert">) and falls back safely to citywide fetches when the single path segment is an unrecognized borough code (params.borough = ["INVALID"])', async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: ["INVALID"] });
 
     const alert = screen.getByRole("alert");
     expect(alert).toBeInTheDocument();
@@ -2538,26 +2626,6 @@ describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring"
     expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
   });
 
-  it("renders an error alert banner and falls back safely to citywide data when searchParams contains a repeated array param", async () => {
-    fetchDeathsPerYear.mockResolvedValueOnce({
-      status: "ok",
-      soql: SYNTHETIC_SOQL,
-      rows: SYNTHETIC_ROWS,
-    });
-
-    await renderHome({ borough: ["B", "K"] });
-
-    const alert = screen.getByRole("alert");
-    expect(alert).toBeInTheDocument();
-    expect(alert.textContent).toMatch(/invalid borough parameter/i);
-
-    expect(fetchDeathsPerYear).toHaveBeenCalledWith(undefined);
-    expect(fetchInjuriesPerYear).toHaveBeenCalledWith(undefined);
-    expect(fetchCollisionsPerYear).toHaveBeenCalledWith(undefined);
-    expect(fetchRepairedCollisionsPerYear).toHaveBeenCalledWith(undefined);
-    expect(fetchArrestsPerYear).toHaveBeenCalledWith(undefined);
-  });
-
   it("has zero axe-core accessibility violations when a valid borough filter is active", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
@@ -2565,7 +2633,7 @@ describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring"
       rows: SYNTHETIC_ROWS,
     });
 
-    const { container } = await renderHome({ borough: "K" });
+    const { container } = await renderHome({ borough: ["K"] });
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -2578,9 +2646,22 @@ describe("/ (Home) — FR-6 Phase 4: borough filter URL search parameter wiring"
       rows: SYNTHETIC_ROWS,
     });
 
-    const { container } = await renderHome({ borough: "INVALID" });
+    const { container } = await renderHome({ borough: ["INVALID"] });
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
+  });
+
+  it("has zero axe-core accessibility violations when params.borough is a defensive length-2 array (the 'no borough' fallback path)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome({ borough: ["K", "extra"] });
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -2636,57 +2717,79 @@ describe("/ (Home) — FR-7 Phase 6: Dataset coverage warning banner (page integ
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
   });
-describe("/ (Home) — Phase 8: Storytelling Layout", () => {
-  it("renders the KPIRow component with data from the most recent year (2025)", async () => {
-    fetchDeathsPerYear.mockResolvedValueOnce({
-      status: "ok",
-      soql: SYNTHETIC_SOQL,
-      rows: SYNTHETIC_ROWS,
-    });
-    // injuries, collisions, repaired, and arrests are defaulted to ok in beforeEach
+  describe("/ (Home) — Phase 8: Storytelling Layout", () => {
+    it("renders the KPIRow component with data from the most recent year (2025)", async () => {
+      fetchDeathsPerYear.mockResolvedValueOnce({
+        status: "ok",
+        soql: SYNTHETIC_SOQL,
+        rows: SYNTHETIC_ROWS,
+      });
+      // injuries, collisions, repaired, and arrests are defaulted to ok in beforeEach
 
-    await renderHome();
+      await renderHome();
 
-    const kpiRegion = screen.getByRole("region", { name: "Key Performance Indicators" });
-    expect(kpiRegion).toBeInTheDocument();
-    
-    // Check if the specific latest values from our fixtures appear inside the KPIRow region.
-    // 2025 values: deaths: 88, collisions: 8000, arrests: 15500
-    expect(within(kpiRegion).getByText("88")).toBeInTheDocument();
-    expect(within(kpiRegion).getByText("8000")).toBeInTheDocument();
-    expect(within(kpiRegion).getByText("15500")).toBeInTheDocument();
-  });
+      const kpiRegion = screen.getByRole("region", {
+        name: "Key Performance Indicators",
+      });
+      expect(kpiRegion).toBeInTheDocument();
 
-  it("renders the three storytelling sections with correct headings and contents", async () => {
-    fetchDeathsPerYear.mockResolvedValueOnce({
-      status: "ok",
-      soql: SYNTHETIC_SOQL,
-      rows: SYNTHETIC_ROWS,
+      // Check if the specific latest values from our fixtures appear inside the KPIRow region.
+      // 2025 values: deaths: 88, collisions: 8000, arrests: 15500
+      expect(within(kpiRegion).getByText("88")).toBeInTheDocument();
+      expect(within(kpiRegion).getByText("8000")).toBeInTheDocument();
+      expect(within(kpiRegion).getByText("15500")).toBeInTheDocument();
     });
 
-    const { container } = await renderHome();
+    it("renders the three storytelling sections with correct headings and contents", async () => {
+      fetchDeathsPerYear.mockResolvedValueOnce({
+        status: "ok",
+        soql: SYNTHETIC_SOQL,
+        rows: SYNTHETIC_ROWS,
+      });
 
-    // The sections could use aria-labelledby matching the heading, or we can just find the headings
-    // and check what's inside their containing <section>
-    const tollHeading = screen.getByRole("heading", { name: /The Human Toll/i });
-    expect(tollHeading).toBeInTheDocument();
-    const tollSection = tollHeading.closest("section")!;
-    expect(within(tollSection).getByRole("table", { name: /deaths/i })).toBeInTheDocument();
-    expect(within(tollSection).getByRole("table", { name: /injuries/i })).toBeInTheDocument();
+      const { container } = await renderHome();
 
-    const dataHeading = screen.getByRole("heading", { name: /Data Integrity & Policy Impact/i });
-    expect(dataHeading).toBeInTheDocument();
-    const dataSection = dataHeading.closest("section")!;
-    
-    // CoverageWarning banner is rendered here
-    expect(within(dataSection).getByRole("complementary", { name: "Dataset coverage warning" })).toBeInTheDocument();
-    expect(within(dataSection).getByRole("table", { name: COLLISIONS_TABLE_NAME })).toBeInTheDocument();
-    expect(within(dataSection).getByRole("table", { name: REPAIRED_TABLE_NAME })).toBeInTheDocument();
+      // The sections could use aria-labelledby matching the heading, or we can just find the headings
+      // and check what's inside their containing <section>
+      const tollHeading = screen.getByRole("heading", {
+        name: /The Human Toll/i,
+      });
+      expect(tollHeading).toBeInTheDocument();
+      const tollSection = tollHeading.closest("section")!;
+      expect(
+        within(tollSection).getByRole("table", { name: /deaths/i }),
+      ).toBeInTheDocument();
+      expect(
+        within(tollSection).getByRole("table", { name: /injuries/i }),
+      ).toBeInTheDocument();
 
-    const enforcementHeading = screen.getByRole("heading", { name: /Enforcement/i });
-    expect(enforcementHeading).toBeInTheDocument();
-    const enforcementSection = enforcementHeading.closest("section")!;
-    expect(within(enforcementSection).getByRole("table", { name: /arrests/i })).toBeInTheDocument();
+      const dataHeading = screen.getByRole("heading", {
+        name: /Data Integrity & Policy Impact/i,
+      });
+      expect(dataHeading).toBeInTheDocument();
+      const dataSection = dataHeading.closest("section")!;
+
+      // CoverageWarning banner is rendered here
+      expect(
+        within(dataSection).getByRole("complementary", {
+          name: "Dataset coverage warning",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        within(dataSection).getByRole("table", { name: COLLISIONS_TABLE_NAME }),
+      ).toBeInTheDocument();
+      expect(
+        within(dataSection).getByRole("table", { name: REPAIRED_TABLE_NAME }),
+      ).toBeInTheDocument();
+
+      const enforcementHeading = screen.getByRole("heading", {
+        name: /Enforcement/i,
+      });
+      expect(enforcementHeading).toBeInTheDocument();
+      const enforcementSection = enforcementHeading.closest("section")!;
+      expect(
+        within(enforcementSection).getByRole("table", { name: /arrests/i }),
+      ).toBeInTheDocument();
+    });
   });
-});
 });

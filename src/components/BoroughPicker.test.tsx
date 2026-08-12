@@ -9,14 +9,24 @@
 // A Client Component ('use client') that renders a borough selection dropdown
 // inside a <nav aria-label="Borough filter"> container and triggers URL navigation
 // via router.push() on selection change.
+//
+// This-SPEC addition (NFR-1, "prerendered/CDN-cacheable borough routes"): the
+// navigation target changes from a searchParams-based URL
+// (`router.push('/?borough=K')`) to a path-segment URL
+// (`router.push('/K')`), matching the moved page's new catch-all route shape
+// (src/app/[[...borough]]/page.tsx). Empty-selection navigation is pinned
+// unchanged at `router.push('/')` per SPEC.md's Files section item 2. The
+// accessibility, rendering, and source-grep assertions below are otherwise
+// untouched — this is a navigation-target change only, not a rewrite of what
+// this component is tested for.
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import axe from "axe-core";
 
-import { BOROUGHS } from "../lib/boroughs";
+import { BOROUGH_CODES, BOROUGHS } from "../lib/boroughs";
 
 const pushMock = vi.fn();
 
@@ -33,7 +43,7 @@ describe("<BoroughPicker> — component rendering and ARIA markup (FR-6, NFR-3)"
     pushMock.mockClear();
   });
 
-  it("renders a <nav aria-label=\"Borough filter\"> landmark container", () => {
+  it('renders a <nav aria-label="Borough filter"> landmark container', () => {
     render(<BoroughPicker />);
 
     const nav = screen.getByRole("navigation", { name: "Borough filter" });
@@ -41,7 +51,7 @@ describe("<BoroughPicker> — component rendering and ARIA markup (FR-6, NFR-3)"
     expect(nav.tagName).toBe("NAV");
   });
 
-  it("renders a <select aria-label=\"Select NYC Borough\"> inside the navigation landmark", () => {
+  it('renders a <select aria-label="Select NYC Borough"> inside the navigation landmark', () => {
     render(<BoroughPicker />);
 
     const select = screen.getByRole("combobox", { name: "Select NYC Borough" });
@@ -60,7 +70,9 @@ describe("<BoroughPicker> — component rendering and ARIA markup (FR-6, NFR-3)"
   it("renders 6 <option> elements matching the exact borough vocabulary and display labels", () => {
     render(<BoroughPicker />);
 
-    const select = screen.getByRole("combobox", { name: "Select NYC Borough" }) as HTMLSelectElement;
+    const select = screen.getByRole("combobox", {
+      name: "Select NYC Borough",
+    }) as HTMLSelectElement;
     const options = Array.from(select.options);
 
     expect(options).toHaveLength(6);
@@ -87,7 +99,9 @@ describe("<BoroughPicker> — component rendering and ARIA markup (FR-6, NFR-3)"
   it("reflects the currentBorough prop as the selected <select> value", () => {
     const { rerender } = render(<BoroughPicker currentBorough="K" />);
 
-    const select = screen.getByRole("combobox", { name: "Select NYC Borough" }) as HTMLSelectElement;
+    const select = screen.getByRole("combobox", {
+      name: "Select NYC Borough",
+    }) as HTMLSelectElement;
     expect(select.value).toBe("K");
 
     rerender(<BoroughPicker currentBorough="B" />);
@@ -100,16 +114,40 @@ describe("<BoroughPicker> — component rendering and ARIA markup (FR-6, NFR-3)"
     expect(select.value).toBe("");
   });
 
-  it("triggers URL navigation to /?borough=K when selecting Brooklyn ('K')", () => {
+  // This-SPEC change (NFR-1): the navigation target moves from a
+  // searchParams-shaped URL (`/?borough=K`) to a path-segment URL matching
+  // the moved page's catch-all route (`/K`) — SPEC.md's Files section item 2
+  // pins this exact target, not an approximation of it.
+  it("triggers URL navigation to /K when selecting Brooklyn ('K')", () => {
     render(<BoroughPicker currentBorough="" />);
 
     const select = screen.getByRole("combobox", { name: "Select NYC Borough" });
     fireEvent.change(select, { target: { value: "K" } });
 
     expect(pushMock).toHaveBeenCalledTimes(1);
-    expect(pushMock).toHaveBeenCalledWith("/?borough=K");
+    expect(pushMock).toHaveBeenCalledWith("/K");
   });
 
+  it("triggers URL navigation to /<code> for every borough in the pinned FR-6 vocabulary, never a searchParams-shaped URL", () => {
+    for (const code of BOROUGH_CODES) {
+      pushMock.mockClear();
+      render(<BoroughPicker currentBorough="" />);
+
+      const select = screen.getByRole("combobox", {
+        name: "Select NYC Borough",
+      });
+      fireEvent.change(select, { target: { value: code } });
+
+      expect(pushMock).toHaveBeenCalledTimes(1);
+      expect(pushMock).toHaveBeenCalledWith(`/${code}`);
+      cleanup();
+    }
+  });
+
+  // Empty-selection navigation is pinned unchanged at SPEC.md's Files section
+  // item 2 ("empty selection -> router.push('/')") — asserted exactly, not
+  // as one of several acceptable forms, since the SPEC now names the one
+  // correct target explicitly.
   it("triggers URL navigation to / when selecting citywide ('')", () => {
     render(<BoroughPicker currentBorough="K" />);
 
@@ -117,8 +155,7 @@ describe("<BoroughPicker> — component rendering and ARIA markup (FR-6, NFR-3)"
     fireEvent.change(select, { target: { value: "" } });
 
     expect(pushMock).toHaveBeenCalledTimes(1);
-    const pushedUrl = pushMock.mock.calls[0][0];
-    expect(pushedUrl === "/" || pushedUrl === "/?borough=" || pushedUrl === "").toBe(true);
+    expect(pushMock).toHaveBeenCalledWith("/");
   });
 
   it("has zero axe-core accessibility violations (WCAG 2.2 AA)", async () => {

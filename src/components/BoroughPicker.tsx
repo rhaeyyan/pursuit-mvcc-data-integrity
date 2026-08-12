@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useRouter } from "next/navigation";
 import { BOROUGH_CODES, BOROUGHS } from "../lib/boroughs";
@@ -22,7 +22,7 @@ export function BoroughPicker({ currentBorough }: BoroughPickerProps) {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (val) {
-      router?.push(`/?borough=${val}`);
+      router?.push(`/${val}`);
     } else {
       router?.push("/");
     }
