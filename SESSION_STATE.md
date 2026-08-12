@@ -1,8 +1,32 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** None active. `SPEC.md` is reset and empty.
+**Current objective:** Fallback fixture mechanism (PRD §7 risk mitigation) — **SPEC written,
+awaiting human approval (Rule 1 HITL checkpoint), not yet dispatched to Cypress.**
 
 ## Active
+
+- **AWAITING APPROVAL — `SPEC.md` holds the fallback-fixture SPEC (written 2026-08-11),
+  uncommitted.** Scope: `scripts/generate-fallback-fixture.ts` (imports and runs
+  `fetchDeathsPerYear()` live, writes the committed fixture — **zero new SoQL**), the generated
+  `src/lib/fixtures/deaths-fallback.json`, and a pure `withFallback()` in `src/lib/fallback.ts` +
+  test (4 files). This is the **mechanism only** — wiring it into `page.tsx` with a visible
+  "showing a cached snapshot" banner is a deliberate follow-up SPEC, matching this project's
+  established data/UI split (FR-3, the NFR-1 fix, the Staten Island panel all did this too).
+  **Key design resolution, since a naive reading risks an NFR-4 violation:** substitution only
+  ever triggers on `kind: "upstream"` failures (Socrata unreachable), never `kind: "contract"`
+  (a broken query/absent key — exactly what this product exists to surface, never to mask). The
+  fixture itself is never typed in; it's the literal serialized output of running already-tested
+  `fetchDeathsPerYear()` once. **Verified directly against `guard-data-integrity.sh`'s actual
+  matching logic before designing this** (not assumed): the hook only scans code extensions and
+  separately exempts any `fixture`-named path, so the JSON artifact is doubly exempt — the
+  sanctioned case the hook's own comment names, not a workaround. Also confirmed `arrests.ts`
+  shares `socrata.ts`'s generic `YearlyMetricResult<K>`, so genericizing `withFallback` over it
+  reuses existing structure rather than inventing speculative flexibility.
+  **`/verify-figures` was re-run 2026-08-11 immediately before this SPEC**: all 32 pinned figures
+  matched live Socrata exactly, zero drift — confirmed clean before this SPEC assumed the deaths
+  figures (231, 244, 269, 297, 290, 280, 268, 229) as its non-closable acceptance check.
+  **Next step: get explicit go-ahead on the SPEC, then dispatch Cypress** — do not dispatch
+  without that approval.
 
 - **Staten Island pilot panel, data half — CLOSED 2026-08-11.** `src/lib/statenIslandPilot.ts` +
   `src/app/api/staten-island-pilot/route.ts` (self-contained module, not an extension of
