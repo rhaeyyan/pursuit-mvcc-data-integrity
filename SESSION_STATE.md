@@ -1,32 +1,25 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Fallback fixture mechanism (PRD §7 risk mitigation) — **SPEC written,
-awaiting human approval (Rule 1 HITL checkpoint), not yet dispatched to Cypress.**
+**Current objective:** None active. `SPEC.md` is reset and empty.
 
 ## Active
 
-- **AWAITING APPROVAL — `SPEC.md` holds the fallback-fixture SPEC (written 2026-08-11),
-  uncommitted.** Scope: `scripts/generate-fallback-fixture.ts` (imports and runs
-  `fetchDeathsPerYear()` live, writes the committed fixture — **zero new SoQL**), the generated
-  `src/lib/fixtures/deaths-fallback.json`, and a pure `withFallback()` in `src/lib/fallback.ts` +
-  test (4 files). This is the **mechanism only** — wiring it into `page.tsx` with a visible
-  "showing a cached snapshot" banner is a deliberate follow-up SPEC, matching this project's
-  established data/UI split (FR-3, the NFR-1 fix, the Staten Island panel all did this too).
-  **Key design resolution, since a naive reading risks an NFR-4 violation:** substitution only
-  ever triggers on `kind: "upstream"` failures (Socrata unreachable), never `kind: "contract"`
-  (a broken query/absent key — exactly what this product exists to surface, never to mask). The
-  fixture itself is never typed in; it's the literal serialized output of running already-tested
-  `fetchDeathsPerYear()` once. **Verified directly against `guard-data-integrity.sh`'s actual
-  matching logic before designing this** (not assumed): the hook only scans code extensions and
-  separately exempts any `fixture`-named path, so the JSON artifact is doubly exempt — the
-  sanctioned case the hook's own comment names, not a workaround. Also confirmed `arrests.ts`
-  shares `socrata.ts`'s generic `YearlyMetricResult<K>`, so genericizing `withFallback` over it
-  reuses existing structure rather than inventing speculative flexibility.
-  **`/verify-figures` was re-run 2026-08-11 immediately before this SPEC**: all 32 pinned figures
-  matched live Socrata exactly, zero drift — confirmed clean before this SPEC assumed the deaths
-  figures (231, 244, 269, 297, 290, 280, 268, 229) as its non-closable acceptance check.
-  **Next step: get explicit go-ahead on the SPEC, then dispatch Cypress** — do not dispatch
-  without that approval.
+- **Fallback fixture mechanism — CLOSED 2026-08-11.** `scripts/generate-fallback-fixture.ts` runs
+  the already-tested `fetchDeathsPerYear()` live and writes its `.soql`/`.rows` verbatim to the
+  committed `src/lib/fixtures/deaths-fallback.json` — zero new SoQL. `src/lib/fallback.ts`'s pure
+  `withFallback()` substitutes the fixture only on `kind: "upstream"` failures, never `kind:
+  "contract"` or `status: "empty"` — a contract violation must never be masked by a cache.
+  **Verified beyond the standard TDD chain**: independently re-ran the live generator twice myself
+  after Redwood's report — once hit a genuine transient Socrata network failure that correctly
+  wrote nothing (Edge Case 6 firing for real, not a bug), once succeeded with figures identical to
+  the committed fixture (231, 244, 269, 297, 290, 280, 268, 229) except a fresh `asOf`. Verified
+  570→613→**626/626**, `tsc` clean, `eslint` 0 errors/2 known warnings. **Mechanism only** —
+  wiring into `page.tsx` with a visible "showing a cached snapshot" banner is a deliberate,
+  not-yet-written follow-up SPEC, matching this project's established data/UI split (FR-3, the
+  NFR-1 fix, the Staten Island panel all did this too). Full reasoning (the citywide/deaths-only
+  scope decision, why Redwood's Node-ESM module-resolution shim was accepted rather than treated
+  as a red flag) archived in `ARCHIVED_SESSIONS.md` / `ARCHIVED_SPECS.md`, "2026-08-11 — Fallback
+  fixture mechanism."
 
 - **Staten Island pilot panel, data half — CLOSED 2026-08-11.** `src/lib/statenIslandPilot.ts` +
   `src/app/api/staten-island-pilot/route.ts` (self-contained module, not an extension of

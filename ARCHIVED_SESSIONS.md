@@ -8,6 +8,59 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-11 — Fallback fixture mechanism
+
+PRD §7's risk register names the mitigation in one line — "commit a dated JSON snapshot... as a
+documented fallback fixture" — but that line hides a real design trap: a naive reading is
+indistinguishable from the exact NFR-4 violation this product exists to criticize (a verified
+figure pasted into source, correct today, unaccountable tomorrow). `ARCHIVED_SPECS.md`, "Archived
+2026-08-11 — Fallback Fixture Mechanism" holds the mechanical record; this entry keeps why it was
+built the way it was.
+
+- *Why the fixture's numbers are trustworthy despite being a committed JSON literal.* The
+  distinction that matters isn't "is this a literal" — it's "who typed it and how." Every other
+  literal this project blocks was a human or model asserting a fact from memory. This fixture is
+  the stdout of running already-tested, already-shipped code (`fetchDeathsPerYear()`) once and
+  writing down what it returned — the same "compute deterministically, summarize generatively"
+  discipline `verify-figures.py` already established, applied to a build artifact instead of a
+  chat response. Verified against the actual mechanical guard before writing the SPEC, not
+  assumed: `guard-data-integrity.sh` only scans code extensions and separately exempts any
+  `fixture`-named path, so the JSON is the sanctioned case, not a loophole.
+- *Why substitution is gated on `kind: "upstream"` and nothing else.* An unreachable API and a
+  broken query are different failure classes with opposite correct responses. Socrata being down
+  is exactly what caching should paper over. An absent aggregate or a malformed row is the precise
+  shape of failure this entire product was built to make visible — masking that with a cache would
+  quietly reintroduce the silent-zero problem NFR-4 was written to prevent, just one layer removed
+  from where the rule text says to watch for it. `withFallback`'s three-line branch is short
+  enough that this reasoning could get lost in a future refactor if it isn't written down
+  somewhere the code doesn't carry it.
+- *Why the fixture is citywide-only and deaths-only, and why neither is a shortcut.* A
+  borough-filtered page silently served citywide fallback numbers would misrepresent what's on
+  screen — narrower scope here avoided a real correctness bug, not just extra work. Deaths-only
+  is Rule 6's walking-skeleton discipline applied to an availability concern for the first time
+  this project has needed it: prove the mechanism once, cheaply, before repeating it four more
+  times for injuries/collisions/repaired-collisions/arrests once real wiring exists to justify the
+  repetition.
+- *Why Redwood's module-resolution shim was accepted rather than treated as a red flag.* Plain
+  Node ESM and Next.js's `bundler` moduleResolution disagree on whether an extensionless relative
+  import (`"./socrata"`) is valid — the app's own source uses that style throughout, correctly,
+  under Next's resolution. A generator script that needs to import real app code from outside
+  Next's build pipeline hits that gap directly. The alternative (adding `.ts` extensions to every
+  import in `socrata.ts`/`deaths.ts`/`boroughs.ts`) would have meant editing three files Rule 4
+  freezes as a query contract, for a reason that has nothing to do with query correctness. A
+  ~10-line inline resolution hook, scoped to retry only a failed relative specifier and only within
+  the generator script's own process, was the narrower fix — verified narrow by reading the whole
+  script, not just trusting Redwood's own characterization of it.
+- *Why the orchestrating session re-ran the generator live twice after implementation, rather than
+  trusting the committed file plus Redwood's report.* The first independent run hit a genuine
+  transient Socrata network failure — the script correctly exited non-zero and wrote nothing,
+  leaving the previously-good fixture untouched. That was not a problem to route around; it was
+  Edge Case 6 firing for real, in the wild, which is stronger evidence the mechanism works than
+  any stubbed test could provide. The second run succeeded with figures identical to the committed
+  fixture, differing only in `asOf`. Both outcomes were worth having on the record.
+
+---
+
 ## 2026-08-11 — Staten Island pilot panel, data half
 
 PRD §3's P2 story ("see the Staten Island pilot window on its own") and §7's residual risk item

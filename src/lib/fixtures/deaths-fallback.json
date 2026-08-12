@@ -1,0 +1,38 @@
+{
+  "asOf": "2026-08-12T02:12:01.076Z",
+  "soql": "$select=date_extract_y(crash_date) AS year, sum(number_of_persons_killed) AS deaths\n$where=crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'\n$group=date_extract_y(crash_date)\n$order=year",
+  "rows": [
+    {
+      "year": 2018,
+      "deaths": 231
+    },
+    {
+      "year": 2019,
+      "deaths": 244
+    },
+    {
+      "year": 2020,
+      "deaths": 269
+    },
+    {
+      "year": 2021,
+      "deaths": 297
+    },
+    {
+      "year": 2022,
+      "deaths": 290
+    },
+    {
+      "year": 2023,
+      "deaths": 280
+    },
+    {
+      "year": 2024,
+      "deaths": 268
+    },
+    {
+      "year": 2025,
+      "deaths": 229
+    }
+  ]
+}

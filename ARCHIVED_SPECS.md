@@ -5041,3 +5041,37 @@ a deliberate follow-up SPEC, not yet written. Full reasoning — why the escalat
 Cypress rather than hand-fixed, and why `date_trunc_ym` was chosen over `date_extract_m` — is in
 `ARCHIVED_SESSIONS.md`, "2026-08-11 — Staten Island pilot panel, data half."
 
+---
+
+## Archived 2026-08-11 — Fallback Fixture Mechanism (COMPLETE)
+
+**Outcome:** Builds the deterministic *mechanism* for PRD §7's Socrata-outage risk mitigation —
+mechanism only, deliberately not the `page.tsx` wiring or banner UI. `scripts/generate-fallback-
+fixture.ts` imports and calls the already-tested `fetchDeathsPerYear()` live, asserts `status:
+"ok"`, and writes its `.soql`/`.rows` verbatim to the committed `src/lib/fixtures/deaths-
+fallback.json` — no SoQL constructed, duplicated, or re-derived anywhere in this SPEC. A new
+`src/lib/fallback.ts` exports a pure `withFallback()`: substitutes a fixture only on `kind:
+"upstream"` failures (Socrata unreachable), never on `kind: "contract"` violations or `status:
+"empty"` results, regardless of whether a fixture is available — a contract violation must never
+be masked by a stale cache, since that's exactly the failure mode this product exists to surface.
+
+Full TDD chain: Cypress wrote 13 failing tests first, using synthetic values deliberately disjoint
+from PRD Appendix A's real figures so a passing test can't mean "the wrong series leaked through,"
+and asserting the committed fixture's *shape* (row count, positive integers, valid ISO timestamp,
+`soql` byte-equality) rather than its pinned literal values — NFR-4 discipline applied even where
+the mechanical guard hook wouldn't technically require it. Redwood implemented, hit and solved a
+real Node-ESM-vs-Next.js-bundler-resolution mismatch (the frozen `socrata.ts`/`deaths.ts`/
+`boroughs.ts` use extensionless relative imports, valid under Next's bundler resolution but not
+plain Node ESM) with a narrowly-scoped inline resolution shim rather than touching any of those
+protected files. The orchestrating session independently re-ran the live generator twice after
+implementation — once hitting a genuine transient Socrata network failure that correctly wrote
+nothing and left the prior good fixture untouched (a live demonstration of the fail-loud edge case
+working, not a bug), once succeeding with figures identical to the committed fixture (231, 244,
+269, 297, 290, 280, 268, 229 for 2018–2025) except a fresh `asOf` timestamp. Verified node
+v22.23.2: `tsc --noEmit` clean, `eslint .` 0 errors / 2 pre-existing warnings, full suite
+**626/626** (up from 613/613). Wiring into `page.tsx` with a visible "showing a cached snapshot"
+banner remains a deliberate, not-yet-written follow-up SPEC. Full reasoning — the citywide-only
+scope decision, why deaths-only matches Rule 6's walking-skeleton discipline, and the resolution
+shim's exact justification — is in `ARCHIVED_SESSIONS.md`, "2026-08-11 — Fallback fixture
+mechanism."
+
