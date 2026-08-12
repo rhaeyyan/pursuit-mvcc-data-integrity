@@ -839,7 +839,15 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "error",
       soql: SYNTHETIC_SOQL,
-      kind: "upstream",
+      // kind: "contract", not "upstream" — this SPEC's fallback wiring
+      // substitutes the committed fixture for a citywide "upstream" failure
+      // (src/lib/fallback.ts's withFallback), which would otherwise mask the
+      // raw error state this test exists to prove. A contract violation is
+      // never eligible for substitution (fallback.ts's own decline logic),
+      // so it still exercises the exact "deaths shows its own error, no
+      // table" behavior this test's name and assertions describe — the
+      // metric-independence intent below is unchanged.
+      kind: "contract",
       reason: "Socrata responded 503 (synthetic independence test, deaths)",
     });
     fetchInjuriesPerYear.mockResolvedValueOnce({
@@ -1142,7 +1150,11 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "error",
       soql: SYNTHETIC_SOQL,
-      kind: "upstream",
+      // kind: "contract", not "upstream" — see the note on the identical
+      // change above (two-metric block): this SPEC's fallback wiring would
+      // otherwise substitute the citywide fixture for an "upstream" failure,
+      // masking the raw error state this independence test asserts against.
+      kind: "contract",
       reason: "Socrata responded 503 (three-way test, deaths)",
     });
     fetchInjuriesPerYear.mockResolvedValueOnce({
@@ -1364,7 +1376,12 @@ describe("/ (Home) — this SPEC: chart independence (a collisions chart failure
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "error",
       soql: SYNTHETIC_SOQL,
-      kind: "upstream",
+      // kind: "contract", not "upstream" — see the note in the two-metric
+      // block above. The point of this test is that the deaths chart never
+      // mounts on a deaths error; an "upstream" kind here would instead
+      // trigger this SPEC's fixture substitution and mount the chart from
+      // the fixture, which is the opposite of what's being asserted.
+      kind: "contract",
       reason: "Socrata responded 503 (chart-independence test, deaths)",
     });
     // Collisions' default-"ok" beforeEach value applies unmodified.
@@ -1395,7 +1412,10 @@ describe("/ (Home) — this SPEC: chart independence (a collisions chart failure
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "error",
       soql: SYNTHETIC_SOQL,
-      kind: "upstream",
+      // kind: "contract", not "upstream" — see the note in the two-metric
+      // block above; keeps this test proving both charts are genuinely
+      // absent rather than one being silently replaced by the fixture.
+      kind: "contract",
       reason:
         "Socrata responded 503 (chart-independence test, both-fail deaths)",
     });
@@ -1912,7 +1932,12 @@ describe("/ (Home) — five independent metrics on one page (this SPEC's Edge Ca
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "error",
       soql: SYNTHETIC_SOQL,
-      kind: "upstream",
+      // kind: "contract", not "upstream" — see the note in the two-metric
+      // block above; otherwise this SPEC's fallback wiring substitutes the
+      // citywide fixture and the deaths table renders successfully instead
+      // of erroring, defeating this test's "five metrics, four erroring"
+      // premise.
+      kind: "contract",
       reason: "Socrata responded 503 (five-way test, deaths)",
     });
     fetchInjuriesPerYear.mockResolvedValueOnce({
@@ -2038,7 +2063,12 @@ describe("/ (Home) — four independent metrics on one page (this SPEC's Edge Ca
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "error",
       soql: SYNTHETIC_SOQL,
-      kind: "upstream",
+      // kind: "contract", not "upstream" — see the note in the two-metric
+      // block above; otherwise this SPEC's fallback wiring substitutes the
+      // citywide fixture and the deaths table renders successfully instead
+      // of erroring, defeating this test's "four metrics, three erroring"
+      // premise.
+      kind: "contract",
       reason: "Socrata responded 503 (four-way test, deaths)",
     });
     fetchInjuriesPerYear.mockResolvedValueOnce({
@@ -2266,7 +2296,12 @@ describe("/ (Home) — Caveats section (FR-9): mounted unconditionally, independ
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "error",
       soql: SYNTHETIC_SOQL,
-      kind: "upstream",
+      // kind: "contract", not "upstream" — see the note in the two-metric
+      // block above; otherwise this SPEC's fallback wiring substitutes the
+      // citywide fixture, the deaths table renders successfully, and this
+      // test's "all four metrics erroring" premise (the setup for proving
+      // Caveats survives even total failure) no longer holds for deaths.
+      kind: "contract",
       reason: "Socrata responded 503 (Caveats independence test, deaths)",
     });
     fetchInjuriesPerYear.mockResolvedValueOnce({
@@ -2791,5 +2826,210 @@ describe("/ (Home) — FR-7 Phase 6: Dataset coverage warning banner (page integ
         within(enforcementSection).getByRole("table", { name: /arrests/i }),
       ).toBeInTheDocument();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// This-SPEC addition ("Wire the already-built fallback mechanism ... into
+// the live page ... with a visible banner", PRD §7 / NFR-5): src/lib/
+// fallback.ts's withFallback() and the committed src/lib/fixtures/
+// deaths-fallback.json are deliberately NOT mocked here, unlike ../../lib/
+// deaths (which fakes the live fetch only). SPEC.md's own Acceptance
+// criteria #3 requires proving a real upstream-failure path renders the
+// banner with the *committed fixture's actual* asOf and 8 rows, not a
+// stubbed double standing in for the real fixture import — so this file
+// imports the real, committed JSON fixture directly (the same idiom src/lib/
+// fallback.test.ts already established for asserting the fixture's *shape*)
+// and compares the rendered table/banner against it, never against a value
+// re-derived or hardcoded in this file (NFR-4).
+//
+// src/components/CachedDataBanner is also NOT mocked/imported directly here
+// — page.tsx is the only file that will mount it, and this file only ever
+// queries the rendered DOM for it by role + disclosure text, exactly the way
+// CoverageWarning (also unmocked) is queried elsewhere in this file. That
+// also means this block currently fails red for the correct behavioral
+// reason without any module-resolution error of its own: page.tsx doesn't
+// yet call withFallback() or mount CachedDataBanner at all, so today an
+// upstream failure still falls straight through to the existing FR-10 error
+// state unconditionally, and no banner of any kind exists in the DOM to
+// find.
+// ---------------------------------------------------------------------------
+
+import deathsFallbackFixtureRaw from "../../lib/fixtures/deaths-fallback.json";
+
+type DeathsFallbackFixture = {
+  asOf: string;
+  soql: string;
+  rows: { year: number; deaths: number }[];
+};
+
+const deathsFallbackFixture = deathsFallbackFixtureRaw as DeathsFallbackFixture;
+
+// The fixture's own asOf, decomposed to a UTC calendar year so this file can
+// prove the banner reflects the real fixture's asOf without hardcoding the
+// fixture's current literal date string (which changes every time the
+// fixture is regenerated) and without asserting a specific display format —
+// that exact-format assertion belongs to CachedDataBanner.test.tsx, not
+// here.
+const FIXTURE_AS_OF_YEAR = String(
+  new Date(deathsFallbackFixture.asOf).getUTCFullYear(),
+);
+
+// Any element carrying role="status" whose text mentions the cache/snapshot
+// substitution — deliberately not keyed to a hardcoded implementation detail
+// (a CSS class, a data-testid) since CachedDataBanner's exact markup beyond
+// role="status" is Redwood's freedom (SPEC.md UI Scope: "deliberately
+// undecorated"). Other legitimate role="status" elements already exist
+// elsewhere on this page (e.g. MetricSection's empty-state paragraph,
+// CoverageWarning's "currently unavailable" paragraph) — none of those
+// mention "cache" or "snapshot", so this filter cannot accidentally match
+// them.
+function queryCachedDataBanner() {
+  return screen
+    .queryAllByRole("status")
+    .find((el) => /cache|cached|snapshot/i.test(el.textContent ?? ""));
+}
+
+describe("/ (Home) — this SPEC: fallback fixture wiring into the deaths card (PRD §7, NFR-5)", () => {
+  it("Edge Case 2: citywide + upstream failure -> substitutes the committed fixture, renders the CachedDataBanner, and the deaths table reflects the fixture's real 8 rows", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "the request to Socrata failed (network error or timeout)",
+    });
+
+    await renderHome();
+
+    const banner = queryCachedDataBanner();
+    expect(banner).toBeTruthy();
+    expect(banner?.textContent).toMatch(new RegExp(FIXTURE_AS_OF_YEAR));
+
+    const table = screen.getByRole("table", { name: /deaths/i });
+    expect(table).toBeInTheDocument();
+    // 8 data rows + 1 header row, scoped to the deaths table.
+    expect(within(table).getAllByRole("row")).toHaveLength(9);
+
+    // Every displayed year/deaths pair is the real committed fixture's own
+    // value, read from the fixture import itself — never a value
+    // re-derived or hardcoded in this test (NFR-4). Tying each year to its
+    // own <tr> (rather than just asserting both values appear somewhere in
+    // the table) rules out a false pass from an accidental match elsewhere.
+    for (const row of deathsFallbackFixture.rows) {
+      const yearCell = within(table).getByText(String(row.year));
+      const rowEl = yearCell.closest("tr");
+      expect(rowEl).toHaveTextContent(String(row.deaths));
+    }
+  });
+
+  it("Edge Case 1: citywide + live success -> no CachedDataBanner renders, and the table reflects the live (mocked) rows, never the fixture", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    expect(queryCachedDataBanner()).toBeFalsy();
+
+    const table = screen.getByRole("table", { name: /deaths/i });
+    // SYNTHETIC_ROWS' own deaths values (11..88) are visible; none of the
+    // fixture's real deaths values (disjoint from that range) leaked in.
+    expect(within(table).getByText("11")).toBeInTheDocument();
+    for (const row of deathsFallbackFixture.rows) {
+      expect(
+        within(table).queryByText(String(row.deaths)),
+      ).not.toBeInTheDocument();
+    }
+  });
+
+  it("Edge Case 3: citywide + a CONTRACT-kind failure -> no substitution, no CachedDataBanner, the existing FR-10 error state renders unchanged (withFallback already declines this case; this test proves the wiring doesn't add new handling that changes it)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "contract",
+      reason: "no aggregate returned for 2024 (synthetic test reason)",
+    });
+
+    await renderHome();
+
+    expect(queryCachedDataBanner()).toBeFalsy();
+    expect(
+      screen.queryByRole("table", { name: /deaths/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/no aggregate returned for 2024/i),
+    ).toBeInTheDocument();
+  });
+
+  it("Edge Case 4: citywide + an empty result -> no substitution, no CachedDataBanner, the existing empty-state renders unchanged", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "empty",
+      soql: SYNTHETIC_SOQL,
+    });
+
+    await renderHome();
+
+    expect(queryCachedDataBanner()).toBeFalsy();
+    expect(
+      screen.queryByRole("table", { name: /deaths/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("Edge Case 5: a borough filter active + upstream failure -> the fixture is never substituted (citywide-only, enforced at the wiring layer via fixture=undefined), no CachedDataBanner renders, and the existing FR-10 error state renders exactly as it does citywide", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "the request to Socrata failed (network error or timeout)",
+    });
+
+    await renderHome({ borough: ["K"] });
+
+    expect(queryCachedDataBanner()).toBeFalsy();
+    expect(
+      screen.queryByRole("table", { name: /deaths/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /the request to Socrata failed \(network error or timeout\)/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("mounts the deaths YearlyLineChart from the substituted fixture path with the exact same fixture rows the table renders (chart and table must never drift apart)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "the request to Socrata failed (network error or timeout)",
+    });
+
+    await renderHome();
+
+    const deathsCalls = callsFor("deaths");
+    expect(deathsCalls).toHaveLength(1);
+    const props = deathsCalls[0][0] as YearlyLineChartProps<"deaths">;
+    expect(props.rows).toEqual(deathsFallbackFixture.rows);
+  });
+
+  it("has zero axe-core accessibility violations with the CachedDataBanner present (citywide, upstream failure)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "the request to Socrata failed (network error or timeout)",
+    });
+
+    const { container } = await renderHome();
+
+    // Prove the banner actually exists before scanning — an axe.run() that
+    // passes over content that isn't present would be a false-positive that
+    // proves nothing about the banner itself.
+    expect(queryCachedDataBanner()).toBeTruthy();
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
   });
 });

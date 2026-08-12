@@ -41,6 +41,7 @@
 // section keeps that file out of scope).
 
 import { BoroughPicker } from "../../components/BoroughPicker";
+import { CachedDataBanner } from "../../components/CachedDataBanner";
 import { Caveats } from "../../components/Caveats";
 import { CoverageWarning } from "../../components/CoverageWarning";
 import { KPIRow } from "../../components/KPIRow";
@@ -51,6 +52,8 @@ import { fetchCoverageData } from "../../lib/arrestsCoverage";
 import { BOROUGH_CODES, BOROUGHS, parseBoroughParam } from "../../lib/boroughs";
 import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../../lib/collisions";
 import { DEATHS_SOQL, fetchDeathsPerYear } from "../../lib/deaths";
+import { withFallback } from "../../lib/fallback";
+import deathsFixtureData from "../../lib/fixtures/deaths-fallback.json";
 import { INJURIES_SOQL, fetchInjuriesPerYear } from "../../lib/injuries";
 import {
   REPAIRED_COLLISIONS_SOQL,
@@ -118,7 +121,7 @@ export default async function Home({
     boroughParam.status === "ok" ? boroughParam.code : undefined;
 
   const [
-    result,
+    rawDeathsResult,
     injuriesResult,
     collisionsResult,
     repairedResult,
@@ -132,6 +135,17 @@ export default async function Home({
     fetchArrestsPerYear(activeCode),
     fetchCoverageData(),
   ]);
+
+  // PRD §7 risk mitigation: substitute the committed fixture only when the
+  // deaths fetch failed upstream (never on a contract violation or an empty
+  // result — withFallback's own decline logic, unchanged here) and only for
+  // the citywide view (activeCode === undefined) — a borough-filtered
+  // request still shows the existing FR-10 error state unchanged. See
+  // SPEC.md's Intellectual Control point 3.
+  const result = withFallback(
+    rawDeathsResult,
+    activeCode === undefined ? deathsFixtureData : undefined,
+  );
 
   const deaths2025 =
     result.status === "ok"
@@ -185,6 +199,9 @@ export default async function Home({
         <h2 className={styles.sectionTitle}>The Human Toll</h2>
         <div className={styles.dashboard}>
           <div className={styles.card}>
+            {result.status === "ok" && result.source === "cache" && (
+              <CachedDataBanner asOf={result.asOf} />
+            )}
             {result.status === "ok" && (
               <YearlyLineChart
                 rows={result.rows}
