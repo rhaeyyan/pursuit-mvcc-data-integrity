@@ -8,6 +8,76 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-11 — Deploy verification, platform recovery, and the borough-caching fix
+
+The project's first production deploy landed this session
+(<https://pursuit-mvcc-data-integrity.vercel.app/>), followed by its first live-traffic
+performance finding, two separate platform-toolchain failures, and the fix for the finding —
+verified end to end against the live URL, not just locally. `SPEC.md` / `ARCHIVED_SPECS.md`
+("Archived 2026-08-11 — NFR-1 Borough Caching Fix") hold the mechanical record; this entry keeps
+the reasoning that isn't there.
+
+- *Why the deploy was verified by direct HTTP inspection rather than trusted from Vercel's "deploy
+  succeeded" status.* A green build says the code compiled, not that FR-10's error state stays
+  unreached or that NFR-2 holds in the shipped bundle. Pulled all 8 client chunks and grepped them
+  plus the HTML for the token identifier; only that gave a real answer. The same discipline caught
+  the actual finding: every response carried `x-vercel-cache: MISS` with `private, no-cache`, and a
+  cold `?borough=K` measured 3.2s against NFR-1's 2.5s budget — invisible from the build log, only
+  visible by requesting the live route.
+- *Why the fix picked `generateStaticParams` over Next 16's more idiomatic `cacheComponents` + `use
+  cache`.* Both were read from the vendored Next docs (`node_modules/next/dist/docs/`) before
+  deciding, per CLAUDE.md's Next-docs mandate. `cacheComponents` is the general answer for an *open*
+  filter domain — it keeps `searchParams` and caches per argument — but enabling it makes
+  `dynamic`/`revalidate`/`fetchCache` segment configs **error** project-wide (confirmed in
+  `migrating-to-cache-components.md`), which would have rippled into all five existing API routes
+  and `socrata.ts`'s `revalidate: 86400` for a fix scoped to one route. The borough domain is
+  *closed* (five FR-6-pinned codes) and provably will not grow without FR-6 itself changing, so
+  enumerating it is complete, not an approximation — the narrower tool was correct, not merely
+  cautious. The Tipping Point recorded in `SPEC.md` names the reversal condition precisely: a
+  second, open-ended filter dimension is what would finally justify the project-wide change.
+- *Why `boroughs.ts` was named out of scope in the SPEC's file list rather than just left alone by
+  convention.* A performance fix touching the FR-6 pinned code mapping (`B`→BRONX, `K`→BROOKLYN, …)
+  is exactly the kind of scope creep Rule 4 of CLAUDE.md's four core rules exists to block — a query
+  contract changing as a side effect of an unrelated task. Naming the exclusion in the SPEC made it
+  checkable rather than relying on nobody happening to touch the file.
+- *Why one Redwood-flagged test failure (a missing `cleanup()` between five sequential `render()`
+  calls in Cypress's new loop test, causing RTL to see duplicate comboboxes) was fixed directly by
+  the orchestrating session instead of round-tripped back through Cypress.* The project's role table
+  restricts test edits to Cypress, but the failure was RTL hygiene, not a judgment call about what
+  to test or a disagreement with the SPEC — a full agent dispatch for a one-line fix would have
+  violated Rule 5's "surgical: intention over tool-execution rate" in the other direction. The
+  distinction that matters: Redwood *finding* a bug in Cypress's test and Cypress *rejecting*
+  Redwood's implementation are different shapes, and only the second is the rejection loop Rule 10
+  Banyan mediates.
+- *Why the SPEC's own "record First Load JS" acceptance criterion turned out to be unfulfillable,
+  not just unmet.* Confirmed directly against `node_modules/next/dist/docs/.../version-16.md:989`:
+  Next.js 16 deliberately removed that metric from `next build` output, judging it inaccurate for
+  RSC architectures, and points instead to Lighthouse or Vercel Analytics against Core Web Vitals.
+  This had sat as an open deploy obligation since the 2026-08-07 precondition; chasing it further
+  would have meant reading a number that no longer exists. Retired as originally worded rather than
+  left open indefinitely — a future SPEC wanting bundle-size tracking should target Lighthouse CI
+  (already a named maybe-later item) or Vercel Analytics instead.
+- *Why the platform recovery this session needed is worth keeping, not just the fix.* `nvm` was
+  found completely absent (no version manager of any kind — nvm, fnm, volta, asdf, mise, n — and a
+  system Node v26.7.0 substituting silently). This is the second toolchain regression this project
+  has hit (the first, 2026-08-07, was fnm disappearing), and both times the failure mode was the
+  same shape: a shell that *looks* fine (`node -v` returns a plausible version) but is silently off
+  the pinned target. `v26.7.0` was a closer call than the earlier `v24.13.0` trap — it actually
+  clears `jsdom@30`'s engine range and produced a genuinely clean local run — so the reason to
+  reinstall `nvm` rather than retarget the project to 26 wasn't "this platform is broken," it was
+  "Vercel's runtime is 22.x and the pin exists for dev/prod parity, which passing `engines.node`
+  doesn't buy." `brew install nvm` (not a piped remote script) plus a `~/.zshrc` sourcing block is
+  what makes the *project's own* `stop-quality-gate.sh` hook's suggested remedy (`bash -ic`/`fish
+  -i`) actionable again — that hook's advice had been correct in principle but unexecutable while no
+  version manager existed at all, which the ledger now no longer mis-describes as "moot."
+- *Why `node_modules/` wiping (now 2 occurrences) is recorded as a pattern rather than two
+  unrelated incidents.* Same symptom, same intact-repo diagnosis (`.git/hooks/commit-msg` byte-
+  identical both times, ruling out "fresh clone"), same recovery recipe both times. Naming it as a
+  recurring class rather than re-deriving the diagnosis from scratch next time is the entire point
+  of keeping this file.
+
+---
+
 ## 2026-08-07 — FR-6/FR-7 planned as six phases; Phases 1–2 closed
 
 A second `/grill-me` round settled four decisions before Cedar wrote any SPEC: URL search-param

@@ -4985,3 +4985,26 @@ with Arrests. No `fetch` logic or data shape changed; zero comparative math intr
 Phase 8 of 8 and, with it, the FR-6/FR-7 phased objective and NFR-5 — no further phases are
 queued in `SPEC.md`.
 
+---
+
+## Archived 2026-08-11 — NFR-1 Borough Caching Fix (COMPLETE)
+
+**Outcome:** `/` moved from `src/app/page.tsx` (a `searchParams`-based page — reading it opted the
+whole route out of static rendering, so every response was `x-vercel-cache: MISS`) to
+`src/app/[[...borough]]/page.tsx`, an optional catch-all with `generateStaticParams` enumerating
+the closed six-member set (citywide + 5 boroughs), `dynamicParams = false`, and
+`revalidate = 86400` matching the Socrata Data Cache TTL. `BoroughPicker.tsx`'s navigation changed
+from `router.push('/?borough=K')` to `router.push('/K')`. No SoQL, dataset ID, or
+`src/lib/boroughs.ts` touched. Full TDD chain: Cypress wrote failing tests first, Redwood
+implemented, one unrelated RTL test bug (`BoroughPicker.test.tsx`'s new loop test missing
+`cleanup()` between renders) fixed directly rather than round-tripped. Committed `f2611bf`, pushed,
+redeployed, and **all 5 acceptance criteria verified against the live URL**: repeat `/K` →
+`x-vercel-cache: HIT`; all five boroughs cold `<0.3s` (was 3.2s pre-fix, against a 2.5s budget);
+`/X` and `/k` both 404; NFR-2 re-scanned clean on the new deploy; `/K` confirmed to actually render
+Brooklyn-scoped content. Verified node v22.23.2: `tsc --noEmit` clean, `eslint .` 0 errors / 2
+pre-existing warnings, full suite 570/570 (up from 566/566). Full reasoning — why the more
+idiomatic `cacheComponents` mechanism was declined, the platform recovery this SPEC ran under, and
+why the SPEC's own "record First Load JS" acceptance criterion turned out to be permanently
+unfulfillable — is in `ARCHIVED_SESSIONS.md`, "2026-08-11 — Deploy verification, platform
+recovery, and the borough-caching fix."
+
