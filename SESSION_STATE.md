@@ -1,8 +1,28 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** None active. `SPEC.md` is reset and empty.
+**Current objective:** none in flight. **Queued next:** the Staten Island pilot panel's chart/UI
+half (sequenced after the fallback-banner-wiring SPEC below so the two don't edit `page.tsx`
+concurrently — that's now clear).
 
 ## Active
+
+- **Fallback banner wiring — CLOSED 2026-08-12.** `src/components/CachedDataBanner.tsx` (new,
+  `role="status"`, deterministic UTC date formatting — no `toLocaleDateString()`) + `page.tsx`
+  wired through `withFallback(rawDeathsResult, activeCode === undefined ? deathsFixtureData :
+  undefined)`, banner rendered as a sibling before the deaths chart, gated on `status === "ok" &&
+  source === "cache"`. Full TDD chain (Cypress → Redwood), approved via HITL before dispatch.
+  **One real cross-cutting collision surfaced and was resolved, the second of its kind this
+  project has hit** (first was the Staten Island Zero-Trust tests): 7 pre-existing tests mocked a
+  citywide deaths fetch as `kind: "upstream"` purely to test cross-metric/Caveats independence,
+  and that exact mock shape is what the new wiring now correctly substitutes instead of erroring.
+  Redwood declined to touch tests or weaken the wiring; escalated to Cypress, who changed only the
+  `kind` field (`"upstream"` → `"contract"`) in those 7 mocks, preserving every assertion
+  byte-for-byte — a contract violation is unconditionally excluded from substitution (Edge Case 3)
+  regardless of borough state. Verified node v22.23.2: **640/640** (+14 from 626 baseline), `tsc
+  --noEmit` clean, `eslint .` 0 errors/2 known pre-existing warnings. Banner deliberately
+  undecorated — visual polish is a named, not-yet-written Magnolia follow-up. Full reasoning
+  archived in `ARCHIVED_SPECS.md` / to be condensed into `ARCHIVED_SESSIONS.md` at next archive
+  pass, "2026-08-12 — Fallback banner wiring."
 
 - **Fallback fixture mechanism — CLOSED 2026-08-11.** `scripts/generate-fallback-fixture.ts` runs
   the already-tested `fetchDeathsPerYear()` live and writes its `.soql`/`.rows` verbatim to the
@@ -13,10 +33,11 @@
   after Redwood's report — once hit a genuine transient Socrata network failure that correctly
   wrote nothing (Edge Case 6 firing for real, not a bug), once succeeded with figures identical to
   the committed fixture (231, 244, 269, 297, 290, 280, 268, 229) except a fresh `asOf`. Verified
-  570→613→**626/626**, `tsc` clean, `eslint` 0 errors/2 known warnings. **Mechanism only** —
-  wiring into `page.tsx` with a visible "showing a cached snapshot" banner is a deliberate,
-  not-yet-written follow-up SPEC, matching this project's established data/UI split (FR-3, the
-  NFR-1 fix, the Staten Island panel all did this too). Full reasoning (the citywide/deaths-only
+  570→613→**626/626**, `tsc` clean, `eslint` 0 errors/2 known warnings. **Mechanism only at the
+  time** — wiring into `page.tsx` with a visible banner was the deliberate follow-up SPEC,
+  matching this project's established data/UI split (FR-3, the NFR-1 fix, the Staten Island panel
+  all did this too); that follow-up is now closed, see "Fallback banner wiring — CLOSED
+  2026-08-12" above. Full reasoning (the citywide/deaths-only
   scope decision, why Redwood's Node-ESM module-resolution shim was accepted rather than treated
   as a red flag) archived in `ARCHIVED_SESSIONS.md` / `ARCHIVED_SPECS.md`, "2026-08-11 — Fallback
   fixture mechanism."

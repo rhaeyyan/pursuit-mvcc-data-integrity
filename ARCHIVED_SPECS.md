@@ -5075,3 +5075,168 @@ scope decision, why deaths-only matches Rule 6's walking-skeleton discipline, an
 shim's exact justification — is in `ARCHIVED_SESSIONS.md`, "2026-08-11 — Fallback fixture
 mechanism."
 
+
+---
+
+## 2026-08-12 — Fallback banner wiring (CLOSED)
+
+# Active SPEC
+
+[SPEC]
+
+- **Objective**: Wire the already-built fallback mechanism (`src/lib/fallback.ts`,
+  `src/lib/fixtures/deaths-fallback.json`) into the live page: when the deaths fetch fails
+  upstream and the page is showing citywide data, substitute the cached snapshot and render a
+  visible banner disclosing that substitution. This is the deliberate follow-up named in the
+  fallback-fixture SPEC's own Tipping Point. **The Staten Island pilot panel's chart/UI half is a
+  separate, queued follow-up — not part of this SPEC**, sequenced after this one closes because
+  both tasks would otherwise edit `src/app/[[...borough]]/page.tsx` concurrently.
+
+- **Requirement**: PRD §7 risk register (Socrata down at demo time) + NFR-5 (honesty of
+  presentation) — a substituted figure must never look identical to a live one; the reader must be
+  able to tell which they're looking at.
+
+- **Inputs/Outputs**:
+  - `src/app/[[...borough]]/page.tsx` wraps the raw `fetchDeathsPerYear(activeCode)` result through
+    `withFallback()` before it reaches `MetricSection`/`YearlyLineChart`, exactly as today except
+    for one added call:
+    ```ts
+    const result = withFallback(
+      rawDeathsResult,
+      activeCode === undefined ? deathsFixtureData : undefined,
+    );
+    ```
+    Passing `undefined` whenever a borough filter is active is not a new edge case — it is
+    `withFallback`'s own Edge Case 3 (no fixture provided → passthrough), invoked deliberately to
+    enforce the earlier SPEC's citywide-only decision at the one place it needs enforcing.
+  - New component `src/components/CachedDataBanner.tsx`:
+    ```ts
+    export interface CachedDataBannerProps { asOf: string; }
+    export function CachedDataBanner({ asOf }: CachedDataBannerProps): JSX.Element;
+    ```
+    Rendered as a sibling before the deaths chart, gated on
+    `result.status === "ok" && result.source === "cache"`.
+
+- **Query**: None. No SoQL, no dataset, no Route Handler in scope. This is presentation wiring
+  over an already-shipped, already-tested mechanism.
+
+- **Design Pattern**: none — simple case. One wiring point, one conditional render.
+
+- **UI Scope**: **structural** — a new DOM element is conditionally rendered — but this pass is
+  deliberately undecorated: no dedicated CSS module, semantic HTML only (an `<aside role="status">`
+  styled by nothing beyond what it inherits). Visual polish is a named, explicit **cosmetic**
+  follow-up for Magnolia if wanted, not bundled here — this keeps the file count at 4 or fewer and
+  matches this SPEC schema's own structural/cosmetic split.
+
+- **Intellectual Control**:
+  1. **Why the banner is a sibling in `page.tsx`, never threaded through `MetricSection`.**
+     Read `MetricSection.tsx` directly before writing this: its `result` prop is typed
+     `YearlyMetricResult<K>` (no `source` field), and it only ever reads `.status`/`.rows`. Passing
+     a `YearlyMetricResultWithSource<K>` value into that prop type-checks fine under TS structural
+     typing (extra properties on an assigned variable, not a literal, are permitted) and renders
+     correctly — but `MetricSection` has no way to know or react to `.source`. That component's own
+     file header already documents this project's precedent for exactly this situation: the deaths
+     chart itself is deliberately kept as "a plain sibling directly in page.tsx," not threaded
+     through a shared-component slot, specifically because only one caller needs it. The banner
+     follows that same precedent for the same reason.
+  2. **Why `deathsFixtureData` (the JSON import) can be passed directly as `withFallback`'s
+     `fixture` argument with no transformation.** The committed JSON is `{asOf, soql, rows}`;
+     `withFallback`'s fixture parameter type is `{asOf, rows}`. The extra `soql` field is ignored
+     under structural typing — no destructuring/stripping code needed, confirmed by reading both
+     shapes side by side, not assumed.
+  3. **Why passing `undefined` for a borough-filtered request is correct, not a gap.** The
+     fallback-fixture SPEC's own Intellectual Control named the citywide-only scope as a deliberate
+     limitation, specifically to avoid silently showing all-NYC numbers under what looks like a
+     borough-filtered page. This SPEC enforces that decision at the wiring layer rather than
+     reopening it — a borough-filtered request that fails upstream still shows the existing FR-10
+     error state unchanged, exactly as it does today.
+
+- **Constraints**:
+  - No new dependencies (Rule 9).
+  - Do not touch `src/lib/fallback.ts`, `src/lib/deaths.ts`, `src/lib/socrata.ts`, or
+    `src/components/MetricSection.tsx`.
+  - The banner's date display must be **deterministic across environments** — no reliance on the
+    runtime's local timezone or ICU locale data producing different strings in CI vs. locally.
+    Format from the ISO `asOf` string directly (e.g. a fixed UTC-based format), not
+    `toLocaleDateString()` with implicit locale/timezone.
+  - `CachedDataBanner` must carry `role="status"` (or equivalent live-region semantics) — this is
+    disclosure of a data-provenance change, not decoration, and NFR-3 requires it be
+    perceivable without relying on visual styling alone (which this pass doesn't have yet).
+
+- **Edge Cases**:
+  1. Citywide, live succeeds → banner never renders; `source: "live"` throughout, unchanged from
+     today's behavior.
+  2. Citywide, live fails upstream → banner renders with the fixture's `asOf`; deaths chart/table
+     render from the fixture's rows via the synthesized `"ok"` result.
+  3. Citywide, live fails with `kind: "contract"` → banner does **not** render (`withFallback`
+     already declines substitution); the existing FR-10 error state in `MetricSection` renders
+     instead, unchanged. Do not add new handling for this — it already works.
+  4. Citywide, live returns `status: "empty"` → banner does not render; existing empty-state
+     handling unchanged.
+  5. Borough filter active, live fails upstream → fixture is `undefined`, banner does not render,
+     existing FR-10 error state renders — the deliberate citywide-only limitation, enforced.
+
+- **Files** (4 — one slot of headroom against the cap of 5):
+  1. `src/components/CachedDataBanner.tsx` — new.
+  2. `src/components/CachedDataBanner.test.tsx` — Cypress's tests: renders the disclosure text,
+     `role="status"` present, date formatting is deterministic (test with a fixed `asOf` and
+     assert an exact string, not a locale-dependent one), a11y check.
+  3. `src/app/[[...borough]]/page.tsx` — wire `withFallback` + the fixture import + the banner into
+     the deaths card, per Inputs/Outputs above.
+  4. `src/app/[[...borough]]/page.test.tsx` — new assertions: stub `fetchDeathsPerYear` to resolve
+     an upstream error, assert the banner renders with the real fixture's data reflected in the
+     table (citywide); stub the same error with a borough segment active, assert the banner does
+     **not** render and the existing error state does.
+
+- **Tipping Point**: wiring a second metric's fallback (injuries, collisions, repaired-collisions,
+  arrests) triggers extracting the wiring pattern (`withFallback(raw, activeCode === undefined ?
+  fixture : undefined)` + conditional banner) into a small shared helper — four near-identical
+  repetitions is the threshold, not before.
+
+## Acceptance criteria
+
+Tests first (Cypress), then implementation (Redwood). Per Amendment 3(b), **record `node -v`
+beside every result; it must read v22.x.** Prefix every command:
+```
+export NVM_DIR="$HOME/.nvm"; . /usr/local/opt/nvm/nvm.sh; nvm use >/dev/null
+```
+Baseline verified 2026-08-11 immediately before this SPEC: **626/626 in 25 files, `tsc --noEmit`
+clean, `eslint .` 0 errors / 2 known pre-existing warnings.**
+
+1. Full suite green — 626 plus whatever Cypress's new tests add; state the new total.
+2. `tsc --noEmit` clean; `eslint .` 0 errors, allowing only the 2 known pre-existing warnings.
+3. Manually verify (describe how, in the completion report) that a real upstream-failure path
+   renders the banner with the committed fixture's actual `asOf` and 8 rows — not a stubbed
+   double standing in for the real fixture import.
+4. No file outside this SPEC's list was modified.
+
+[FORCES]
+
+1. **Reuse the existing sibling-component precedent > invent a new composition mechanism.**
+   `MetricSection` stays untouched; the banner joins the deaths chart as a second sibling.
+2. **Disclosure must be perceivable, not just present.** `role="status"` is a floor, not
+   decoration — NFR-3 doesn't wait for a cosmetic pass to be satisfied.
+
+**Outcome**: Full TDD chain — Cypress wrote failing tests for `CachedDataBanner.tsx` (new) and
+extended `page.test.tsx` with 7 new fallback-wiring tests (3 initially red for the right reason,
+4 guard-rail regression tests already green). Redwood implemented the wiring exactly per spec —
+`withFallback(rawDeathsResult, activeCode === undefined ? deathsFixtureData : undefined)` plus the
+banner as a sibling before the deaths chart — and surfaced a genuine collision: 7 *pre-existing*
+tests (predating this SPEC) mocked a citywide deaths fetch as `kind: "upstream"` purely to test
+cross-metric independence and Caveats persistence (FR-9), and that exact mock shape is what the new
+wiring correctly substitutes instead of erroring. Redwood declined to touch test files (not its
+authority) and declined to weaken the wiring (would violate the SPEC); escalated back to Cypress
+rather than guessing. Cypress fixed the collision surgically — changed only the `kind` field
+(`"upstream"` → `"contract"`) on the citywide deaths mock in those 7 tests, preserving every other
+mock, assertion, and `reason` string byte-for-byte, since a contract violation is unconditionally
+excluded from fallback substitution (Edge Case 3) regardless of borough state. This is the second
+time this project has hit a cross-cutting pre-existing-test collision from new wiring (the first
+was the Staten Island panel's Zero-Trust `process.env` confinement tests) — same resolution shape
+both times: the new code was correct, an old test's incidental mock shape became load-bearing by
+accident, and the fix goes to the test's *setup*, never its assertion. Verified node v22.23.2:
+**640/640** (up from 626/626 baseline, +14 net: 7 new CachedDataBanner tests + 7 new page-level
+fallback tests), `tsc --noEmit` clean, `eslint .` 0 errors / 2 pre-existing warnings unchanged.
+Files touched, exactly the 4 the SPEC scoped: `src/components/CachedDataBanner.tsx` (new),
+`src/components/CachedDataBanner.test.tsx` (new), `src/app/[[...borough]]/page.tsx`,
+`src/app/[[...borough]]/page.test.tsx`. Banner deliberately undecorated (no CSS module) — visual
+polish remains a named, not-yet-written Magnolia follow-up.
