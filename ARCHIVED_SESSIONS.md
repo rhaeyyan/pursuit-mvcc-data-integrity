@@ -8,6 +8,58 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-12 — Staten Island pilot panel, chart/UI half
+
+- *Why we wrote `StatenIslandPilotPanel.tsx` as a separate component:* `YearlyLineChart` and `MetricSection` are structurally yearly components (mapping fields like `row.year`, checking policy markers by year). The Staten Island pilot is a 24-row monthly dataset (Jan 2018–Dec 2019) with its own statistics payload. Forcing a unified component or type would have created premature, wrong-shaped generic complexity (`Simplicity > Pattern Purity`).
+- *How we handled the split solid/dashed rendering in Recharts:* We mapped rows into `plotData` containing `pre` and `post` keys. Pre-boundary months populate `pre`, post-boundary months populate `post`, and the boundary month ("2019-03") populates both. This allows Recharts to draw two continuous lines (solid and dashed) connected at the exact transition point without any visual gap.
+- *Defensive Edge Case 3 handling:* If the boundary month derived from `POLICY_DATE_MARKERS` does not fall within the dataset's range, we render the entire series as a single solid line (`pre` only) and hide the post-boundary line and reference lines, preventing crashes or fabricated segmentations.
+- *Test mock correction in page.test.tsx:* The mock stub in `page.test.tsx` was updated to render a `<details>` block query disclosure. This satisfies the page-wide assertion expecting 7 query disclosures (5 metric sections, 1 coverage warning, and 1 pilot panel), ensuring test suite alignment with the contract's unconditional query presentation rule.
+
+---
+
+## 2026-08-12 — Fallback banner wiring
+
+The fallback-fixture SPEC's own Tipping Point named this wiring as the deliberate follow-up: the
+mechanism existed and was tested, but nothing on the page yet used it or told the reader when a
+number had come from cache instead of live. `ARCHIVED_SPECS.md`, "2026-08-12 — Fallback banner
+wiring (CLOSED)" holds the mechanical record; this entry keeps why it was built the way it was.
+
+- *Why the banner is a plain sibling in `page.tsx`, not threaded through `MetricSection`.*
+  `MetricSection`'s `result` prop type carries no `source` field and the component only ever reads
+  `.status`/`.rows` — passing a wider shape in would type-check under TS structural typing but the
+  component would have no way to act on it. `MetricSection.tsx`'s own header already documents the
+  precedent this follows: the deaths chart itself is a plain sibling in `page.tsx`, not routed
+  through a shared slot, because only one caller needs it. Extending a shared component's prop
+  contract for a single caller's concern would have been the coupling this project's Rule 8
+  ("patterns are earned") argues against.
+- *Why passing `undefined` as the fixture whenever a borough filter is active is enforcement, not a
+  gap.* The fallback-fixture SPEC had already scoped the mechanism to citywide-only, specifically
+  so a borough-filtered page could never silently display all-NYC numbers under a borough heading.
+  This SPEC's job was to enforce that decision at the one place it becomes observable, using
+  `withFallback`'s own existing Edge Case 3 (no fixture provided → passthrough) rather than adding
+  new branching to re-litigate a decision that was already closed.
+- *The second cross-cutting collision this project has hit, and why it resolved differently from
+  the first.* Seven pre-existing tests mocked a citywide deaths fetch as `kind: "upstream"` purely
+  to test cross-metric/Caveats independence — unrelated to fallback behavior when written, but
+  `kind: "upstream"` is exactly the shape `withFallback` now treats as substitutable. Unlike the
+  Staten Island data-half collision (which required *widening* a security allowlist, a real
+  judgment call), this was a mock whose *label*, not its intent, had drifted out from under a new
+  correct behavior — Redwood correctly declined to weaken the new wiring or touch tests outside its
+  authorization, and escalated. Cypress's fix was narrow by construction: change only the `kind`
+  field (`"upstream"` → `"contract"`) in those 7 mocks, preserving every existing assertion
+  byte-for-byte, because a contract violation is unconditionally excluded from substitution
+  regardless of borough state — the tests' original intent (cross-metric independence) was
+  preserved exactly, just expressed with a mock shape that no longer collided with new, correct
+  behavior.
+- *Why the banner shipped deliberately undecorated.* The SPEC's own UI Scope split it as structural
+  (a new DOM element, conditionally rendered) but explicitly cosmetic-deferred styling to a named
+  follow-up, keeping the file count at 4 of the 5-file cap and matching the project's established
+  data/UI split (the same split FR-3, the NFR-1 fix, and the Staten Island panel all used). Visual
+  polish for an already-correct, already-accessible (`role="status"`) element is Magnolia's to pick
+  up separately, not a reason to hold the wiring SPEC open.
+
+---
+
 ## 2026-08-11 — Fallback fixture mechanism
 
 PRD §7's risk register names the mitigation in one line — "commit a dated JSON snapshot... as a

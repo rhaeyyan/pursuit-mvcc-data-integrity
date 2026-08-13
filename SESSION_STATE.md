@@ -1,59 +1,11 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** none in flight. **Queued next:** the Staten Island pilot panel's chart/UI
-half (sequenced after the fallback-banner-wiring SPEC below so the two don't edit `page.tsx`
-concurrently — that's now clear).
+**Current objective:** Vision Zero Shadow Ledger, Phase 1 (Local ZIP & CB Search Engine) — specification approved 2026-08-12.
 
 ## Active
 
-- **Fallback banner wiring — CLOSED 2026-08-12.** `src/components/CachedDataBanner.tsx` (new,
-  `role="status"`, deterministic UTC date formatting — no `toLocaleDateString()`) + `page.tsx`
-  wired through `withFallback(rawDeathsResult, activeCode === undefined ? deathsFixtureData :
-  undefined)`, banner rendered as a sibling before the deaths chart, gated on `status === "ok" &&
-  source === "cache"`. Full TDD chain (Cypress → Redwood), approved via HITL before dispatch.
-  **One real cross-cutting collision surfaced and was resolved, the second of its kind this
-  project has hit** (first was the Staten Island Zero-Trust tests): 7 pre-existing tests mocked a
-  citywide deaths fetch as `kind: "upstream"` purely to test cross-metric/Caveats independence,
-  and that exact mock shape is what the new wiring now correctly substitutes instead of erroring.
-  Redwood declined to touch tests or weaken the wiring; escalated to Cypress, who changed only the
-  `kind` field (`"upstream"` → `"contract"`) in those 7 mocks, preserving every assertion
-  byte-for-byte — a contract violation is unconditionally excluded from substitution (Edge Case 3)
-  regardless of borough state. Verified node v22.23.2: **640/640** (+14 from 626 baseline), `tsc
-  --noEmit` clean, `eslint .` 0 errors/2 known pre-existing warnings. Banner deliberately
-  undecorated — visual polish is a named, not-yet-written Magnolia follow-up. Full reasoning
-  archived in `ARCHIVED_SPECS.md` / to be condensed into `ARCHIVED_SESSIONS.md` at next archive
-  pass, "2026-08-12 — Fallback banner wiring."
-
-- **Fallback fixture mechanism — CLOSED 2026-08-11.** `scripts/generate-fallback-fixture.ts` runs
-  the already-tested `fetchDeathsPerYear()` live and writes its `.soql`/`.rows` verbatim to the
-  committed `src/lib/fixtures/deaths-fallback.json` — zero new SoQL. `src/lib/fallback.ts`'s pure
-  `withFallback()` substitutes the fixture only on `kind: "upstream"` failures, never `kind:
-  "contract"` or `status: "empty"` — a contract violation must never be masked by a cache.
-  **Verified beyond the standard TDD chain**: independently re-ran the live generator twice myself
-  after Redwood's report — once hit a genuine transient Socrata network failure that correctly
-  wrote nothing (Edge Case 6 firing for real, not a bug), once succeeded with figures identical to
-  the committed fixture (231, 244, 269, 297, 290, 280, 268, 229) except a fresh `asOf`. Verified
-  570→613→**626/626**, `tsc` clean, `eslint` 0 errors/2 known warnings. **Mechanism only at the
-  time** — wiring into `page.tsx` with a visible banner was the deliberate follow-up SPEC,
-  matching this project's established data/UI split (FR-3, the NFR-1 fix, the Staten Island panel
-  all did this too); that follow-up is now closed, see "Fallback banner wiring — CLOSED
-  2026-08-12" above. Full reasoning (the citywide/deaths-only
-  scope decision, why Redwood's Node-ESM module-resolution shim was accepted rather than treated
-  as a red flag) archived in `ARCHIVED_SESSIONS.md` / `ARCHIVED_SPECS.md`, "2026-08-11 — Fallback
-  fixture mechanism."
-
-- **Staten Island pilot panel, data half — CLOSED 2026-08-11.** `src/lib/statenIslandPilot.ts` +
-  `src/app/api/staten-island-pilot/route.ts` (self-contained module, not an extension of
-  `socrata.ts` — see Intellectual Control reasoning archived below), full TDD chain, live-query
-  acceptance check passed exactly (2018 sum 6,171, 2019 sum 3,650, Mar/Apr 2019 370/217).
-  **One legitimate cross-cutting escalation surfaced and was resolved**: two pre-existing
-  Zero-Trust `process.env` confinement tests didn't know about this new token-reading module;
-  Cypress extended both to a 4th named exception after independent verification that the new
-  module's token handling matched the existing safe pattern. Verified 570→**613/613**, `tsc`
-  clean, `eslint` 0 errors/2 known warnings. **Chart/UI half is a deliberate, not-yet-written
-  follow-up SPEC** — this closes the data half only. Full reasoning (why the escalation went to
-  Cypress rather than a direct fix, why `date_trunc_ym` over `date_extract_m`) archived in
-  `ARCHIVED_SESSIONS.md` / `ARCHIVED_SPECS.md`, "2026-08-11 — Staten Island pilot panel."
+- **Vision Zero Shadow Ledger, Phase 1 — Spec approved, ready for TDD drafting (2026-08-12).**
+  The next sprint focus is implementing the hyper-local safety ledger search by ZIP code and Community Board, fetching local aggregates from the Socrata endpoint, and rendering the repaired versus raw trends.
 
 - **Deployed and live-verified:** <https://pursuit-mvcc-data-integrity.vercel.app/> — root dir
   `./`, Vercel defaults, `SOCRATA_APP_TOKEN` set server-side only. NFR-2 confirmed clean (no token
@@ -119,7 +71,13 @@ concurrently — that's now clear).
 *(Empty — closed work is archived directly to `ARCHIVED_SESSIONS.md` as it closes, rather than
 accumulating here first.)*
 
-Fifteen entries are now in `ARCHIVED_SESSIONS.md`, newest first: **deploy verification, platform
+Eighteen entries are now in `ARCHIVED_SESSIONS.md`, newest first: **fallback banner wiring**
+(2026-08-12, why the banner is a plain `page.tsx` sibling not threaded through `MetricSection`, why
+the second cross-cutting mock collision resolved as a label fix rather than a judgment call unlike
+the first); **fallback fixture mechanism** (2026-08-11, the citywide/deaths-only scope decision,
+why Redwood's Node-ESM module-resolution shim was accepted); **Staten Island pilot panel, data
+half** (2026-08-11, why the escalation went to Cypress rather than a direct fix, why
+`date_trunc_ym` over `date_extract_m`); **deploy verification, platform
 recovery, and the borough-caching fix** (2026-08-11, why `cacheComponents` was declined in favor of
 enumerated `generateStaticParams`, why a Redwood-flagged test bug was fixed directly rather than
 round-tripped through Cypress, why "record First Load JS" turned out unfulfillable rather than
