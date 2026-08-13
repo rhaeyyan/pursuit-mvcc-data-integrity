@@ -204,13 +204,15 @@ export function UnifiedTimeline({ data }: Props) {
                 color: "var(--color-text)",
                 backdropFilter: "var(--blur-glass)",
               }}
-              formatter={(value: number, name: string) => {
+              formatter={(value, name) => {
+                const val = Number(value);
+                const strName = String(name);
                 const label =
-                  SERIES_CONFIG.find((c) => c.key === name)?.label ?? name;
+                  SERIES_CONFIG.find((c) => c.key === strName)?.label ?? strName;
                 if (scale === "indexed") {
-                  return [value.toFixed(1), label];
+                  return [val.toFixed(1), label];
                 }
-                return [value.toLocaleString(), label];
+                return [val.toLocaleString(), label];
               }}
               labelStyle={{
                 color: "var(--color-text-heading)",
