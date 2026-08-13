@@ -20,6 +20,7 @@ place to avoid drift:
   below for why.
 
 ## How to use
+
 1. Hand the goal to the `cedar` subagent (via the Agent/Task tool). If Cedar needs codebase
    context, it requests a `[CONTEXT-PACKET]` from the **`birch`** (Systems Analyst) subagent —
    don't browse the tree yourself (Context Diet, Rule 7).
@@ -34,6 +35,7 @@ place to avoid drift:
    rejection loop when a coupling/bloat smell is flagged.
 
 ## GoF pattern reference (the part CLAUDE.md/GEMINI.md doesn't enumerate)
+
 Patterns are **earned, not mandatory** — apply one only when variance analysis finds genuine
 variation to encapsulate; otherwise `Design Pattern: none — simple case`. Default force:
 `Simplicity > Pattern purity`.
@@ -42,8 +44,8 @@ variation to encapsulate; otherwise `Design Pattern: none — simple case`. Defa
 - **Structural:** Facade, Adapter, Proxy.
 - **Behavioral:** Observer, Strategy, State.
 
-Shorthand: *"Facade it"* (simplify a subsystem) · *"Strategy it"* (interchangeable algorithms)
-· *"Observer it"* (decouple events). Fuller GoF pattern catalog lives in
+Shorthand: _"Facade it"_ (simplify a subsystem) · _"Strategy it"_ (interchangeable algorithms)
+· _"Observer it"_ (decouple events). Fuller GoF pattern catalog lives in
 [REFERENCES.md](references/REFERENCES.md) — the `[SPEC]`/`[SPIKE]`/`[FORCES]` schema templates
 are **not** duplicated there; they're canonical in CLAUDE.md's/GEMINI.md's `## Handoff Schemas`
 section only, specifically so they can't drift out of sync the way this file's copy once did.

@@ -2,7 +2,7 @@
 
 **Stop trusting the raw collision count. Start measuring actual road safety.**
 
-New York City's open data portal shows a staggering 63% drop in motor vehicle collisions from 2018 to 2025. It looks like a massive win for Vision Zero. However, traffic deaths only fell by 1% in the same period. The "drop" is a data artifact caused by an NYPD policy change, not an improvement in safety. 
+New York City's open data portal shows a staggering 63% drop in motor vehicle collisions from 2018 to 2025. It looks like a massive win for Vision Zero. However, traffic deaths only fell by 1% in the same period. The "drop" is a data artifact caused by an NYPD policy change, not an improvement in safety.
 
 MVCC Integrity is a dashboard that pulls live collision data, exposes the reporting artifact, and applies a "casualty-filtered" repair to show the true trend in NYC road safety.
 
@@ -10,8 +10,8 @@ MVCC Integrity is a dashboard that pulls live collision data, exposes the report
 
 ## The problem with the raw data
 
-In 2018, NYPD recorded 231,564 collisions. By 2025, that number fell to 85,546. 
-If a dashboard simply aggregates the row count, the city looks dramatically safer. 
+In 2018, NYPD recorded 231,564 collisions. By 2025, that number fell to 85,546.
+If a dashboard simply aggregates the row count, the city looks dramatically safer.
 
 The reality: In March 2019 (Staten Island pilot) and April 2020 (citywide), the NYPD ceased dispatching officers to property-damage-only collisions. Drivers now self-file with the state DMV, and those records never enter the city's open data feed. The 63% drop in collisions is entirely driven by this policy change. Injuries fell only 20%, and deaths barely moved (-1%). The implied lethality rate skyrocketed by 2.68× simply because the denominator collapsed.
 
@@ -36,6 +36,7 @@ The tool is built on a strict data contract to avoid silently corrupting the res
 ## The data behind it
 
 The dashboard connects directly to two NYC Open Data endpoints:
+
 - **Motor Vehicle Collisions – Crashes (`h9gi-nx95`):** The primary dataset for crashes, injuries, and deaths.
 - **NYPD Arrests Data (Historic) (`8h9b-rp9u`):** Used to track traffic-enforcement arrests (severable P1).
 
@@ -143,5 +144,5 @@ The data contract has been rigorously verified against live Socrata endpoints (a
 
 ---
 
-*Built for Pursuit's AI-Native Fellowship.*
+_Built for Pursuit's AI-Native Fellowship._
 [GitHub Repository](https://github.com/rhaeyyan/pursuit-mvcc-data-integrity) • [rayankhan.io](https://rayankhan.io) • [LinkedIn](https://www.linkedin.com/in/rayan-khan-3b90a2356/)

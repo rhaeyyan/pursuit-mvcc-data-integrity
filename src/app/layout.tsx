@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import PrintButton from "../components/PrintButton";
-import GlobalNav from "../components/GlobalNav";
+import LeftNav from "../components/LeftNav";
+import RightInspector from "../components/RightInspector";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,9 +23,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <GlobalNav />
-        {children}
-        <PrintButton />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "216px minmax(0,1fr) 352px",
+            minHeight: "100vh",
+            background: "var(--color-bg)",
+            color: "var(--color-text)",
+            fontFamily: "var(--font-body)",
+          }}
+        >
+          <LeftNav />
+          <main
+            style={{
+              minWidth: 0,
+              padding: "var(--space-6) var(--space-6) var(--space-8)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-6)",
+            }}
+          >
+            {children}
+          </main>
+          <RightInspector />
+        </div>
       </body>
     </html>
   );

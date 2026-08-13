@@ -24,10 +24,7 @@
       "Bash(./.claude/scripts/verify-figures.py *)",
       "Bash(./.claude/hooks/*.sh *)"
     ],
-    "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)"
-    ]
+    "deny": ["Read(./.env)", "Read(./.env.*)"]
   },
   "hooks": {
     "PreToolUse": [

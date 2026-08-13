@@ -24,7 +24,7 @@ October 2025) shipped exactly this fallback pattern in production, then filed an
 NYC Open Data's own totals. Their root cause, in their own words: NYPD records a casualty on the
 crash record without always assigning that person a role (pedestrian, cyclist, motorist), so the
 subgroup sum is **"casualties we could classify," not "casualties."** A sum of the role fields
-therefore *undercounts* the authoritative total, and the undercount is not a small or constant
+therefore _undercounts_ the authoritative total, and the undercount is not a small or constant
 rounding artifact — see Consequences (a) below. Their eventual four-part fix: (1) always use the
 authoritative field for grand totals, never a computed sum; (2) add an explicit "Other/Unknown"
 category displaying `total − sum(categories)` so the unclassified casualties are shown, not
@@ -34,10 +34,10 @@ copy explaining that some injuries have no role ascribed to them.
 **Our own measurement, 2018–2025** (`.claude/scripts/subtotal-gap.py`, live run 2026-08-05,
 dataset `h9gi-nx95`, gap = authoritative total − subgroup sum):
 
-| Year | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 |
-|---|---|---|---|---|---|---|---|---|
-| deaths gap | 0 | 0 | 0 | 12 | 20 | 19 | 9 | 6 |
-| injuries gap | 23 | 1 | 0 | 2,132 | 2,392 | 2,411 | 1,835 | 1,405 |
+| Year         | 2018 | 2019 | 2020 | 2021  | 2022  | 2023  | 2024  | 2025  |
+| ------------ | ---- | ---- | ---- | ----- | ----- | ----- | ----- | ----- |
+| deaths gap   | 0    | 0    | 0    | 12    | 20    | 19    | 9     | 6     |
+| injuries gap | 23   | 1    | 0    | 2,132 | 2,392 | 2,411 | 1,835 | 1,405 |
 
 This independently reproduces the shape crashmapper's issue #111 describes: no gap through 2020,
 then a gap that opens in 2021 and persists. The same live run also **re-confirmed all 8 pinned
@@ -52,7 +52,7 @@ still-accurate baseline, not a stale one.
 raises the defined error state. The subgroup sum is never used as a fallback, a default, a
 placeholder, or a cross-check that overrides the primary field — for deaths, for injuries, or for
 any future casualty aggregate this project adds. This does not amend FR-11's text, which already
-specified fail-loud with no fallback; it corrects a *proposed mitigation* in the research layer
+specified fail-loud with no fallback; it corrects a _proposed mitigation_ in the research layer
 that had drifted out of agreement with the requirement it was meant to serve.
 
 ## Consequences
@@ -60,7 +60,7 @@ that had drifted out of agreement with the requirement it was meant to serve.
 **(a) Why the shape of the gap matters more than its size.** The gap is exactly 0 for 2018–2020,
 then opens in 2021 and stays open. A fatality or injury series built on the subgroup sum instead
 of the authoritative field would therefore not just be a little low across the board — it would
-slope down *more steeply* than the real series, with the extra steepness manufactured entirely by
+slope down _more steeply_ than the real series, with the extra steepness manufactured entirely by
 a change in NYPD's role-classification practice, not by any change in road safety. That is the
 same failure mode as the 2020 reporting break this whole project exists to expose, one field
 further down the pipeline: a bookkeeping change silently produces a safety improvement that isn't
@@ -82,8 +82,8 @@ It is **not** implemented in this project, for a concrete reason — we currentl
 casualty-by-role breakdown at all (FR-2 is not yet built), so there is no total for a residual
 category to reconcile against. It also must not be conflated with this project's existing
 property-damage-only (PDO) tier: the PDO tier is `raw collisions − casualty-filtered collisions`,
-a residual over *collision records*, while crashmapper's Other/Unknown is
-`persons_injured − sum(role-assigned persons)`, a residual over *people within a record*. The two
+a residual over _collision records_, while crashmapper's Other/Unknown is
+`persons_injured − sum(role-assigned persons)`, a residual over _people within a record_. The two
 rhyme structurally — both are "the total minus what we could classify" — but they are different
 quantities over different denominators, and treating them as interchangeable would be its own
 small integrity error. Adopting the Other/Unknown pattern for FR-2 or any future casualty-by-role

@@ -40,54 +40,20 @@
 // src/lib/boroughs.ts's `parseBoroughParam`, unmodified (this task's Query
 // section keeps that file out of scope).
 
-import Link from "next/link";
 import { BoroughPicker } from "../../components/BoroughPicker";
 import { CachedDataBanner } from "../../components/CachedDataBanner";
-import { Caveats } from "../../components/Caveats";
-import { CoverageWarning } from "../../components/CoverageWarning";
-import { KPIRow } from "../../components/KPIRow";
-import { MetricSection } from "../../components/MetricSection";
-import { YearlyLineChart } from "../../components/YearlyLineChart";
-import { ARRESTS_SOQL, fetchArrestsPerYear } from "../../lib/arrests";
-import { fetchCoverageData } from "../../lib/arrestsCoverage";
+
+import { UnifiedTimeline } from "../../components/UnifiedTimeline";
+import { fetchArrestsPerYear } from "../../lib/arrests";
 import { BOROUGH_CODES, BOROUGHS, parseBoroughParam } from "../../lib/boroughs";
-import { COLLISIONS_SOQL, fetchCollisionsPerYear } from "../../lib/collisions";
-import { DEATHS_SOQL, fetchDeathsPerYear } from "../../lib/deaths";
+import { fetchCollisionsPerYear } from "../../lib/collisions";
+import { fetchDeathsPerYear } from "../../lib/deaths";
 import { withFallback } from "../../lib/fallback";
 import deathsFixtureData from "../../lib/fixtures/deaths-fallback.json";
-import { INJURIES_SOQL, fetchInjuriesPerYear } from "../../lib/injuries";
-import {
-  REPAIRED_COLLISIONS_SOQL,
-  fetchRepairedCollisionsPerYear,
-} from "../../lib/repairedCollisions";
-import { fetchStatenIslandPilot } from "../../lib/statenIslandPilot";
-import { StatenIslandPilotPanel } from "../../components/StatenIslandPilotPanel";
+import { fetchInjuriesPerYear } from "../../lib/injuries";
+import { fetchRepairedCollisionsPerYear } from "../../lib/repairedCollisions";
+
 import styles from "../page.module.css";
-
-// FR-9: the one-sentence forward pointer appended to both existing inline
-// notes below, closing the deferred "forward reference to nothing" decision
-// named in the FR-3 data-half SPEC. Defined once and appended via
-// concatenation to both notes, not duplicated as two separately-typed
-// strings (ADR 0001's discipline).
-const SEE_CAVEATS_POINTER =
-  " See Caveats, below, for the two policy dates and other limits on this figure.";
-
-// FR-3 / NFR-5: the collisions series' caveat is shared verbatim between its
-// chart and its table so the two renderings cannot drift apart (ADR 0001).
-const COLLISIONS_REPORTING_NOTE =
-  "This series is affected by a 2020 NYPD reporting-policy change that reduced how many " +
-  "minor collisions are recorded; it is not evidence of a comparable drop in real collisions." +
-  SEE_CAVEATS_POINTER;
-
-// FR-12: the corrected series — affirmative framing, not another caveat.
-// Ties the "trust this one" claim to the same documented policy mechanism
-// named above rather than asserting it independently (NFR-5).
-const REPAIRED_COLLISIONS_NOTE =
-  "This series counts only collisions with a recorded injury or death — records that still " +
-  "required an officer response after the 2020 policy change, unlike the property-damage-only " +
-  "collisions the raw count above stopped capturing. It tracks close to the injuries trend and " +
-  "is the more reliable figure for judging whether collisions actually declined." +
-  SEE_CAVEATS_POINTER;
 
 // NFR-1: the closed, six-member set (citywide + five boroughs) enumerated at
 // build time so every variant is prerendered and CDN-cacheable. Mirrors
@@ -129,16 +95,12 @@ export default async function Home({
     collisionsResult,
     repairedResult,
     arrestsResult,
-    coverageResult,
-    siPilotResult,
   ] = await Promise.all([
     fetchDeathsPerYear(activeCode),
     fetchInjuriesPerYear(activeCode),
     fetchCollisionsPerYear(activeCode),
     fetchRepairedCollisionsPerYear(activeCode),
     fetchArrestsPerYear(activeCode),
-    fetchCoverageData(),
-    fetchStatenIslandPilot(),
   ]);
 
   // PRD §7 risk mitigation: substitute the committed fixture only when the
@@ -152,35 +114,20 @@ export default async function Home({
     activeCode === undefined ? deathsFixtureData : undefined,
   );
 
-  const deaths2025 =
-    result.status === "ok"
-      ? (result.rows.find((y) => y.year === 2025)?.deaths ?? 0)
-      : 0;
-  const collisions2025 =
-    collisionsResult.status === "ok"
-      ? (collisionsResult.rows.find((y) => y.year === 2025)?.collisions ?? 0)
-      : 0;
-  const arrests2025 =
-    arrestsResult.status === "ok"
-      ? (arrestsResult.rows.find((y) => y.year === 2025)?.arrests ?? 0)
-      : 0;
-
   return (
     <main className={styles.main}>
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>
-            NYC Traffic Safety Data
-            {boroughParam.status === "ok"
-              ? ` (${BOROUGHS[boroughParam.code].label})`
-              : ""}
+            One timeline, five series, one honest scale
           </h1>
           <p className={styles.intro}>
+            {boroughParam.status === "ok"
+              ? ` (${BOROUGHS[boroughParam.code].label}) `
+              : ""}
             Reported collisions, injuries, and deaths move very differently over
-            this period; collisions are the most discretionary figure (an
-            officer decides whether to file), injuries typically involve an
-            ambulance or hospital record, and deaths are the least
-            discretionary, the medical examiner&apos;s count.
+            this period. By indexing them to 2018 baselines, we can see how they
+            diverge across the policy changes of 2019-2020.
           </p>
         </div>
         <div className={styles.controls}>
@@ -194,207 +141,21 @@ export default async function Home({
         </div>
       </header>
 
-      <KPIRow
-        deaths={deaths2025}
-        collisions={collisions2025}
-        arrests={arrests2025}
+      {result.status === "ok" && result.source === "cache" && (
+        <div style={{ marginBottom: "1rem" }}>
+          <CachedDataBanner asOf={result.asOf} />
+        </div>
+      )}
+
+      <UnifiedTimeline
+        data={{
+          deaths: result,
+          injuries: injuriesResult,
+          collisions: collisionsResult,
+          repaired: repairedResult,
+          arrests: arrestsResult,
+        }}
       />
-
-      <section className={styles.storySection}>
-        <h2 className={styles.sectionTitle}>Dashboards & Tools</h2>
-        <div className={styles.dashboard}>
-          <div className={styles.card}>
-            <h3
-              style={{
-                marginBottom: "0.5rem",
-                fontSize: "1.25rem",
-                color: "#f1f5f9",
-              }}
-            >
-              <Link
-                href="/local"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                📍 Local Ledger
-              </Link>
-            </h3>
-            <p style={{ color: "#94a3b8", fontSize: "0.95rem" }}>
-              Analyze granular traffic safety records by ZIP code.
-            </p>
-          </div>
-
-          <div className={styles.card}>
-            <h3
-              style={{
-                marginBottom: "0.5rem",
-                fontSize: "1.25rem",
-                color: "#f1f5f9",
-              }}
-            >
-              <Link
-                href="/tdi"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                🏆 TDI Leaderboard
-              </Link>
-            </h3>
-            <p
-              style={{
-                color: "#94a3b8",
-                fontSize: "0.95rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              Rank precincts by the Traffic Danger Index.
-            </p>
-            <p style={{ fontSize: "0.8rem", color: "#64748b" }}>
-              *Note: TDI is calculated using a (deaths × 10) + injuries
-              weighting.
-            </p>
-          </div>
-
-          <div className={styles.card}>
-            <h3
-              style={{
-                marginBottom: "0.5rem",
-                fontSize: "1.25rem",
-                color: "#f1f5f9",
-              }}
-            >
-              <Link
-                href="/auditor"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                ⚖️ SIP Auditor
-              </Link>
-            </h3>
-            <p style={{ color: "#94a3b8", fontSize: "0.95rem" }}>
-              Audit reported collision vs. casualty changes for street
-              redesigns.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.storySection}>
-        <h2 className={styles.sectionTitle}>The Human Toll</h2>
-        <div className={styles.dashboard}>
-          <div className={styles.card}>
-            {result.status === "ok" && result.source === "cache" && (
-              <CachedDataBanner asOf={result.asOf} />
-            )}
-            {result.status === "ok" && (
-              <YearlyLineChart
-                rows={result.rows}
-                fieldAlias="deaths"
-                seriesLabel="Deaths"
-                strokeStyle="solid"
-                colorSlot={1}
-                ariaLabel="Line chart of NYC traffic deaths per year from 2018 to 2025."
-                captionText="NYC traffic deaths per year, 2018–2025. Every plotted figure is listed in the table below."
-              />
-            )}
-            <MetricSection
-              fieldAlias="deaths"
-              columnLabel="Deaths"
-              captionText="NYC traffic deaths per year, 2018–2025"
-              result={result}
-              soql={DEATHS_SOQL}
-            />
-          </div>
-
-          <div className={styles.card}>
-            <MetricSection
-              fieldAlias="injuries"
-              columnLabel="Injuries"
-              captionText="NYC traffic injuries per year, 2018–2025"
-              result={injuriesResult}
-              soql={INJURIES_SOQL}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.storySection}>
-        <h2 className={styles.sectionTitle}>
-          Data Integrity &amp; Policy Impact
-        </h2>
-        <div className={styles.fullWidthCard}>
-          <CoverageWarning coverageResult={coverageResult} />
-        </div>
-        <div className={styles.dashboard}>
-          <div className={styles.card}>
-            {collisionsResult.status === "ok" && (
-              <YearlyLineChart
-                rows={collisionsResult.rows}
-                fieldAlias="collisions"
-                seriesLabel="Collisions"
-                strokeStyle="dashed"
-                colorSlot={2}
-                ariaLabel="Line chart of NYC recorded collisions per year from 2018 to 2025."
-                captionText="NYC recorded collisions per year, 2018–2025. Every plotted figure is listed in the table below."
-                note={COLLISIONS_REPORTING_NOTE}
-              />
-            )}
-            <MetricSection
-              fieldAlias="collisions"
-              columnLabel="Collisions"
-              captionText="NYC recorded collisions per year, 2018–2025"
-              result={collisionsResult}
-              soql={COLLISIONS_SOQL}
-              note={COLLISIONS_REPORTING_NOTE}
-            />
-          </div>
-
-          <div className={styles.card}>
-            <MetricSection
-              fieldAlias="repaired"
-              columnLabel="Repaired collisions"
-              captionText="NYC collisions with a recorded injury or death per year, 2018–2025"
-              result={repairedResult}
-              soql={REPAIRED_COLLISIONS_SOQL}
-              note={REPAIRED_COLLISIONS_NOTE}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.storySection}>
-        <h2 className={styles.sectionTitle}>Enforcement</h2>
-        <div className={styles.dashboard}>
-          <div className={styles.card}>
-            {arrestsResult.status === "ok" && (
-              <YearlyLineChart
-                rows={arrestsResult.rows}
-                fieldAlias="arrests"
-                seriesLabel="Arrests"
-                strokeStyle="solid"
-                colorSlot={1}
-                ariaLabel="Line chart of NYC traffic-enforcement arrest counts per year from 2018 to 2025."
-                captionText="NYC traffic-enforcement arrests per year, 2018–2025. Every plotted figure is listed in the table below."
-              />
-            )}
-            <MetricSection
-              fieldAlias="arrests"
-              columnLabel="Arrests"
-              captionText="NYC traffic-enforcement arrests per year, 2018–2025 (five offense categories)"
-              result={arrestsResult}
-              soql={ARRESTS_SOQL}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.storySection}>
-        <h2 className={styles.sectionTitle}>Staten Island Pilot</h2>
-        <div className={styles.fullWidthCard}>
-          <StatenIslandPilotPanel result={siPilotResult} />
-        </div>
-      </section>
-
-      <section className={styles.fullWidth}>
-        <Caveats />
-      </section>
     </main>
   );
 }

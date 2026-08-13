@@ -34,7 +34,7 @@
 - **Platform target: Node v22.23.2 / npm 10.9.8, via `nvm` (installed through Homebrew, not
   `~/.nvm`'s default path).** Prefix every gate/build command with:
   `export NVM_DIR="$HOME/.nvm"; . /usr/local/opt/nvm/nvm.sh; nvm use >/dev/null`
-  A system Node (currently v26.7.0) exists on this machine and is *not* the target — it passes
+  A system Node (currently v26.7.0) exists on this machine and is _not_ the target — it passes
   `engines.node` and jsdom's range, but Vercel's runtime is 22.x and the pin is for dev/prod parity.
   Two prior toolchain regressions (fnm vanishing 2026-08-07, nvm vanishing 2026-08-11) are recorded
   with full reasoning in `ARCHIVED_SESSIONS.md`, "2026-08-11" — re-read that before assuming a third
@@ -55,7 +55,7 @@
   must record `node -v` beside the results, and it must satisfy `engines.node`. A gate that ran on
   an unverified platform produced an unverified result; unverified is not PASS. NFR-4 pointed at
   the toolchain.
-- **`eslint@^9` is required, not merely unbumped.** The discriminator is *not* `eslint-config-next`
+- **`eslint@^9` is required, not merely unbumped.** The discriminator is _not_ `eslint-config-next`
   (permissive, `>=9.0.0`) — it is **`eslint-plugin-jsx-a11y@6.10.2`, whose peer range excludes
   eslint 10**, the plugin NFR-3 depends on. Check that package first before evaluating eslint 10.
 - **Styling is CSS Modules**, not Tailwind — chosen on reversibility, not taste. Tailwind is two dev
@@ -68,8 +68,8 @@
 
 ## History
 
-*(Empty — closed work is archived directly to `ARCHIVED_SESSIONS.md` as it closes, rather than
-accumulating here first.)*
+_(Empty — closed work is archived directly to `ARCHIVED_SESSIONS.md` as it closes, rather than
+accumulating here first.)_
 
 Eighteen entries are now in `ARCHIVED_SESSIONS.md`, newest first: **fallback banner wiring**
 (2026-08-12, why the banner is a plain `page.tsx` sibling not threaded through `MetricSection`, why

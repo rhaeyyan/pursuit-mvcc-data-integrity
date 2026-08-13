@@ -21,10 +21,10 @@ Auth: header `X-App-Token: <SOCRATA_APP_TOKEN>`, **server-side only**. The token
 rate-limit attribution token, not an authorization secret — but it is still never allowed into a
 client bundle, a fixture, a log, or a commit.
 
-| Dataset | Rows | Range | Cadence |
-|---|---|---|---|
+| Dataset     | Rows      | Range                   | Cadence                      |
+| ----------- | --------- | ----------------------- | ---------------------------- |
 | `h9gi-nx95` | 2,269,187 | 2012-07-01 → 2026-06-11 | Daily — **currently paused** |
-| `8h9b-rp9u` | 6,264,978 | 2006-01-01 → 2025-12-31 | Quarterly |
+| `8h9b-rp9u` | 6,264,978 | 2006-01-01 → 2025-12-31 | Quarterly                    |
 
 **Analysis window is fixed at 2018–2025.** It sits inside both datasets, avoids the paused-update
 boundary and the 2026 fatality dropout, and removes any need for the year-to-date arrest table
@@ -77,22 +77,22 @@ Casualty-filtered "repaired" series (FR-12) — one added `$where` clause, not a
 
 Traffic-enforcement arrests (FR-5, P1, severable) — filter `ofns_desc` to exactly:
 `VEHICLE AND TRAFFIC LAWS`, `OTHER TRAFFIC INFRACTION`, `INTOXICATED & IMPAIRED DRIVING`,
-`INTOXICATED/IMPAIRED DRIVING`, `HOMICIDE-NEGLIGENT-VEHICLE`. Vehicle-*theft* categories
+`INTOXICATED/IMPAIRED DRIVING`, `HOMICIDE-NEGLIGENT-VEHICLE`. Vehicle-_theft_ categories
 (`GRAND LARCENY OF MOTOR VEHICLE`, `UNAUTHORIZED USE OF A VEHICLE`) are property crimes, not road
 safety — excluded deliberately.
 
 ## Pinned figures — citywide, `h9gi-nx95`
 
 | Year | Collisions | Injuries | Deaths | Casualty-filtered |
-|---|---|---|---|---|
-| 2018 | 231,564 | 61,940 | 231 | 45,774 |
-| 2019 | 211,486 | 61,391 | 244 | 45,439 |
-| 2020 | 112,918 | 44,615 | 269 | 33,362 |
-| 2021 | 110,558 | 51,785 | 297 | 38,809 |
-| 2022 | 103,887 | 51,933 | 290 | 39,336 |
-| 2023 | 96,607 | 54,252 | 280 | 40,472 |
-| 2024 | 91,316 | 54,030 | 268 | 40,229 |
-| 2025 | 85,546 | 49,634 | 229 | 37,420 |
+| ---- | ---------- | -------- | ------ | ----------------- |
+| 2018 | 231,564    | 61,940   | 231    | 45,774            |
+| 2019 | 211,486    | 61,391   | 244    | 45,439            |
+| 2020 | 112,918    | 44,615   | 269    | 33,362            |
+| 2021 | 110,558    | 51,785   | 297    | 38,809            |
+| 2022 | 103,887    | 51,933   | 290    | 39,336            |
+| 2023 | 96,607     | 54,252   | 280    | 40,472            |
+| 2024 | 91,316     | 54,030   | 268    | 40,229            |
+| 2025 | 85,546     | 49,634   | 229    | 37,420            |
 
 **The gradient, ordered by how discretionary the metric is:** collisions **−63%** (officer decides
 whether to file) → injuries **−20%** (ambulance/hospital involved) → deaths **−1%** (medical

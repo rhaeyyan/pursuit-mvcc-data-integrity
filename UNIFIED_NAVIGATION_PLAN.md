@@ -17,17 +17,17 @@ This plan details how we will integrate the four distinct features (Hyper-Local 
 > `ARCHIVED_SESSIONS.md`, and `docs/adr/`. Neither has an FR/NFR citation, a `[SPEC]`, or an ADR
 > anywhere in the project's history.
 >
-> 1. **TDI Leaderboard *is* the "Danger Index."** `src/lib/tdi.ts` computes
+> 1. **TDI Leaderboard _is_ the "Danger Index."** `src/lib/tdi.ts` computes
 >    `((deaths*10 + injuries) / population) * 10000` per borough and labels it the "True Danger
->    Index." PRD §6 (Out of Scope) states verbatim: *"The Danger Index / safe-routing algorithm —
->    deferred indefinitely... it is a separate product, not a feature of this one."* The PRD's
+>    Index." PRD §6 (Out of Scope) states verbatim: _"The Danger Index / safe-routing algorithm —
+>    deferred indefinitely... it is a separate product, not a feature of this one."_ The PRD's
 >    stated reason for deferring it — the lack of "a defensible severity-weighting scheme" — is
 >    exactly the problem with the `deaths*10` weight in the code, which cites no methodology.
 > 2. **SIP Auditor re-implements a feature already rejected.** `src/lib/auditor.ts` +
 >    `src/lib/fixtures/sips.json` compute before/after collision deltas at Street Improvement
 >    Project sites. `ARCHIVED_SESSIONS.md` (2026-08-04) records this exact idea being evaluated and
->    turned down: *"Rejected — ingesting SIP data. Separate DOT open dataset requiring NTA-level
->    census joins; out of scope for a two-dataset MVP."* The current version avoids the census-join
+>    turned down: _"Rejected — ingesting SIP data. Separate DOT open dataset requiring NTA-level
+>    census joins; out of scope for a two-dataset MVP."_ The current version avoids the census-join
 >    problem with a small hand-typed fixture, but it's the same rejected feature.
 >
 > By contrast, `/local` (Phase 1, spec approved 2026-08-12 per `SESSION_STATE.md`) and the Staten
@@ -45,13 +45,14 @@ This plan details how we will integrate the four distinct features (Hyper-Local 
 
 > [!NOTE]
 > **Process gaps in this plan itself**
+>
 > - Not cast as a Cedar `[SPEC]`/`[FORCES]` block — no Requirement/FR citation, no Design Pattern
 >   line, no Tipping Point, despite being a non-trivial architectural change (Rule 1).
 > - Not persisted to `SPEC.md` — that file still holds the earlier Phase 4 PrintButton spec.
 > - The Verification Plan's "Manual Verification" step assumes a live-browser dev-server
->   walkthrough is feasible in-session. `SESSION_STATE.md` already records: *"No working browser in
+>   walkthrough is feasible in-session. `SESSION_STATE.md` already records: _"No working browser in
 >   this sandbox, and it's not fixable here... Live-browser visual QA genuinely needs a human with a
->   browser."* Rewrite this section around Cypress + `axe-core` as the actual automated check, with
+>   browser."_ Rewrite this section around Cypress + `axe-core` as the actual automated check, with
 >   the click-through explicitly deferred to Rayan.
 > - Open Question 2 ("Hero Cards") is asked as undecided, but Proposed Changes already commits to
 >   building the "Narrative Header / Feature Hub" as if answered. Resolve the question before
@@ -66,8 +67,8 @@ This plan details how we will integrate the four distinct features (Hyper-Local 
 
 ## Open Questions
 
-1. **Routing Structure:** Currently, the main "Borough Dashboard" lives at the root route (`/` or `/K`, `/M`, etc). Do you want to keep the Borough Dashboard as the root homepage, and simply add a Navigation Bar that links out to `/local`, `/tdi`, `/auditor`? Or would you prefer a completely new Landing Page at `/` that explains the product, with the Borough Dashboard moved to something like `/boroughs`? 
-*(I recommend keeping the Borough Dashboard at `/` and just adding a rich header/navigation, as it gets users into the data immediately).*
+1. **Routing Structure:** Currently, the main "Borough Dashboard" lives at the root route (`/` or `/K`, `/M`, etc). Do you want to keep the Borough Dashboard as the root homepage, and simply add a Navigation Bar that links out to `/local`, `/tdi`, `/auditor`? Or would you prefer a completely new Landing Page at `/` that explains the product, with the Borough Dashboard moved to something like `/boroughs`?
+   _(I recommend keeping the Borough Dashboard at `/` and just adding a rich header/navigation, as it gets users into the data immediately)._
 
    > **Reviewer response:** Agree on keeping the Borough Dashboard at `/` — it's the PRD's actual
    > walking skeleton and moving it would be a bookmark-breaking, hard-to-reverse change with no
@@ -78,7 +79,7 @@ This plan details how we will integrate the four distinct features (Hyper-Local 
    > decision rather than precede it. If Rayan wants them visible sooner for demo purposes, that's a
    > distinct, explicit call to make now, not a default.
 
-2. **"Data Story" Integration:** Should we add "Hero Cards" at the top of the homepage that explain *why* these other tools exist and link to them? (e.g., a card saying "Is your neighborhood actually safe? Check the True Danger Index →").
+2. **"Data Story" Integration:** Should we add "Hero Cards" at the top of the homepage that explain _why_ these other tools exist and link to them? (e.g., a card saying "Is your neighborhood actually safe? Check the True Danger Index →").
 
    > **Reviewer response:** Hold off on any card that editorializes the TDI or SIP Auditor findings
    > ("Is your neighborhood actually safe?") — that copy asserts the arbitrary `deaths*10` weighting
@@ -93,6 +94,7 @@ This plan details how we will integrate the four distinct features (Hyper-Local 
 ### UI & Architecture Layer (Magnolia)
 
 #### [NEW] `src/components/GlobalNav.tsx`
+
 - A client-side navigation component utilizing `next/link`.
 - Renders links to:
   - **Citywide Dashboard** (`/`)
@@ -103,21 +105,26 @@ This plan details how we will integrate the four distinct features (Hyper-Local 
 - Includes `@media print { display: none !important; }` so it doesn't pollute the printed briefing sheets.
 
 #### [NEW] `src/components/GlobalNav.module.css`
+
 - CSS module for the navigation styling, matching the premium dark mode aesthetics.
 
 #### [MODIFY] `src/app/layout.tsx`
+
 - Import `<GlobalNav />` and mount it at the top of the `<body>`, above `{children}`.
 - Update global padding if necessary to account for the sticky header.
 
 #### [MODIFY] `src/app/[[...borough]]/page.tsx`
-- Add a "Narrative Header" or "Feature Hub" at the top of the dashboard, above the data charts. 
+
+- Add a "Narrative Header" or "Feature Hub" at the top of the dashboard, above the data charts.
 - These will be visually distinct "Cards" that introduce the other tools, connecting the citywide data to the hyper-local tools.
 
 ## Verification Plan
 
 ### Automated Tests
+
 - Cypress will write a test for `GlobalNav.tsx` to verify all 4 links are present, accessible (`role="navigation"`), and functional.
 
 ### Manual Verification
+
 - We will navigate the live dev server, ensuring a user can seamlessly move from the Homepage -> TDI -> Local -> Auditor without relying on manual URL entry.
 - We will trigger the Print action to verify the new Topbar is correctly hidden from the Phase 4 PDF output.

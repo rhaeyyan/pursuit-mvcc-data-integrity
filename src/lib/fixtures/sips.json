@@ -3,24 +3,24 @@
     "id": "sip-14th-st-busway",
     "name": "14th Street Busway",
     "borough": "Manhattan",
-    "latitude": 40.7350,
-    "longitude": -73.9930,
+    "latitude": 40.735,
+    "longitude": -73.993,
     "completionDate": "2019-10-03"
   },
   {
     "id": "sip-atlantic-ave",
     "name": "Atlantic Avenue Safety Project",
     "borough": "Brooklyn",
-    "latitude": 40.6840,
-    "longitude": -73.9780,
+    "latitude": 40.684,
+    "longitude": -73.978,
     "completionDate": "2022-06-01"
   },
   {
     "id": "sip-northern-blvd",
     "name": "Northern Boulevard Protected Bike Lane",
     "borough": "Queens",
-    "latitude": 40.7530,
-    "longitude": -73.8820,
+    "latitude": 40.753,
+    "longitude": -73.882,
     "completionDate": "2021-09-15"
   }
 ]

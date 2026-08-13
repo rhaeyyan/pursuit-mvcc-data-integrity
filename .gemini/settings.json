@@ -3,10 +3,7 @@
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/context7-mcp"
-      ],
+      "args": ["-y", "@upstash/context7-mcp"],
       "env": {
         "CONTEXT7_API_KEY": "$CONTEXT7_API_KEY"
       }
@@ -19,16 +16,11 @@
     },
     "playwright": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@playwright/mcp@latest"
-      ]
+      "args": ["-y", "@playwright/mcp@latest"]
     },
     "markitdown": {
       "command": "uvx",
-      "args": [
-        "markitdown-mcp"
-      ]
+      "args": ["markitdown-mcp"]
     },
     "supabase": {
       "httpUrl": "https://mcp.supabase.com/mcp"

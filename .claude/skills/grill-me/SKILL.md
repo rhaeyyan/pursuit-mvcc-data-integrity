@@ -6,7 +6,7 @@ user-invocable: true
 
 # Grill Me — Requirements Interview
 
-Closes the gap between what the human *said* and what they *meant* before any planning or
+Closes the gap between what the human _said_ and what they _meant_ before any planning or
 code. This is the interview that Workflow Rule 1 (Definition of Ready) and Cedar's SOP refer
 to. It never plans and never builds — its only output is a `[REQUIREMENTS]` block that Cedar
 can turn into a `[SPEC]`/`[SPIKE]`.
@@ -22,11 +22,11 @@ can turn into a `[SPEC]`/`[SPIKE]`.
 
 1. **List the live interpretations.** Read the request (and only the files needed to name
    the candidates — Context Diet, Rule 7). Write down each interpretation that would lead to
-   a *different implementation*. If there is only one, say so, emit the block, and skip the
+   a _different implementation_. If there is only one, say so, emit the block, and skip the
    interview.
 2. **Interview with AskUserQuestion.** Maximum **2 rounds** of up to 4 questions each —
-   capped per Rejection Loop rule 3; on exhaustion, record what is still open under *Open
-   assumptions* instead of asking again. Ask only what changes the plan, in priority order:
+   capped per Rejection Loop rule 3; on exhaustion, record what is still open under _Open
+   assumptions_ instead of asking again. Ask only what changes the plan, in priority order:
    - **Exact target** — which file / page / element / section, named concretely. Offer the
      candidates from step 1 as the options.
    - **UI Scope** (UI tasks) — **structural** (the layout/DOM must change) vs **cosmetic**
@@ -40,6 +40,7 @@ can turn into a `[SPEC]`/`[SPIKE]`.
 
 ```markdown
 [REQUIREMENTS]
+
 - **Goal**: <one sentence, disambiguated>
 - **Exact targets**: <files / pages / elements, named concretely>
 - **UI Scope**: structural | cosmetic | n/a

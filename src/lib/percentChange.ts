@@ -12,7 +12,7 @@
 
 import type { YearlyMetricRow } from "./socrata";
 
-export type ChangeSummary<K extends string> = {
+export type ChangeSummary = {
   startYear: number;
   endYear: number;
   startValue: number;
@@ -23,7 +23,7 @@ export type ChangeSummary<K extends string> = {
 export function computeChange<K extends string>(
   rows: YearlyMetricRow<K>[],
   fieldAlias: K,
-): ChangeSummary<K> | null {
+): ChangeSummary | null {
   if (rows.length < 2) return null;
 
   const startRow = rows[0];
@@ -48,8 +48,8 @@ export function formatPercentChange(percentChange: number): string {
   return rounded > 0 ? `+${rounded}%` : `${rounded}%`;
 }
 
-export function formatChangeSummary<K extends string>(
-  change: ChangeSummary<K>,
+export function formatChangeSummary(
+  change: ChangeSummary,
 ): string {
   const { startYear, endYear, startValue, endValue, percentChange } = change;
   return `${startYear}–${endYear} change: ${formatPercentChange(percentChange)} (${startValue} → ${endValue})`;

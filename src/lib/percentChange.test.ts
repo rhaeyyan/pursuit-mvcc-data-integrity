@@ -79,7 +79,7 @@ describe("computeChange() — derives start/end from rows[0]/rows[last], never a
     const change = computeChange(GENERIC_ROWS, "gadgets");
 
     expect(change).not.toBeNull();
-    expect(change).toEqual<ChangeSummary<"gadgets">>({
+    expect(change).toEqual<ChangeSummary>({
       startYear: 2010,
       endYear: 2015,
       startValue: 40,
@@ -105,7 +105,7 @@ describe("computeChange() — derives start/end from rows[0]/rows[last], never a
   it("works identically off a distinct, second non-2018/2025 window (2030-2031), proving genericity rather than a single coincidence", () => {
     const change = computeChange(TWO_ROW_RISING, "gadgets");
 
-    expect(change).toEqual<ChangeSummary<"gadgets">>({
+    expect(change).toEqual<ChangeSummary>({
       startYear: 2030,
       endYear: 2031,
       startValue: 10,
@@ -178,7 +178,7 @@ describe("formatPercentChange() — whole-percent precision, leading '+' only wh
 
 describe("formatChangeSummary() — exact template match", () => {
   it("matches the pinned template exactly for a synthetic negative-change example", () => {
-    const change: ChangeSummary<"gadgets"> = {
+    const change: ChangeSummary = {
       startYear: 2010,
       endYear: 2015,
       startValue: 40,
@@ -192,7 +192,7 @@ describe("formatChangeSummary() — exact template match", () => {
   });
 
   it("matches the pinned template exactly for a synthetic positive-change example, using an en dash between years and a right arrow between values", () => {
-    const change: ChangeSummary<"gadgets"> = {
+    const change: ChangeSummary = {
       startYear: 2030,
       endYear: 2031,
       startValue: 10,
@@ -210,7 +210,7 @@ describe("formatChangeSummary() — exact template match", () => {
   });
 
   it("delegates rounding/sign formatting to formatPercentChange rather than re-implementing it — an unrounded fractional percentChange still renders whole-percent in the summary", () => {
-    const change: ChangeSummary<"gadgets"> = {
+    const change: ChangeSummary = {
       startYear: 2040,
       endYear: 2041,
       startValue: 30,

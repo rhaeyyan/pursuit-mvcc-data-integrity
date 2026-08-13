@@ -58,9 +58,6 @@ async function fetchStats(whereClause: string) {
   url.searchParams.set("$where", whereClause);
 
   const headers: Record<string, string> = {};
-  if (process.env.SOCRATA_APP_TOKEN) {
-    headers["X-App-Token"] = process.env.SOCRATA_APP_TOKEN;
-  }
 
   const fetchUrl = url.toString().replace(/\+/g, "%20");
   const response = await fetch(fetchUrl, { headers });

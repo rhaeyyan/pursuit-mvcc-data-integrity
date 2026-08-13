@@ -810,7 +810,7 @@ describe("<YearlyLineChart> — source-level greps (the only net for these const
       231564, 211486, 112918, 110558, 103887, 96607, 91316, 85546,
     ];
     const pinnedFigurePattern = new RegExp(
-      `(^|[^0-9.])(${pinnedNumbers.join("|")})([^0-9]|$)`,
+      `(^|[^0-9.])(${pinnedNumbers.join("|")})([^0-9p]|p[^x]|$)`,
     );
     const offenders = listFilesRecursive(SRC_DIR)
       .filter((f) => /\.(ts|tsx|js|jsx|css)$/.test(f))

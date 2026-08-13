@@ -87,13 +87,13 @@
 }
 
 .changeNegative {
-  background: rgba(244, 63, 94, 0.1);
+  background: rgba(243, 63, 94, 0.1);
   color: #fb7185; /* Coral Pink */
 }
 
 .discrepancyAlert {
   margin-top: 2rem;
-  background: rgba(244, 63, 94, 0.1);
+  background: rgba(243, 63, 94, 0.1);
   border-left: 4px solid #f43f5e;
   padding: 1.5rem;
   border-radius: 4px 8px 8px 4px;

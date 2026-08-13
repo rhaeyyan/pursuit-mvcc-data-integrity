@@ -17,7 +17,7 @@ On 2026-07-28 a live test of the Willow subagent exposed a failure in the first 
 
 The orchestrator asked Willow to draft an AI Tutor answer and supplied, as background, the
 reason a candidate dataset had been rejected during MVP scoping months earlier: the Kaggle
-**AI Requirements Index** CSV was an aggregated time-series of the *percentage* of job
+**AI Requirements Index** CSV was an aggregated time-series of the _percentage_ of job
 listings requiring AI skills, rather than one row per listing. That is the wrong **grain**
 for a per-person product, and no cleaning could recover the individual records, because they
 were never in the file.
@@ -29,7 +29,7 @@ downgrade.
 
 Willow was correct about the repo and the orchestrator was correct about the fact. The
 rationale had existed verbatim in `SESSION_STATE.md`, but an earlier condensation pass kept
-the *decision* and dropped the *reasoning*, and a subsequent rebase made the lossy version
+the _decision_ and dropped the _reasoning_, and a subsequent rebase made the lossy version
 canonical. The text was recovered only because an unrelated pre-rebase read happened to sit
 in the active session's context. The underlying data was by then deleted (`raw/dataset/`,
 removed 2026-07-27), so no re-derivation was possible.
@@ -60,8 +60,8 @@ A record that states an outcome without its reasoning cannot be cited later and 
 destroys the thing it was written to preserve.
 
 This decision is recorded here, in an append-only artifact, rather than only in the session
-archive. `CLAUDE.md` already directs agents to treat `SESSION_STATE.md` as *episodic* memory
-and the repo's actual state as the *procedural* source of truth. Normative rules must
+archive. `CLAUDE.md` already directs agents to treat `SESSION_STATE.md` as _episodic_ memory
+and the repo's actual state as the _procedural_ source of truth. Normative rules must
 therefore not depend on episodic storage for their justification, which is exactly the
 dependency that produced this failure.
 

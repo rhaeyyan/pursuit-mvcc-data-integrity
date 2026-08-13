@@ -27,13 +27,13 @@ otherwise verbatim.
 1. **Step 0's `engines` check was run early, by the main session** (Cedar has no shell). Results,
    `npm view` on 2026-08-04:
 
-   | Package | Latest | `engines.node` | Node 20.19.6 |
-   |---|---|---|---|
-   | `next` | 16.3.0 | `>=20.9.0` | pass |
-   | `vitest` | 4.1.10 | `^20.0.0 \|\| ^22.0.0 \|\| >=24.0.0` | pass |
-   | `@testing-library/react` | 16.3.2 | `>=18` | pass |
-   | `recharts` | 3.10.1 | `>=18` | pass |
-   | `react` / `react-dom` | 19.2.8 | — | pass |
+   | Package                  | Latest | `engines.node`                       | Node 20.19.6 |
+   | ------------------------ | ------ | ------------------------------------ | ------------ |
+   | `next`                   | 16.3.0 | `>=20.9.0`                           | pass         |
+   | `vitest`                 | 4.1.10 | `^20.0.0 \|\| ^22.0.0 \|\| >=24.0.0` | pass         |
+   | `@testing-library/react` | 16.3.2 | `>=18`                               | pass         |
+   | `recharts`               | 3.10.1 | `>=18`                               | pass         |
+   | `react` / `react-dom`    | 19.2.8 | —                                    | pass         |
 
    No candidate is rejected; no Node upgrade is forced. **Redwood must still run step 0 for the
    remaining packages** (types, lint, the rest of the test set) and record the output — this
@@ -83,7 +83,7 @@ for declining assumed the Node version was incidental; step 0 proved it load-bea
 **Deferred by decision:** a README line naming the Node floor, for the fresh-clone gap (`.nvmrc`
 ships, the fnm wiring that reads it does not). Batched into the tracked PRD-amendment docs task
 rather than spending a file slot here. Structurally the same gap already recorded for
-`.git/hooks/commit-msg`, but it fails *quietly*: a clone on Node 20 installs with warnings, passes
+`.git/hooks/commit-msg`, but it fails _quietly_: a clone on Node 20 installs with warnings, passes
 all four acceptance commands, and breaks at the first component test.
 
 ---
@@ -101,20 +101,20 @@ all four acceptance commands, and breaks at the first component test.
   **NFR-4** (Vitest, for pure-function figure tests) are verified with. Satisfies no
   user-facing FR by itself and displays no figure.
 - **Inputs/Outputs**:
-  - *Input*: **Node v22.23.2 / npm 10.9.8**, provisioned per-project by `fnm` via `.nvmrc` and
+  - _Input_: **Node v22.23.2 / npm 10.9.8**, provisioned per-project by `fnm` via `.nvmrc` and
     `fnm env --use-on-cd` in `~/.config/fish/conf.d/fnm.fish`. Repo root at the project directory,
     clean tree on `main`.
-  - *Step 0a, before anything else*: run `node -v` and `npm -v` and record them. `node -v` **must**
+  - _Step 0a, before anything else_: run `node -v` and `npm -v` and record them. `node -v` **must**
     print `v22.23.2`. fnm's `default` alias is `system`, so a shell started outside this directory
     inherits Node 20.19.6 from `/usr/local/bin/node` and every subsequent `engines` check would be
     evaluated against the wrong platform — silently, and in the direction that reproduces the exact
     failure this amendment exists to fix. If it prints anything else, `cd` into the project root in
     a fresh shell and re-verify. Do not `fnm use` manually to route around it; that masks a broken
     shell integration.
-  - *Output*: a runnable toolchain at the repo root. `package.json` with the scripts block
+  - _Output_: a runnable toolchain at the repo root. `package.json` with the scripts block
     below; `src/app/` App Router tree from the generator; four hand-authored/hand-modified
     configs. No `.env`, no token value, no fixture, no application logic.
-  - *Acceptance is by command, not by file inspection*: `npm run typecheck`, `npm run lint`,
+  - _Acceptance is by command, not by file inspection_: `npm run typecheck`, `npm run lint`,
     `npm run test`, `npm run build` each exit 0, and `git status --porcelain -- .gitignore README.md`
     is empty.
 - **Query**: none — this task performs no data access. It must not contain a dataset ID,
@@ -125,19 +125,19 @@ all four acceptance commands, and breaks at the first component test.
   management, implementation patterns, React 19 APIs) presupposes a component that this
   task does not create. Per Rule 8 a pattern here would be unearned.
 - **Intellectual Control**:
-  - *Why generate rather than hand-author*: the App Router boilerplate (`next-env.d.ts`
+  - _Why generate rather than hand-author_: the App Router boilerplate (`next-env.d.ts`
     handling, `tsconfig` module resolution, the flat-config bridge in `eslint.config.mjs`)
     tracks the Next.js release. Hand-authoring it means a model reproducing a generator's
     output from memory — the same failure class NFR-4 forbids for figures. Use the
-    deterministic generator; hand-author only the files that encode *our* decisions.
-  - *Why the repo root and not a subdirectory*: `stop-quality-gate.sh` locates the app by
+    deterministic generator; hand-author only the files that encode _our_ decisions.
+  - _Why the repo root and not a subdirectory_: `stop-quality-gate.sh` locates the app by
     probing `.`, `app`, `web`, `frontend` in that order. A scaffold anywhere else makes the
     gate silently no-op — it exits 0 with "No package.json yet" and the project ships with
     its quality gate inert. Root placement keeps the gate live by construction.
-  - *Why `--src-dir`*: it lets `tsconfig.include` be an **allowlist** (`src/**`) instead of a
+  - _Why `--src-dir`_: it lets `tsconfig.include` be an **allowlist** (`src/**`) instead of a
     denylist. A denylist (`exclude: [".claude", ".gemini", "skills"]`) silently re-breaks the
     moment a fourth skill tree or any other top-level `.ts` appears; an allowlist cannot.
-  - *Why this will not break at scale*: the config surface is four files with no
+  - _Why this will not break at scale_: the config surface is four files with no
     cross-references between them. The only coupling is `package.json`'s `lint` script
     mirroring the Stop gate's `eslint .` verbatim — deliberate, so the gate and the script
     can never diverge into "passes locally, blocks the turn."
@@ -148,30 +148,31 @@ all four acceptance commands, and breaks at the first component test.
      excludes 22.23.2 → **halt and request a revised SPEC from Cedar** (Rule 9). Do not downgrade,
      substitute, or `--force` a package on your own authority.
 
-     *Two things changed about what a halt now means.* The old constraint called 20.19.6 a
+     _Two things changed about what a halt now means._ The old constraint called 20.19.6 a
      **ceiling** — a system-wide binary Cedar could not move. 22.23.2 is a **floor** under a
      per-project version manager, so the resolution space for a future halt now includes raising
      the floor again, which it did not before. That is still Cedar's decision, not Redwood's. And
      raising it is no longer cheap-and-invisible: `.nvmrc` and `engines.node` must move together,
      and both are enumerated files. A halt is still a halt.
 
-     *Already discharged against Node 22.23.2* (verified by the main session; do not redo):
+     _Already discharged against Node 22.23.2_ (verified by the main session; do not redo):
      `jsdom` (`^22.22.2 || ^24.15.0 || >=26.0.0`), `@testing-library/jest-dom` (`>=22`), `next`
      (`>=20.9.0`), `vitest` (`^20 || ^22 || >=24`), `@vitejs/plugin-react` (`^20.19.0 || >=22.12.0`).
      Run step 0 for the remainder — types, the rest of the lint set, `@testing-library/react`,
      `@testing-library/dom`, `@testing-library/user-event`, `axe-core`, `recharts`, `zod`.
 
-     *Note the tight floor.* `jsdom`'s `^22.22.2` clears 22.23.2 by a single minor, and its range
+     _Note the tight floor._ `jsdom`'s `^22.22.2` clears 22.23.2 by a single minor, and its range
      is disjoint — it excludes 22.0.0–22.22.1, all of 23 and 25, and 24.0–24.14. Do not read
      `^22.22.2` as "Node 22 is fine."
+
   2. **Candidate pins** (subject to step 0; `^` ranges, `package-lock.json` committed):
      - Runtime: `next@^16`, `react@^19`, `react-dom@^19`
      - Types: `typescript@^5`, `@types/react`, `@types/react-dom`, `@types/node`
-     - Lint: `eslint@^9` *(held)*, `eslint-config-next` (major matched to `next`),
+     - Lint: `eslint@^9` _(held)_, `eslint-config-next` (major matched to `next`),
        `eslint-config-prettier`, `eslint-plugin-jsx-a11y@^6`, `prettier@^3`
-     - Test: `vitest@^4` *(held)*, `@vitejs/plugin-react`, **`jsdom@^30`** *(newly explicit)*,
+     - Test: `vitest@^4` _(held)_, `@vitejs/plugin-react`, **`jsdom@^30`** _(newly explicit)_,
        `@testing-library/react@^16`, `@testing-library/dom`, `@testing-library/user-event`,
-       **`@testing-library/jest-dom@^7`** *(newly explicit)*, `axe-core`
+       **`@testing-library/jest-dom@^7`** _(newly explicit)_, `axe-core`
 
      Reasons, since "the platform now allows it" is not one:
      - **`eslint@^9` holds.** With the Node-20 claim corrected, `eslint@10` was never blocked by the
@@ -186,6 +187,7 @@ all four acceptance commands, and breaks at the first component test.
        major that is recorded — an unversioned entry gives Cypress nothing to audit. `^6` of
        jest-dom earns nothing: 6.10.0 also declares `>=22`, so it is not a lower-risk fallback,
        just an older one.
+
   3. **Deliberately NOT installed here**: `recharts` and `zod`. Both are in the Stack table
      and both are correct choices; neither has a consumer until the chart SPEC and the first
      Route Handler SPEC respectively. Installing them now would decouple a dependency from
@@ -214,57 +216,57 @@ all four acceptance commands, and breaks at the first component test.
      "engines": { "node": ">=22.22.2" }
      ```
 
-     *Why pin it at all* (Open Question 3, reversed): the original grounds for declining assumed the
+     _Why pin it at all_ (Open Question 3, reversed): the original grounds for declining assumed the
      Node version was incidental. Step 0 disproved that — the version is load-bearing, and the cost
      of not recording it was a toolchain that installs clean, passes all four acceptance commands,
      and breaks on the first component test.
 
-     *Why `>=22.22.2` and not `>=22.13.0`*: 22.22.2 is the tightest verified floor in the tree.
+     _Why `>=22.22.2` and not `>=22.13.0`_: 22.22.2 is the tightest verified floor in the tree.
      `>=22.13.0` would declare as supported a range (22.13.0–22.22.1) that `jsdom` rejects — it
      would not have caught this failure, which is the entire point of adding the field.
 
-     *Why open-ended upward, rather than mirroring jsdom's disjoint range*: this field states *this
-     project's* supported platform, not a re-derivation of a transitive dependency's constraint.
+     _Why open-ended upward, rather than mirroring jsdom's disjoint range_: this field states _this
+     project's_ supported platform, not a re-derivation of a transitive dependency's constraint.
      That copy drifts the moment jsdom republishes, and npm's per-package `EBADENGINE` already
      surfaces those gaps at install time — jsdom's own field is what caught this one, and it keeps
      working. An upper bound would need editing on every Node major for no added protection.
 
-     *`engine-strict` is declined, deliberately.* npm does not enforce `engines` without it. A
+     _`engine-strict` is declined, deliberately._ npm does not enforce `engines` without it. A
      `.npmrc` carrying `engine-strict=true` would be a 7th file, guarding a failure mode that
      `.nvmrc` + `use-on-cd` already prevents by construction locally. **Revisit trigger:** the first
      CI runner or second contributor machine, where no fnm integration exists and the warning
      becomes the only signal.
 
   **The file cap — resolution and its bound.** Granted as an explicit exemption, on the same
-  principle that exempts Banyan's mechanical tree-wide refactors: Rule 5 bounds the *reviewable
-  decision surface*, not the byte count, and `create-next-app` output encodes no decisions —
+  principle that exempts Banyan's mechanical tree-wide refactors: Rule 5 bounds the _reviewable
+  decision surface_, not the byte count, and `create-next-app` output encodes no decisions —
   it is reproducible from one pinned command, so what gets reviewed is the command, not its
   ~20 files. The exemption is bounded and auditable, not open-ended:
   **at most 6 files may differ from verbatim generator output or be authored by hand** (raised from
-  5 by Amendment 2). They are enumerated in *Files* below. Cypress audits the bound by confirming
+  5 by Amendment 2). They are enumerated in _Files_ below. Cypress audits the bound by confirming
   `git status --porcelain` shows the generated set plus no more than those 6 divergences. If a 7th
   is needed, halt and request a revision — do not spend it.
 
   **Protecting `.gitignore` and `README.md` — the concrete mechanism.** Chosen approach:
   **scaffold out-of-tree, then copy in under an exclusion allowlist, with git itself as the
   verifier.**
-  1. *Deterministic Rehearsal (Rule 5)*: run `create-next-app` into the session scratchpad,
+  1. _Deterministic Rehearsal (Rule 5)_: run `create-next-app` into the session scratchpad,
      then `ls -A` it and print the copy plan **before** copying anything.
-  2. *Copy in with `.gitignore` and `README.md` excluded by name.* Nothing needs merging:
+  2. _Copy in with `.gitignore` and `README.md` excluded by name._ Nothing needs merging:
      the repo's `.gitignore` is already a **strict superset** of what Next generates —
      it covers `.env*` with the `!.env.example` negation, `node_modules/`, `/.next/`, `/out/`,
      `/build/`, `next-env.d.ts`, `*.tsbuildinfo`, `.vercel/`, `/coverage/`, `.yarn/*` with its
      negations, `.pnp*`, `*.pem`, `.DS_Store`, and the log globs. Verified by reading it.
      So protection is pure exclusion with zero reconciliation cost.
-  3. *Verify with git, not with bookkeeping*: `git status --porcelain -- .gitignore README.md`
+  3. _Verify with git, not with bookkeeping_: `git status --porcelain -- .gitignore README.md`
      must print nothing. Git compares against the committed blob, so this proves byte-identity
      with no hashes to record or trust. If it prints anything:
      `git checkout -- .gitignore README.md` and halt with a report.
 
   Rejected alternatives: running `create-next-app .` in place (it treats both files as
   conflicts and will either abort or overwrite — and `README.md` carries the mermaid diagram
-  refined over four commits, including a stroke-only palette validated for light *and* dark);
-  and hand-authoring the whole scaffold (see *Intellectual Control*).
+  refined over four commits, including a stroke-only palette validated for light _and_ dark);
+  and hand-authoring the whole scaffold (see _Intellectual Control_).
 
   **Making `eslint .` and `tsc --noEmit` green on the first run — the specific hazards found.**
   Both are real in this tree, not precautionary:
@@ -276,12 +278,13 @@ all four acceptance commands, and breaks at the first component test.
     `docs/**` and `.githooks/**` need no entry — Markdown and shell are not matched by any
     configured `files` pattern; do not add ignores that earn nothing.
   - `tsconfig.json` `include` **must** be scoped to `["next-env.d.ts", "src/**/*.ts",
-    "src/**/*.tsx", ".next/types/**/*.ts"]`. The stock `"**/*.ts"` pulls in
+"src/**/*.tsx", ".next/types/**/*.ts"]`. The stock `"**/*.ts"` pulls in
     `.claude/skills/vercel-optimize/lib/gates/types.d.ts` and its two siblings under
     `.gemini/skills/` and `skills/` — three files that would be typechecked as ours.
   - `test` script must be `vitest run --passWithNoTests`. This SPEC creates no test files
     (the first belongs to Cypress under the walking-skeleton SPEC); bare `vitest run` exits
     non-zero on "no test files found."
+
 - **Edge Cases**:
   - A candidate package's `engines.node` excludes **22.23.2** → halt, report, request revision.
     Never install with `--force` or `--legacy-peer-deps` to route around it.
@@ -309,23 +312,24 @@ all four acceptance commands, and breaks at the first component test.
   6. **`.nvmrc`** — contains `22`. Already written by the main session; **authorized retroactively
      as item 6.**
 
-  *Why the number moved instead of the category.* `.nvmrc` cannot ride in as generator-output-class:
+  _Why the number moved instead of the category._ `.nvmrc` cannot ride in as generator-output-class:
   "this project runs on Node 22" is a reviewable decision with a rationale, which is exactly what
   Rule 5's cap bounds. And the budget is deliberately **not** recast into "config files" versus
   "platform pins" — that category would have exactly one member and would establish
   exemption-by-reclassification as a move, which is the drift path. A bound that moved once, from 5
   to 6, with the reason recorded, stays auditable. A taxonomy does not.
 
-  *Why `22` and not an exact patch:* `.nvmrc` is a selector, not a range. `22` resolves to the
+  _Why `22` and not an exact patch:_ `.nvmrc` is a selector, not a range. `22` resolves to the
   latest installed-or-available 22.x, which is ≥22.22.2 today and stays so monotonically. An exact
   `22.23.2` would need editing on every security patch. The pathological case — a fresh machine
   where fnm resolves `22` below the floor — is caught by `engines.node`.
 
-  *The foreseen budget-exhaustion edge case still bites, one slot later.* If the generated
+  _The foreseen budget-exhaustion edge case still bites, one slot later._ If the generated
   `src/app/page.tsx` fails `jsx-a11y` recommended rules, that is now a request for a **7th** file,
   not a 6th. Halt and request a revision. The raise is spent; it is not headroom.
 
   Not touched: `.gitignore`, `README.md`, `CLAUDE.md`, `SESSION_STATE.md`, `docs/**`, `.claude/**`.
+
 - **Tipping Point**: the config is one flat layer today and stays reviewable while it is.
   Decompose when **any one** of these trips:
   - `vitest.config.ts` needs two environments — `jsdom` for components and `node` for Route
@@ -342,16 +346,17 @@ all four acceptance commands, and breaks at the first component test.
 
 **Ordering override, stated rather than assumed**: the standard Cypress-writes-failing-tests-first
 sequence does not apply — a scaffold has no behavior to assert, and the only meaningful assertions
-are the four commands in *Inputs/Outputs*, which are the Stop gate itself. Cypress audits
+are the four commands in _Inputs/Outputs_, which are the Stop gate itself. Cypress audits
 **after**, per Rule 4's SPIKE clause, against this checklist: (a) the four commands exit 0;
 (b) `git status --porcelain -- .gitignore README.md` is empty; (c) hand-modified files number **≤6**
 and match the enumerated list, `.nvmrc` included; (d) no token value, no `NEXT_PUBLIC_` name, and no
 Appendix A figure appears anywhere in the diff; (e) the step-0 `engines` output was recorded, not
 skipped, **and `node -v` was recorded as `v22.23.2`**; (f) **`package.json` contains
 `"engines": { "node": ">=22.22.2" }` exactly, and no `.npmrc` exists.**
-Cypress's first *test file* belongs to the walking-skeleton SPEC, not to this one.
+Cypress's first _test file_ belongs to the walking-skeleton SPEC, not to this one.
 
 **Background/reference resources (Constraint of Three)**:
+
 1. `CLAUDE.md` § Stack — the decided technology set (treat as input, not open question).
 2. `.claude/hooks/stop-quality-gate.sh` — the exact commands that must pass and how the app
    root is located.
@@ -384,7 +389,7 @@ real, but not this task's.
 
 **Fresh-clone gap on `.nvmrc`.** The file ships; the fnm wiring that reads it lives in
 `~/.config/fish/conf.d/fnm.fish`, outside version control. Structurally the same gap already
-recorded for `.git/hooks/commit-msg`, but this one fails *quietly* — a clone on Node 20 installs
+recorded for `.git/hooks/commit-msg`, but this one fails _quietly_ — a clone on Node 20 installs
 with `EBADENGINE` warnings, passes all four acceptance commands, and breaks at the first component
 test. Mitigation chosen: one README line naming the Node floor, batched into the PRD-amendment docs
 task below rather than spending a file slot here. `engine-strict` was the stronger option and was
@@ -392,7 +397,7 @@ declined with a revisit trigger (Constraint 9).
 
 **PRD handoff (docs/project-mvcc-data.md, lines ~280–289) is stale.** It instructs kickoff to
 "create the assignment's own subdirectory with its `AGENTS.md`, move this PRD into it, and record
-the §5.6 security-isolation assessment there." All three clauses are superseded: this repo *is*
+the §5.6 security-isolation assessment there." All three clauses are superseded: this repo _is_
 the standalone assignment directory (and scaffolding into a subdirectory would silently no-op
 `stop-quality-gate.sh`); `AGENTS.md` was folded into `CLAUDE.md` by recorded decision because
 Claude Code does not auto-load `AGENTS.md`; and the §5.6 assessment already lives in
@@ -432,7 +437,7 @@ binds this task and every subsequent one.
 Cedar's grounds, accepted: it is the same fail-loud logic as FR-11, the once-per-turn
 `stop_hook_active` cap bounds the friction, and the remediation command prints in the failure
 message. The counter-cost is real and accepted — an agent shell that inherited Node 20 cannot end
-*any* turn in this repo, including documentation-only ones, until it re-enters through a fresh
+_any_ turn in this repo, including documentation-only ones, until it re-enters through a fresh
 shell. A warning is what let the Node 20 green through in the first place.
 
 ---
@@ -446,7 +451,7 @@ trigger in the closed SPEC's Constraint 9 did **not** fire. Three grounds, desce
    `./node_modules/.bin/tsc` and `./node_modules/.bin/eslint` **directly** (lines 54, 63). npm
    config is not in that call path, so no `.npmrc` setting can reach the process that emits the
    word "clean."
-2. **`engine-strict` is install-scoped.** It refuses to *install* an incompatible package; it does
+2. **`engine-strict` is install-scoped.** It refuses to _install_ an incompatible package; it does
    not gate `npm run test` against an already-installed tree. The demonstrated fake-green survives
    it untouched.
 3. **On Vercel it is a genuine footgun.** Vercel installs devDependencies during build. On a Node 20
@@ -454,22 +459,22 @@ trigger in the closed SPEC's Constraint 9 did **not** fire. Three grounds, desce
    `jsdom` — a test-only package `next build` never loads. Failing production over a test
    dependency's engine range is the guard that gets commented out under deadline pressure.
 
-**No `.npmrc` exists**; the Cypress audit item forbidding one still binds. *Revised trigger, stated
-falsifiably:* adopt only if a CI runner or deploy image performs `npm install` on a Node version it
+**No `.npmrc` exists**; the Cypress audit item forbidding one still binds. _Revised trigger, stated
+falsifiably:_ adopt only if a CI runner or deploy image performs `npm install` on a Node version it
 **cannot** pin from `.nvmrc`. This may never fire — `actions/setup-node` with
-`node-version-file: .nvmrc`, and Vercel reading `engines.node`, both *fix* the platform, which
+`node-version-file: .nvmrc`, and Vercel reading `engines.node`, both _fix_ the platform, which
 strictly dominates failing on it. If CI lands and can pin, the trigger is **retired**, not deferred.
 
 **The file bound held, and here is the test that keeps it from being "whatever Cedar feels."** A 7th
-file is granted only when both hold: (i) the mechanism is the *only* thing that catches the named
+file is granted only when both hold: (i) the mechanism is the _only_ thing that catches the named
 failure, and (ii) no existing enumerated file, hook, CI config, or SPEC acceptance clause can carry
 it. `engine-strict` fails (i) outright and fails (ii) twice. The slot was not spent because the
 request did not clear the test — not because the number was 6.
 
 **3(b) — Standing acceptance clause, binding on this and every subsequent SPEC.** Any SPEC whose
 acceptance is by command must record `node -v` alongside the command results, and the recorded
-version must satisfy `engines.node`. *A gate that ran on an unverified platform produced an
-unverified result; unverified is not PASS.* This is NFR-4 pointed at the toolchain — the same
+version must satisfy `engines.node`. _A gate that ran on an unverified platform produced an
+unverified result; unverified is not PASS._ This is NFR-4 pointed at the toolchain — the same
 sentence as "no figure comes from a language model." Costs no file budget in any SPEC; not optional
 in any.
 
@@ -504,16 +509,16 @@ match `.mts`, or the file silently stops being linted.
 - **Requirement**: Infrastructure clause of NFR-4, applied to the toolchain — no acceptance result
   may be produced by an unverified process. Enabling for PRD §5.3 P0. Displays no figure.
 - **Inputs/Outputs**:
-  - *Input*: completed scaffold, clean tree, gates currently green.
-  - *Step 0*: record `node -v`. If it is not `v22.23.2`, re-enter via `fish -i -c 'cd <root>; and …'`
+  - _Input_: completed scaffold, clean tree, gates currently green.
+  - _Step 0_: record `node -v`. If it is not `v22.23.2`, re-enter via `fish -i -c 'cd <root>; and …'`
     or `bash -ic` and re-verify. Do not proceed on Node 20 — every result recorded under it is
     invalid, in the silent direction.
-  - *Output (1)*: `package.json` `"@types/node": "^22"`, lockfile updated via `npm install`.
-  - *Output (2)*: `stop-quality-gate.sh` reads `.nvmrc` and compares its contents to the **major**
+  - _Output (1)_: `package.json` `"@types/node": "^22"`, lockfile updated via `npm install`.
+  - _Output (2)_: `stop-quality-gate.sh` reads `.nvmrc` and compares its contents to the **major**
     of the `node` that will run the gates. Mismatch → exit 2 naming both versions, stating the gate
     result is UNVERIFIED rather than clean, and printing the fresh-shell remediation command.
     Match → existing behavior, with the Node version added to the all-clear line.
-  - *Acceptance*: all four gates exit 0 **and `node -v` recorded as `v22.23.2`** (Amendment 3(b));
+  - _Acceptance_: all four gates exit 0 **and `node -v` recorded as `v22.23.2`** (Amendment 3(b));
     `./.claude/hooks/stop-quality-gate.sh` standalone prints clean and names the version; the same
     script under a Node 20 shell exits 2; `git status --porcelain -- .gitignore README.md` empty;
     no `.npmrc` created.
@@ -521,18 +526,18 @@ match `.mts`, or the file silently stops being linted.
 - **Design Pattern**: none — simple case. One string comparison and one dependency range; there is
   no variation to encapsulate.
 - **Intellectual Control**:
-  - *Why the hook and not `.npmrc`*: the hook calls `./node_modules/.bin/tsc` and
+  - _Why the hook and not `.npmrc`_: the hook calls `./node_modules/.bin/tsc` and
     `./node_modules/.bin/eslint` directly (lines 54, 63). npm config is not in that call path. Fix
     the process that emits the verdict, not the adjacent boundary.
-  - *Why compare `.nvmrc`'s major rather than parse `engines.node`*: division of labor. `.nvmrc` is
+  - _Why compare `.nvmrc`'s major rather than parse `engines.node`_: division of labor. `.nvmrc` is
     the selector and catches the failure that actually occurred (20 vs 22) with a string compare and
     zero semver logic. The patch-level floor (22.13.0 vs 22.22.2) is already caught by npm's
     per-package `EBADENGINE` at install, which is where it belongs. Adding a semver range parser to
     a bash hook to duplicate a check npm already performs is the bloat Rule 5 exists to stop.
-  - *Why fail rather than auto-correct via `fnm exec`*: fnm lives outside version control, so a
+  - _Why fail rather than auto-correct via `fnm exec`_: fnm lives outside version control, so a
     recovery path depending on it fails on exactly the machines the guard is for — and a guard that
     silently repairs teaches no one that the shell was wrong.
-  - *Why now for `@types/node`*: nothing imports Node typings yet, so the change cannot break
+  - _Why now for `@types/node`_: nothing imports Node typings yet, so the change cannot break
     anything today and only grows riskier. It stops being inert at the first Route Handler —
     `process.env.SOCRATA_APP_TOKEN` is `@types/node` — and deferring hands the walking-skeleton SPEC
     a platform chore on the very turn token-handling code is written. `package.json` is edited by
@@ -560,6 +565,7 @@ match `.mts`, or the file silently stops being linted.
   This is a **new task with its own budget**. It is NOT a 7th scaffold file; the scaffold SPEC is
   closed. `.claude/**` was explicitly "not touched" by that SPEC, so this is a separate file list
   rather than a raid on a spent budget.
+
 - **Tipping Point**: if the hook needs a second platform assertion, or real semver range parsing,
   extract to `.claude/scripts/check-platform.sh` and have the hook call it — the same split as
   `verify-figures.py` behind `/verify-figures`. One assertion inline is fine; two is a script.
@@ -647,7 +653,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
 - **Amendment 3(c) — `@types/node`'s major tracks `engines.node`'s major.** Derived, not chosen;
   moves in the same edit as the floor, no Rule 9 halt required.
 - **Amendment 3(d) — `eslint@^9` is required.** The binding constraint is
-  `eslint-plugin-jsx-a11y@6.10.2`, whose peer range excludes eslint 10 — *not* `eslint-config-next`,
+  `eslint-plugin-jsx-a11y@6.10.2`, whose peer range excludes eslint 10 — _not_ `eslint-config-next`,
   which is permissive and decides nothing. Check that package first before evaluating eslint 10.
 - **Amendment 3(e) — `vitest.config.ts` → `vitest.config.mts` is AUTHORIZED**, batched with
   Cypress's first `setupFiles` edit in **this task's Phase B** (one edit, not two). It renames an
@@ -658,7 +664,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
   linted is an unverified inherited default. Verify with `eslint --debug` or a deliberate error
   before assuming coverage.
 - **The 7th-file test (Cedar, reusable).** A file beyond a spent budget is granted only when both
-  hold: (i) the mechanism is the *only* thing that catches the named failure, and (ii) no existing
+  hold: (i) the mechanism is the _only_ thing that catches the named failure, and (ii) no existing
   enumerated file, hook, CI config, or acceptance clause can carry it.
 - **`engine-strict` is retired-on-condition, not deferred.** Adopt only if a CI runner or deploy
   image performs `npm install` on a Node version it cannot pin from `.nvmrc`. If CI lands and can
@@ -703,16 +709,16 @@ Archived with the SPECs that introduced them, restated here because they are liv
   of the severable FR-5–7 arrest group. Per Rule 6, everything else grows from this slice.
 
 - **Inputs/Outputs**:
-  - *Input*: the completed toolchain on a clean tree; `SOCRATA_APP_TOKEN` in a gitignored `.env`
+  - _Input_: the completed toolchain on a clean tree; `SOCRATA_APP_TOKEN` in a gitignored `.env`
     (create it locally from `.env.example`; never committed, never printed).
-  - *Step 0, before anything else* (Amendment 3(b), binding): run and record `node -v` and
+  - _Step 0, before anything else_ (Amendment 3(b), binding): run and record `node -v` and
     `npm -v`. `node -v` must satisfy `engines.node` (`>=22.22.2`); on this machine that is
     `v22.23.2`. If it prints a v20, halt and re-enter through a fresh shell in the project root. Do
     not `fnm use` around it. Then run and record `npm view zod engines` and
     `npm view zod peerDependencies`. Cypress established on 2026-08-05 that `zod` declares **no**
     `engines` field at all — recording "none declared" is the result, not permission to skip the
     command.
-  - *Output 1 — `src/lib/deaths.ts`* (server-only by construction; never imported by a
+  - _Output 1 — `src/lib/deaths.ts`_ (server-only by construction; never imported by a
     `'use client'` module). Exports:
     - The four SoQL clause constants, verbatim as pinned under **Query** below.
     - `DEATHS_SOQL: string` — the human-readable query for FR-8, assembled from those same
@@ -721,35 +727,42 @@ Archived with the SPECs that introduced them, restated here because they are liv
     - `buildDeathsUrl(): URL` — the request URL, encoded with `URLSearchParams` from those same
       constants. No hand-rolled `encodeURIComponent` concatenation.
     - `fetchDeathsPerYear(): Promise<DeathsResult>`.
-  - *The result type* (a plain discriminated union; see Design Pattern for why this is not a
+  - _The result type_ (a plain discriminated union; see Design Pattern for why this is not a
     "pattern"):
 
     ```ts
     export type DeathsRow = { year: number; deaths: number };
 
     export type DeathsResult =
-      | { status: "ok"; soql: string; rows: DeathsRow[] }          // exactly 8 rows, 2018..2025
-      | { status: "empty"; soql: string }                          // FR-10: zero rows returned
-      | { status: "error"; soql: string; kind: "upstream" | "contract"; reason: string };
+      | { status: "ok"; soql: string; rows: DeathsRow[] } // exactly 8 rows, 2018..2025
+      | { status: "empty"; soql: string } // FR-10: zero rows returned
+      | {
+          status: "error";
+          soql: string;
+          kind: "upstream" | "contract";
+          reason: string;
+        };
     ```
 
     `reason` is a human-readable diagnostic naming what failed (e.g. `"no aggregate returned for
-    2024"`, `"Socrata responded 429"`). It is rendered to the user; it must never contain the
+2024"`, `"Socrata responded 429"`). It is rendered to the user; it must never contain the
     token.
-  - *Output 2 — `src/app/api/deaths/route.ts`*: `export async function GET()`, calling
+
+  - _Output 2 — `src/app/api/deaths/route.ts`_: `export async function GET()`, calling
     `fetchDeathsPerYear()` and mapping the union onto HTTP:
 
-    | `status` / `kind` | HTTP | Body |
-    |---|---|---|
-    | `ok` | 200 | `{ status, soql, rows }` |
-    | `empty` | 200 | `{ status, soql }` |
-    | `error` / `upstream` | 502 | `{ status, soql, kind, reason }` |
-    | `error` / `contract` | 422 | `{ status, soql, kind, reason }` |
+    | `status` / `kind`    | HTTP | Body                             |
+    | -------------------- | ---- | -------------------------------- |
+    | `ok`                 | 200  | `{ status, soql, rows }`         |
+    | `empty`              | 200  | `{ status, soql }`               |
+    | `error` / `upstream` | 502  | `{ status, soql, kind, reason }` |
+    | `error` / `contract` | 422  | `{ status, soql, kind, reason }` |
 
     The two error codes are distinguished on purpose: 502 means Socrata failed us; 422 means
     Socrata answered and the answer violated the pinned contract. Those demand different responses
     from a human, so they must be different codes.
-  - *Output 3 — `src/app/page.tsx`*: an `async` Server Component that awaits
+
+  - _Output 3 — `src/app/page.tsx`_: an `async` Server Component that awaits
     `fetchDeathsPerYear()` **directly** (see Intellectual Control for why it does not re-fetch its
     own Route Handler) and renders:
     - an `<h1>` and one sentence of neutral framing — correlation language only, no causal claim;
@@ -760,7 +773,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
     - in all three states: a `<details>` disclosure labelled "SoQL query" containing
       `DEATHS_SOQL` in a `<pre><code>` (FR-8). It renders in the error states too — the query is
       most useful precisely when it failed.
-  - *Acceptance, by command, with `node -v` recorded beside the results*:
+  - _Acceptance, by command, with `node -v` recorded beside the results_:
     1. `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` each exit 0.
     2. `npm ls zod` recorded — one deduped entry, resolved version `4.x`.
     3. `npm run dev`, then `curl -s -o /dev/null -w '%{http_code}' localhost:3000/api/deaths` →
@@ -803,14 +816,14 @@ Archived with the SPECs that introduced them, restated here because they are liv
   any `?? 0` / `|| 0` / `Number(x) || 0` anywhere in the parse path.
 
   **No `$limit`, on purpose.** The 1,000-row default is irrelevant once `$group` collapses the
-  response to 8 rows, and adding `$limit=8` would silently *truncate* a drifted response where the
-  validator's exact-eight-years assertion would instead *catch* it. The stronger check wins.
+  response to 8 rows, and adding `$limit=8` would silently _truncate_ a drifted response where the
+  validator's exact-eight-years assertion would instead _catch_ it. The stronger check wins.
 
   **Do not alter any clause.** If Socrata rejects alias ordering (`$order=year`), or any clause
   errors, **halt and request a revised `[SPEC]` from Cedar.** Do not repair the query in place.
 
 - **Design Pattern**: **none — simple case.** Variance analysis per Rule 8: the fixed 2018–2025
-  window and the dataset ID are stable; the axis that genuinely varies is the *set of series*.
+  window and the dataset ID are stable; the axis that genuinely varies is the _set of series_.
   Today there is exactly one series, so there is nothing to encapsulate — a Strategy, a series
   registry, or a provider here would be an abstraction with one implementation, the unearned-
   pattern failure Rule 8 names. `composition-patterns` was consulted: the only component authored
@@ -827,7 +840,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
   belong to Magnolia's follow-on SPEC (Task 2, below). Redwood must not open a stylesheet.
 
 - **Intellectual Control**:
-  - *Why the page imports the lib directly instead of fetching its own Route Handler over HTTP.*
+  - _Why the page imports the lib directly instead of fetching its own Route Handler over HTTP._
     Self-fetching requires an absolute URL the server does not portably know (it becomes
     `VERCEL_URL` juggling in production and `localhost:3000` guesswork locally), fails during
     `next build` when the page is prerendered and no server is listening, adds a full HTTP round
@@ -835,7 +848,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
     reason about instead of one. Importing the module is in-process, prerenders cleanly, and puts
     the `revalidate` policy in exactly one place. The token is equally server-side in both designs,
     so the self-fetch buys nothing it costs.
-  - *Then why does the Route Handler exist at all, if the page does not call it?* Two reasons,
+  - _Then why does the Route Handler exist at all, if the page does not call it?_ Two reasons,
     neither decorative. **NFR-2 names the Route Handler as the mechanism** for token handling and
     the Stack table names Route Handlers as the data-access layer — a PRD-level choice not to be
     reinterpreted away. And Rule 4's testing doctrine says the behavioral test target for data work
@@ -844,20 +857,20 @@ Archived with the SPECs that introduced them, restated here because they are liv
     inspectable, tested face of the same function the page renders — not a parallel path that
     could disagree with it, because there is only one query string, one schema, and one validator,
     in one module, imported by both.
-  - *Why the shared function is a separate file rather than an export from `route.ts`.* Next's App
+  - _Why the shared function is a separate file rather than an export from `route.ts`._ Next's App
     Router treats `route.ts` as a special module and validates its exports; a non-HTTP-method
     export is a type error in the generated `.next/types`, so
     `import { fetchDeathsPerYear } from './api/deaths/route'` is not merely ugly, it does not
     typecheck. It would also couple the page's import path to a URL path, so moving the endpoint
     would break the page. The lib file is not a layer added for symmetry; it is the only place the
     shared function can legally live.
-  - *Why the table before the chart.* NFR-3 requires the table regardless, and CLAUDE.md is
+  - _Why the table before the chart._ NFR-3 requires the table regardless, and CLAUDE.md is
     explicit that even a two-line chart is not perceivable without it. Built first, it is the data
     surface the chart must agree with; built second, it becomes a chore appended to a chart that
     already looks finished. The `dataviz` form heuristic was checked and does **not** argue for a
-    stat tile here: FR-1 asks for deaths *per year* across eight years, which is a line chart's
+    stat tile here: FR-1 asks for deaths _per year_ across eight years, which is a line chart's
     job — that chart arrives in Magnolia's SPEC, over this table, unchanged.
-  - *Why this will not break at scale.* The whole surface is one module with four exported symbols
+  - _Why this will not break at scale._ The whole surface is one module with four exported symbols
     and no cross-file state. The only coupling is deliberate and load-bearing: `DEATHS_SOQL` and
     `buildDeathsUrl()` are derived from the same four constants, so FR-8's displayed query is
     mechanically the query that was sent. Cypress can assert that invariant directly — every clause
@@ -873,7 +886,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
   2. **No figure may be authored — and the hook will not catch you here.**
      `guard-data-integrity.sh` pins 26 six-digit literals (collisions, injuries, casualty-filtered).
      The deaths values are three digits and are **deliberately absent from that list**, because a
-     pattern matching them would fire on every ordinary small number. So for *this* task the
+     pattern matching them would fire on every ordinary small number. So for _this_ task the
      mechanical net does not exist. No deaths figure may appear as a literal in `src/**` — not as a
      fallback, not as a placeholder, not in a comment, not in a default value, not in a "temporary"
      mock. If the fetch fails, the page shows the error state; it does not show a remembered
@@ -882,7 +895,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
      Any Socrata rejection is a halt and a request for a revised SPEC, not a local repair.
   4. **No zero-coercion, anywhere** (FR-11, trap 1). An absent key, a `null`, or a non-matching
      string for `deaths` in any year of the window produces `status: "error"`, `kind: "contract"`.
-     `sum()` over a group whose rows are all null returns *no key at all* — that is the exact shape
+     `sum()` over a group whose rows are all null returns _no key at all_ — that is the exact shape
      the confirmed post-2026-05-05 dropout takes, and coercing it to 0 would fabricate a safety
      improvement. There is no acceptable default value for a missing fatality count.
   5. **One new dependency: `zod@^4`**, authorized here under Rule 9 because FR-11's boundary
@@ -925,7 +938,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
      content type / guard the parse; `error`/`upstream`. Never `JSON.parse` a body blind.
   4. **Zero rows returned** → `status: "empty"`, HTTP 200, distinct user-facing message from a
      failure. "We got an answer and it was empty" and "we could not get an answer" are different
-     facts, and FR-10 requires the state to be *defined*, not merely non-crashing.
+     facts, and FR-10 requires the state to be _defined_, not merely non-crashing.
   5. **A year in 2018–2025 is missing from the response** → `error`/`contract`, 422, `reason`
      naming the missing year. **Never zero-fill.** This is trap 1 and the single most likely real
      failure.
@@ -956,32 +969,32 @@ Archived with the SPECs that introduced them, restated here because they are liv
   1. **`package.json`** — add `zod@^4` to `dependencies`. No new scripts (the count stays 7 of the
      8-script tipping point).
   2. **`package-lock.json`** — install artifact; committed, per the scaffold SPEC.
-  3. **`src/lib/deaths.ts`** — *new.* The four clause constants, `DEATHS_SOQL`, `buildDeathsUrl()`,
+  3. **`src/lib/deaths.ts`** — _new._ The four clause constants, `DEATHS_SOQL`, `buildDeathsUrl()`,
      the Zod schema, the pure year-coverage validator, `fetchDeathsPerYear()`, and the
      `DeathsResult` type. The only file in the repo that reads the token. Earns its own file
      because `route.ts` cannot legally export it (see Intellectual Control).
-  4. **`src/app/api/deaths/route.ts`** — *new.* `GET` only; the union-to-HTTP mapping above. The
+  4. **`src/app/api/deaths/route.ts`** — _new._ `GET` only; the union-to-HTTP mapping above. The
      black-box contract Cypress tests and a human curls.
-  5. **`src/app/page.tsx`** — *replaced.* Server Component: heading, one neutral sentence, the
+  5. **`src/app/page.tsx`** — _replaced._ Server Component: heading, one neutral sentence, the
      accessible table, the FR-8 query disclosure, the FR-10 error/empty states.
 
   **Not in this budget, and not owed by this task:** the two `stop-quality-gate.sh` defects carried
   in the ledger. This SPEC does not touch that file, so per the ledger's own rule they stay with
   the next SPEC that does. They do not block the skeleton.
 
-  **The 7th-file test does not apply** — this budget is not spent, it is *sized*. Five files, five
+  **The 7th-file test does not apply** — this budget is not spent, it is _sized_. Five files, five
   used. If Redwood believes a sixth is required, halt and request a revision; state which named
   failure the sixth file is the only thing that catches, and which of the five cannot carry it.
 
 - **Tipping Point**: this is one module, one endpoint, one page, and it stays reviewable while it
   is. Decompose when **any one** trips:
   - **`src/lib/deaths.ts` gains a second series (FR-2 injuries).** That series differs only in the
-    `$select` aggregate, so *parameterize* — one function taking the aggregate expression. Do not
+    `$select` aggregate, so _parameterize_ — one function taking the aggregate expression. Do not
     build the abstraction now for a caller that does not exist.
-  - **A third distinct query *shape* arrives** — FR-12's extra `$where`, or FR-6's borough filter,
+  - **A third distinct query _shape_ arrives** — FR-12's extra `$where`, or FR-6's borough filter,
     which changes the group key rather than the aggregate. Parameterizing stops paying there.
     **That is where a Strategy (or a small series registry) is finally earned**, and where the SPEC
-    introducing it must say so explicitly. Shorthand: *parameterize at two, encapsulate at three.*
+    introducing it must say so explicitly. Shorthand: _parameterize at two, encapsulate at three._
   - **A second Route Handler appears.** The token read, header assembly, timeout, cache policy, and
     content-type guard are shared infrastructure the moment there are two callers — extract
     `src/lib/socrata.ts` then, leaving `deaths.ts` holding only the query and its validation. This
@@ -1012,6 +1025,7 @@ column** — a passing test must never be confusable with evidence that the live
 Add an `axe-core` assertion on the rendered table for NFR-3.
 
 **Background/reference resources (Constraint of Three)**:
+
 1. `.claude/skills/mvcc-data/SKILL.md` — the dataset contract: the FR-1 query pattern, trap 1
    (absent-key-as-zero), trap 5 (the 1,000-row default), and the string-typing rule.
 2. `.claude/hooks/guard-data-integrity.sh` — what is mechanically caught, and specifically what is
@@ -1092,10 +1106,10 @@ Archived with the SPECs that introduced them, restated here because they are liv
 - **Amendment 3(c) — `@types/node`'s major tracks `engines.node`'s major.** Derived, not chosen;
   moves in the same edit as the floor, no Rule 9 halt required.
 - **Amendment 3(d) — `eslint@^9` is required.** The binding constraint is
-  `eslint-plugin-jsx-a11y@6.10.2`, whose peer range excludes eslint 10 — *not* `eslint-config-next`,
+  `eslint-plugin-jsx-a11y@6.10.2`, whose peer range excludes eslint 10 — _not_ `eslint-config-next`,
   which is permissive and decides nothing. Check that package first before evaluating eslint 10.
 - **The 7th-file test (Cedar, reusable).** A file beyond a spent budget is granted only when both
-  hold: (i) the mechanism is the *only* thing that catches the named failure, and (ii) no existing
+  hold: (i) the mechanism is the _only_ thing that catches the named failure, and (ii) no existing
   enumerated file, hook, CI config, or acceptance clause can carry it.
 - **`engine-strict` is retired-on-condition, not deferred.** Adopt only if a CI runner or deploy
   image performs `npm install` on a Node version it cannot pin from `.nvmrc`. If CI lands and can
@@ -1115,7 +1129,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
   a `<!-- BEGIN:nextjs-agent-rules -->` block on every dev/build run. `CLAUDE.md` is off-limits to
   every SPEC and this block carries no project decision — `git checkout -- CLAUDE.md` after any
   `dev`/`build` run, don't commit it and don't try to suppress it as a fix. This task runs both
-  commands, so it *will* happen; confirm a clean `git status` for that path before reporting.
+  commands, so it _will_ happen; confirm a clean `git status` for that path before reporting.
 
 ## Carried forward — owed, not part of any dispatched task's budget
 
@@ -1150,12 +1164,12 @@ Archived with the SPECs that introduced them, restated here because they are liv
   in hand and renders it without sorting, filtering, formatting, interpolating, or re-deriving a
   single value.
 
-- **Requirement**: **FR-1 [P0]** — the deaths-per-year series, now *displayed as a chart* rather
+- **Requirement**: **FR-1 [P0]** — the deaths-per-year series, now _displayed as a chart_ rather
   than only as a table. Also satisfies, or holds intact, **NFR-3** (WCAG 2.2 AA: the chart's data
   remains available as the screen-reader-accessible table Task 1 built; `prefers-reduced-motion`
   respected; AA contrast on every stroke and label), **NFR-4** (no displayed figure is computed,
   rounded, or re-derived here — the chart plots the array it is handed), **NFR-5** (correlation
-  language only in the new caption copy; the dashed-stroke treatment stays *reserved* — Constraint
+  language only in the new caption copy; the dashed-stroke treatment stays _reserved_ — Constraint
   5), and **NFR-6** (Recharts renders SVG; no browser-specific API is introduced). Explicitly
   **not** in scope: FR-2 (injuries), FR-3 (collisions, dashed + inline-labelled), FR-4 (% change),
   FR-9 (caveats), FR-12 (casualty-filtered repair), FR-13 (policy-date reference markers), and the
@@ -1164,9 +1178,9 @@ Archived with the SPECs that introduced them, restated here because they are liv
 
 - **Inputs/Outputs**:
 
-  - *Input*: a clean tree with Task 1 merged; `SOCRATA_APP_TOKEN` in a gitignored `.env`.
+  - _Input_: a clean tree with Task 1 merged; `SOCRATA_APP_TOKEN` in a gitignored `.env`.
 
-  - *Step 0, before anything else* (Amendment 3(b), binding): run and record `node -v` and
+  - _Step 0, before anything else_ (Amendment 3(b), binding): run and record `node -v` and
     `npm -v`. `node -v` must satisfy `engines.node` (`>=22.22.2`); on this machine that is
     `v22.23.2`. If it prints a v20, halt and re-enter through a fresh shell in the project root.
     Then, **before installing anything**, run and record:
@@ -1180,7 +1194,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
     range excludes this platform, **halt and request a revised `[SPEC]`** — a dependency that does
     not fit the platform is Cedar's problem under Rule 9, not something to work around locally.
 
-  - *Output 1 — `src/components/DeathsChart.tsx`* (**new**, `'use client'`). Exports:
+  - _Output 1 — `src/components/DeathsChart.tsx`_ (**new**, `'use client'`). Exports:
 
     ```ts
     import type { DeathsRow } from "../lib/deaths";
@@ -1196,7 +1210,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
     listing the same objects — not two reads of one source that could drift.
 
     **The `import type` keyword is load-bearing, not stylistic.** `src/lib/deaths.ts` is the only
-    module in the repo that reads `SOCRATA_APP_TOKEN`. A *value* import of it from a `'use client'`
+    module in the repo that reads `SOCRATA_APP_TOKEN`. A _value_ import of it from a `'use client'`
     module would pull it into the client graph and ship the token read to every visitor — the exact
     NFR-2 failure `guard-data-integrity.sh` exists to catch, except the hook's check-2 only fires on
     a literal `process.env.*TOKEN` in the client file itself and would **not** catch this. A
@@ -1207,33 +1221,37 @@ Archived with the SPECs that introduced them, restated here because they are liv
 
     ```html
     <figure class="figure">
-      <div class="plot" role="img"
-           aria-label="Line chart of NYC traffic deaths per year from 2018 to 2025.">
+      <div
+        class="plot"
+        role="img"
+        aria-label="Line chart of NYC traffic deaths per year from 2018 to 2025."
+      >
         <!-- ResponsiveContainer > LineChart > CartesianGrid, XAxis, YAxis, Line -->
       </div>
       <figcaption class="caption">
-        NYC traffic deaths per year, 2018–2025. Every plotted figure is listed in the table below.
+        NYC traffic deaths per year, 2018–2025. Every plotted figure is listed
+        in the table below.
       </figcaption>
     </figure>
     ```
 
-  - *Output 2 — `src/components/DeathsChart.module.css`* (**new**). Owns **every colour value in
+  - _Output 2 — `src/components/DeathsChart.module.css`_ (**new**). Owns **every colour value in
     this task.** `DeathsChart.tsx` contains no colour literal at all — see Constraint 4. Tokens,
     with the light value first and the `prefers-color-scheme: dark` value second, scoped to
     `.figure` and mirroring the pattern `globals.css` already uses:
 
-    | Token | Light | Dark | Role (dataviz) |
-    |---|---|---|---|
-    | `--chart-series-1` | `#2a78d6` | `#3987e5` | categorical slot 1 — the deaths line and its markers |
-    | `--chart-grid` | `#e1e0d9` | `#2c2c2a` | hairline gridline, one step off surface |
-    | `--chart-rule` | `#c3c2b7` | `#383835` | axis line |
-    | `--chart-ink` | `#52514e` | `#c3c2b7` | secondary ink — axis ticks, the "Deaths" label, the end label |
+    | Token              | Light     | Dark      | Role (dataviz)                                                |
+    | ------------------ | --------- | --------- | ------------------------------------------------------------- |
+    | `--chart-series-1` | `#2a78d6` | `#3987e5` | categorical slot 1 — the deaths line and its markers          |
+    | `--chart-grid`     | `#e1e0d9` | `#2c2c2a` | hairline gridline, one step off surface                       |
+    | `--chart-rule`     | `#c3c2b7` | `#383835` | axis line                                                     |
+    | `--chart-ink`      | `#52514e` | `#c3c2b7` | secondary ink — axis ticks, the "Deaths" label, the end label |
 
     The marker's 2px ring uses **`var(--background)`**, the token `globals.css` already defines
-    (`#ffffff` / `#0a0a0a`) — the chart's surface *is* the page's surface, so the ring is defined
+    (`#ffffff` / `#0a0a0a`) — the chart's surface _is_ the page's surface, so the ring is defined
     against the real thing rather than a second near-white that would show as a seam.
 
-  - *Output 3 — `src/app/page.tsx`* (**edited, minimally**). Exactly two changes:
+  - _Output 3 — `src/app/page.tsx`_ (**edited, minimally**). Exactly two changes:
     1. `import { DeathsChart } from "../components/DeathsChart";`
     2. `<DeathsChart rows={result.rows} />` rendered **only** in the `result.status === "ok"`
        branch, **immediately above the existing `<table>`** — the insertion seam Task 1 left after
@@ -1248,7 +1266,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
     caption and layout are the chart's concern, they need the chart's stylesheet, and putting them
     in `page.tsx` would drag a CSS-module import into a file that has deliberately never had one.
 
-  - *Acceptance, by command, with `node -v` recorded beside every result*:
+  - _Acceptance, by command, with `node -v` recorded beside every result_:
     1. Step 0's four `npm view` / version recordings, above.
     2. `npm install recharts@^3` (or the exact 3.x pinned by Step 0). Then `npm ls recharts` —
        record it; expect one deduped 3.x entry.
@@ -1269,12 +1287,13 @@ Archived with the SPECs that introduced them, restated here because they are liv
        - `node <dataviz-base>/scripts/validate_palette.js "#3987e5" --mode dark --surface "#0a0a0a"`
 
        Record the resolved path and the full output. If a flag name differs, run the script's
-       `--help` and record what it actually accepts — the requirement is *the recorded output of
-       the real tool*, not a particular command string. The skill's non-negotiable is "never
+       `--help` and record what it actually accepts — the requirement is _the recorded output of
+       the real tool_, not a particular command string. The skill's non-negotiable is "never
        eyeball whether a palette is safe — run the script"; Cedar's contrast arithmetic in §
        Intellectual Control is orientation only and is **not** the evidence. If a check FAILs, halt
        and request a revised `[SPEC]` with the failing output attached — do not re-pick a hue
        locally.
+
     8. **The no-authored-figure grep**, run by Magnolia on its own work and again by Cypress:
        `git grep -nE '(^|[^0-9.])(229|231|244|268|269|280|290|297)([^0-9]|$)' -- src ':!*test*'` →
        zero hits. See Constraint 3 for why this grep, and not the hook, is the net here.
@@ -1293,7 +1312,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
   the query in all three states and needs nothing from this task.
 
 - **Design Pattern**: **none — simple case.** Variance analysis per Rule 8: the fixed 2018–2025
-  window and the dataset ID are stable, and the axis that genuinely varies — the *set of series*
+  window and the dataset ID are stable, and the axis that genuinely varies — the _set of series_
   rendered — still has exactly one member today. A chart-type Strategy, a series registry, a
   `<Chart>`/`<Chart.Line>` compound component, or a config-object prop would each be an abstraction
   with one implementation, which is the unearned-pattern failure Rule 8 names. `composition-patterns`
@@ -1301,9 +1320,9 @@ Archived with the SPECs that introduced them, restated here because they are liv
   `architecture-avoid-boolean-props` — hence a single `rows: DeathsRow[]`, not
   `{ data, showGrid, showLegend, variant }`. Its `patterns-explicit-variants` rule pre-answers the
   next question too: when FR-2's injuries series arrives, the answer is an explicit second
-  component or an explicit `series` prop *introduced by that SPEC*, never a `showInjuries` boolean
+  component or an explicit `series` prop _introduced by that SPEC_, never a `showInjuries` boolean
   bolted onto this one. Task 1's Tipping Point already fixed where encapsulation is earned —
-  *parameterize at two, encapsulate at three* — and pinned "three" to a third distinct **query
+  _parameterize at two, encapsulate at three_ — and pinned "three" to a third distinct **query
   shape**. This task adds **zero** query shapes, so it moves that counter not at all.
 
 - **UI Scope**: **structural.** New DOM enters the page: a `<figure>`, a `role="img"` plot
@@ -1316,7 +1335,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
 
 - **Intellectual Control**:
 
-  - *Why the chart takes `DeathsRow[]` and nothing else.* The alternative shapes each buy a
+  - _Why the chart takes `DeathsRow[]` and nothing else._ The alternative shapes each buy a
     problem. A config object (`{ data, height, colors }`) is the boolean-prop failure wearing a
     different hat: every future need becomes a new key, and the component's contract becomes
     unreadable without reading its body. Passing the whole `DeathsResult` union would force the
@@ -1326,7 +1345,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
     page needn't do this, and it would ship a loading state, a second cache, and an error path for
     data the server already had in memory. `rows` is the narrowest thing that suffices, and it is
     serializable, which the server→client boundary requires.
-  - *Why the figure and caption live in the component rather than the page.* Three reasons, in
+  - _Why the figure and caption live in the component rather than the page._ Three reasons, in
     priority order. **Ownership:** the caption describes the chart, so it belongs with the chart,
     and the same stylesheet that themes the marks themes the caption. **Diff surface:** `page.tsx`'s
     change becomes an import and one element, so Task 1's existing tests keep testing what they
@@ -1334,18 +1353,18 @@ Archived with the SPECs that introduced them, restated here because they are liv
     CSS-module import in `page.tsx` would be the first styling that file has ever carried, against
     Task 1's explicit "Redwood must not open a stylesheet" line; keeping it out preserves a clean
     server/presentation split that a later layout SPEC can build on rather than unwind.
-  - *Why the y-axis must start at zero, and why this is an integrity requirement and not taste.*
+  - _Why the y-axis must start at zero, and why this is an integrity requirement and not taste._
     The deaths series runs roughly 229–297 across eight years. On an auto-fitted axis those figures
     fill the plot and the line reads as a mountain range — a dramatic rise and a dramatic collapse.
     Zero-based, the same data reads as what it is: **essentially flat**. The product's entire thesis
-    is that *deaths barely moved while recorded collisions fell 63%*; a truncated axis would have
+    is that _deaths barely moved while recorded collisions fell 63%_; a truncated axis would have
     the flagship chart visually contradict the argument the page makes in prose, and would do it
     through a rendering default nobody chose. This is NFR-5 (honesty of presentation) expressed as
     geometry, and it is not negotiable at implementation time. The same reasoning forbids
-    `type="monotone"`: a spline draws values *between* the yearly aggregates that no query produced,
+    `type="monotone"`: a spline draws values _between_ the yearly aggregates that no query produced,
     which is a language-model-free way of putting an invented figure on the page. `type="linear"`
     connects measured points and asserts nothing between them.
-  - *Why no hover layer, when the `dataviz` skill ships one by default.* The skill's own stated
+  - _Why no hover layer, when the `dataviz` skill ships one by default._ The skill's own stated
     rationale for the tooltip is that a reader must be able to get a value off the chart, and its
     own hard rule is "tooltips enhance, they never gate — every value a tooltip shows is also
     reachable without it." Here, **every** value is already reachable without it: eight rows sit in
@@ -1358,10 +1377,10 @@ Archived with the SPECs that introduced them, restated here because they are liv
     two lines and no per-point labels, "one tooltip, every series" becomes the only reasonable way
     to read a crossing, and the crosshair earns itself. That trigger is written into the Tipping
     Point so the deferral expires on a condition rather than on someone remembering.
-  - *Why the chart is `role="img"` and the table stays the accessible representation.* An
+  - _Why the chart is `role="img"` and the table stays the accessible representation._ An
     unlabelled `<svg>` is announced as nothing useful; Recharts' own `accessibilityLayer` is the
     other option and it takes `role="application"` plus a bespoke keyboard model, which would
-    create a *second* accessible representation of the same eight numbers that could disagree with
+    create a _second_ accessible representation of the same eight numbers that could disagree with
     the table and would need its own AT testing to trust. One representation, tested, is worth more
     than two that might drift. So the plot wrapper carries `role="img"` and a short label that names
     the form and the window and deliberately **contains no figure at all** — a label reciting
@@ -1369,7 +1388,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
     and it would go stale the first time the feed revises. The `<figcaption>` then points explicitly
     at the table, so a screen-reader user reaches the numbers by following a stated route rather
     than by guessing that the table below is the same data.
-  - *Why colour lives entirely in CSS and geometry entirely in props.* SVG presentation attributes
+  - _Why colour lives entirely in CSS and geometry entirely in props._ SVG presentation attributes
     do not resolve `var()`, so a hex passed as a Recharts prop cannot switch between light and dark.
     Splitting on that seam turns an annoyance into a rule with teeth: `DeathsChart.tsx` may contain
     **no colour literal**, which is a one-line grep, and every mode-dependent value therefore lives
@@ -1377,14 +1396,14 @@ Archived with the SPECs that introduced them, restated here because they are liv
     boundary honestly — jsdom applies no CSS-module styles, so Cypress asserts what is genuinely
     assertable there (attributes, class names, structure, tick text) and colour is verified by the
     validator and by looking at the page, rather than by a test that only appears to check it.
-  - *Why the test harness adapts to the component, and not the reverse.* jsdom has no
+  - _Why the test harness adapts to the component, and not the reverse._ jsdom has no
     `ResizeObserver` and reports zero-size elements, so `<ResponsiveContainer>` renders an empty
     chart there. The tempting fix is a `width`/`height` prop "for tests" — which is a
     production-visible escape hatch existing only to make a test pass, the first crack through
     which config props arrive. The harness is the right place to fix a harness limitation, so
     `vitest.setup.ts` stubs the observer and the dimensions (Cypress's file, Cypress's budget) and
     the component's contract stays clean.
-  - *Why this will not break at scale.* The whole surface is one component with one prop, one
+  - _Why this will not break at scale._ The whole surface is one component with one prop, one
     stylesheet with four tokens, and a two-line mount. The chart cannot disagree with the table
     because they render the same array from the same render pass; it cannot disagree with the
     displayed SoQL because it never sees a query; and it cannot fabricate a figure because it
@@ -1407,7 +1426,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
      `guard-data-integrity.sh` pins 26 six-digit literals (collisions, injuries,
      casualty-filtered). The deaths values are three digits and are **deliberately absent** from
      that list, because a pattern matching them would fire on every ordinary small number —
-     including `r={4}`, `strokeWidth={2}`, and `height={320}` in this very component. So for *this*
+     including `r={4}`, `strokeWidth={2}`, and `height={320}` in this very component. So for _this_
      task the mechanical net does not exist, exactly as it did not for Task 1. No deaths figure may
      appear anywhere in `src/**` outside test files — not as a fallback, a placeholder, a comment, a
      default, a `domain` bound, a tick array, or a "temporary" mock while the chart is wired up.
@@ -1419,7 +1438,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
      → zero hits.
   5. **The dashed stroke is reserved and must not be spent here.** FR-3 assigns the
      dashed-stroke-plus-inline-label treatment to the **collisions** series, because that is the
-     reporting-affected one. Deaths are the medical-examiner-mandated figure — the *least*
+     reporting-affected one. Deaths are the medical-examiner-mandated figure — the _least_
      discretionary series in the dataset and the reason it is the walking skeleton's metric. A
      dashed deaths line would mis-signal the product's central distinction before the collisions
      series even exists. The deaths line is **solid**, and Cypress asserts the absence of a dash
@@ -1457,31 +1476,31 @@ Archived with the SPECs that introduced them, restated here because they are liv
 - **Pinned rendered contract** (what Cypress asserts against the produced SVG — this, not a prop
   spelling, is the binding requirement):
 
-  | Element | Pinned outcome |
-  |---|---|
-  | Line stroke | `stroke-width="2"`, `stroke-linecap="round"`, `stroke-linejoin="round"` |
-  | Line dash | **no** `stroke-dasharray`, or `0`/`none` — solid (Constraint 5) |
-  | Line shape | straight segments between points (`type="linear"`); no spline |
-  | Markers | one per row — `rows.length` of them, never a hardcoded 8 — radius ≥ 4 (≥8px across), `stroke-width="2"` for the surface ring |
-  | Gridlines | horizontal only, 1px, solid, no dash pattern |
-  | Y-axis | domain starts at 0; a `0` tick is rendered |
-  | Y-axis label | the word **"Deaths"**, rendered **horizontally** with no rotation transform, near the top of the axis. Never `angle={-90}` — a rotated axis title is the least readable label on any chart, and the figcaption plus the table's `Deaths` column header already carry the unit |
-  | X-axis | category scale over `year`; ticks `2018` and `2025` always present; interior ticks may be dropped by the library at narrow widths. Never a numeric scale — it invents fractional-year ticks like `2017.5` |
-  | Direct label | **exactly one** value label, on the last point, positioned to its right, in `--chart-ink` (never the series colour — dataviz: text wears text tokens). Its text is `rows[rows.length - 1].deaths` verbatim: no `toLocaleString`, no separator, no rounding, no unit suffix |
-  | Legend | **none.** dataviz is explicit that a single series needs no legend box — the caption already says what is plotted, and a one-swatch legend restates the title and costs space |
-  | Tooltip / crosshair | **none** in this task (see Intellectual Control and the Tipping Point) |
-  | Animation | none |
-  | Container | `ResponsiveContainer` at `width="100%"`, `height={320}`; a fixed height reserves space so nothing shifts on hydration, and 320 includes the x-axis band rather than clipping it into a nested scroll |
-  | Margin | right ≥ 48px so the end label has room and is never clipped; no `overflow: hidden` anywhere in the module |
+  | Element             | Pinned outcome                                                                                                                                                                                                                                                                |
+  | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Line stroke         | `stroke-width="2"`, `stroke-linecap="round"`, `stroke-linejoin="round"`                                                                                                                                                                                                       |
+  | Line dash           | **no** `stroke-dasharray`, or `0`/`none` — solid (Constraint 5)                                                                                                                                                                                                               |
+  | Line shape          | straight segments between points (`type="linear"`); no spline                                                                                                                                                                                                                 |
+  | Markers             | one per row — `rows.length` of them, never a hardcoded 8 — radius ≥ 4 (≥8px across), `stroke-width="2"` for the surface ring                                                                                                                                                  |
+  | Gridlines           | horizontal only, 1px, solid, no dash pattern                                                                                                                                                                                                                                  |
+  | Y-axis              | domain starts at 0; a `0` tick is rendered                                                                                                                                                                                                                                    |
+  | Y-axis label        | the word **"Deaths"**, rendered **horizontally** with no rotation transform, near the top of the axis. Never `angle={-90}` — a rotated axis title is the least readable label on any chart, and the figcaption plus the table's `Deaths` column header already carry the unit |
+  | X-axis              | category scale over `year`; ticks `2018` and `2025` always present; interior ticks may be dropped by the library at narrow widths. Never a numeric scale — it invents fractional-year ticks like `2017.5`                                                                     |
+  | Direct label        | **exactly one** value label, on the last point, positioned to its right, in `--chart-ink` (never the series colour — dataviz: text wears text tokens). Its text is `rows[rows.length - 1].deaths` verbatim: no `toLocaleString`, no separator, no rounding, no unit suffix    |
+  | Legend              | **none.** dataviz is explicit that a single series needs no legend box — the caption already says what is plotted, and a one-swatch legend restates the title and costs space                                                                                                 |
+  | Tooltip / crosshair | **none** in this task (see Intellectual Control and the Tipping Point)                                                                                                                                                                                                        |
+  | Animation           | none                                                                                                                                                                                                                                                                          |
+  | Container           | `ResponsiveContainer` at `width="100%"`, `height={320}`; a fixed height reserves space so nothing shifts on hydration, and 320 includes the x-axis band rather than clipping it into a nested scroll                                                                          |
+  | Margin              | right ≥ 48px so the end label has room and is never clipped; no `overflow: hidden` anywhere in the module                                                                                                                                                                     |
 
   **Prop-name drift is Magnolia's to absorb, not to halt on.** The props implied above
   (`ResponsiveContainer`, `LineChart`, `CartesianGrid vertical={false}`, `XAxis dataKey="year"`,
   `YAxis domain={[0,"auto"]}`, `Line type="linear" dataKey="deaths" strokeWidth={2}
-  isAnimationActive={false}`, a `dot` config carrying `r` and `strokeWidth`, and a custom label
+isAnimationActive={false}`, a `dot` config carrying `r` and `strokeWidth`, and a custom label
   renderer that returns content only at the last index) are Cedar's intended means. If a name or
   signature differs in the installed `recharts@3.x`, use the equivalent that produces the **pinned
   rendered outcome** and record the substitution in the `[COMPLETION-REPORT]`. Rule 4's freeze
-  covers queries, not library call signatures, so this needs no revision cycle. What *does* require
+  covers queries, not library call signatures, so this needs no revision cycle. What _does_ require
   a halt: an outcome in the table above that cannot be produced at all.
 
 - **Deliberate deviations from the `dataviz` skill** (named here so they are decisions on the
@@ -1496,7 +1515,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
      gate while failing the standard NFR-3 names. Where the project's own floor is stricter than a
      skill default, the floor wins.
   3. **The chart surface is the page background (`#ffffff` / `#0a0a0a`), not the skill's reference
-     surfaces (`#fcfcfb` / `#1a1a19`).** This page has one plane; inserting a card surface *darker*
+     surfaces (`#fcfcfb` / `#1a1a19`).** This page has one plane; inserting a card surface _darker_
      than the page in light mode would invert the relationship the reference intends. `palette.md`'s
      own instruction covers this — "when you swap in your own palette, re-run against your own
      surfaces" — which is exactly what acceptance clause 7 does.
@@ -1519,16 +1538,16 @@ Archived with the SPECs that introduced them, restated here because they are liv
      **Cypress's** budget and file (`vitest.setup.ts`, already enumerated as Cypress's): stub
      `globalThis.ResizeObserver` and override the element-dimension getters to a fixed plot size.
      Sanctioned fallback if that proves insufficient after one honest attempt: `vi.mock("recharts",
-     …)` replacing **only** `ResponsiveContainer` with a fixed-size passthrough, leaving every other
+…)` replacing **only** `ResponsiveContainer` with a fixed-size passthrough, leaving every other
      export real so the inner assertions stay genuine. **Not sanctioned:** adding width/height props
      to the component, or downgrading the assertions to "a `<figure>` exists".
   3. **A hydration warning or an SSR mismatch from `ResponsiveContainer`** (it cannot know a width
      on the server). If one appears, the sanctioned lever is Recharts' `initialDimension` on the
      container — recorded in the `[COMPLETION-REPORT]`. Not sanctioned: `next/dynamic` with `ssr:
-     false`, which trades a warning for a layout shift and a blank frame, against NFR-1.
+false`, which trades a warning for a layout shift and a blank frame, against NFR-1.
   4. **A row with `deaths: 0`.** Legal, and must render as a point on the baseline. Never filtered,
      never treated as missing, never made to look like an absent year. (Task 1's validator makes an
-     *absent* year impossible to reach the chart — that path ends in the error state — but a genuine
+     _absent_ year impossible to reach the chart — that path ends in the error state — but a genuine
      zero is data.)
   5. **`rows` in an unexpected order, or a length other than 8.** The chart renders `rows` in the
      order given and plots `rows.length` markers. It does **not** sort, re-sort, slice, pad, or
@@ -1558,31 +1577,31 @@ Archived with the SPECs that introduced them, restated here because they are liv
   1. **`package.json`** — add `recharts@^3` to `dependencies` (production: it renders the page).
      No new scripts; the count stays 7 against the 8-script tipping point.
   2. **`package-lock.json`** — install artifact; committed, per the scaffold SPEC.
-  3. **`src/components/DeathsChart.tsx`** — *new.* `'use client'`; the `DeathsChartProps` type,
+  3. **`src/components/DeathsChart.tsx`** — _new._ `'use client'`; the `DeathsChartProps` type,
      the `<figure>`/`role="img"`/`<figcaption>` structure, the Recharts composition, and the
      last-point-only label renderer. Earns its own file because Recharts is client-only and
      `page.tsx` must stay a Server Component — this is the client boundary, and it is the only one.
-  4. **`src/components/DeathsChart.module.css`** — *new.* The four tokens in both modes, the mark
+  4. **`src/components/DeathsChart.module.css`** — _new._ The four tokens in both modes, the mark
      and text colours, and the figure's layout. Earns its own file because SVG presentation
      attributes cannot resolve `var()`, so mode-dependent colour has nowhere else to live; and
      co-locating it with the component (rather than extending `page.module.css` or `globals.css`)
      keeps the chart's theme in the chart's own scope until a second consumer exists.
-  5. **`src/app/page.tsx`** — *edited.* One import, one element, inside the existing `ok` branch.
+  5. **`src/app/page.tsx`** — _edited._ One import, one element, inside the existing `ok` branch.
      Nothing else in the file changes.
 
   **Not in this budget, and not owed by this task:** the two `stop-quality-gate.sh` defects carried
   in the ledger (this SPEC does not touch that file), and `src/app/page.module.css`.
 
   **On `page.module.css`, the decision this SPEC was asked to make.** Three options were weighed.
-  *Repurpose it as the chart's stylesheet* — rejected: it is `src/app/page.module.css`, a
+  _Repurpose it as the chart's stylesheet_ — rejected: it is `src/app/page.module.css`, a
   page-scoped module, and the chart lives in `src/components/`; a component's styles belong beside
   the component, and the file's actual contents (`.ctas`, `.logo`, button hover states,
   `--font-geist-*` bindings) are scaffold furniture for a page that no longer exists, so
   "repurposing" means deleting 150 lines and writing new ones in a file with a misleading name.
-  *Delete it* — rejected on budget: the deletion is the sixth file, and the **7th-file test**
+  _Delete it_ — rejected on budget: the deletion is the sixth file, and the **7th-file test**
   (which applies to any file beyond a sized budget) fails on limb (i): the orphan causes no failure
   that deletion is the only thing to catch. It is dead CSS that no bundle ships, because nothing
-  imports it. *Leave it orphaned* — adopted, with the difference from Task 1 being that it is no
+  imports it. _Leave it orphaned_ — adopted, with the difference from Task 1 being that it is no
   longer deferred to an unnamed future: it is now in § Carried forward with an owner (the next SPEC
   that touches page-level layout) and a Cypress flag if that SPEC lands without it. A second silent
   inheritance would have been the drift ADR 0001 was written about.
@@ -1602,9 +1621,9 @@ Archived with the SPECs that introduced them, restated here because they are liv
     specifically. That is also the moment the component stops being `DeathsChart`: it takes an
     explicit series list, gets renamed, and the four colour tokens move from the module to
     `globals.css` because they finally have two consumers.
-  - **A third distinct query *shape* arrives** (FR-12's extra `$where`, or FR-6's borough filter,
-    which changes the group key). Inherited unchanged from Task 1: *parameterize at two, encapsulate
-    at three* — that is where a Strategy or a small series registry is finally earned. This task
+  - **A third distinct query _shape_ arrives** (FR-12's extra `$where`, or FR-6's borough filter,
+    which changes the group key). Inherited unchanged from Task 1: _parameterize at two, encapsulate
+    at three_ — that is where a Strategy or a small series registry is finally earned. This task
     moves the counter by zero.
   - **`DeathsChart.tsx` exceeds ~130 lines, or its custom label renderer grows a second case** (e.g.
     also labelling the extreme). Split the label renderer and the axis configuration into their own
@@ -1615,7 +1634,7 @@ Archived with the SPECs that introduced them, restated here because they are liv
     revisit trigger in CLAUDE.md § Project Layout at the same time.
   - **A measured performance problem** — a real Lighthouse or Slow-4G number from the deploy SPEC,
     not a hunch about bundle size. `next/dynamic` around the chart is the documented lever, and it
-    is to be pulled *after* a measurement, never before.
+    is to be pulled _after_ a measurement, never before.
   - **A second component needs the chart tokens.** Hoist them to `globals.css` in that SPEC. Not
     before — one consumer is not a design system.
 
@@ -1651,7 +1670,7 @@ correct. Assertions worth writing:
 - Source-level greps (they are tests too, and they are the only net for three of the constraints):
   no colour literal in `DeathsChart.tsx`; no `process.env` under `src/components`; no `@/` import
   in either touched file; the sole `lib/deaths` reference under `src/components` is an `import
-  type`; and the eight real deaths figures appear nowhere in non-test `src/**`.
+type`; and the eight real deaths figures appear nowhere in non-test `src/**`.
 
 **Background/reference resources (Constraint of Three)**. Two **skill loads** are mandatory and are
 not reference items: **`mvcc-data`** (CLAUDE.md requires it before any chart that displays a figure
@@ -1678,8 +1697,8 @@ three reference items are:
 
 1. **An honest axis > a dramatic one** — zero-based y, linear interpolation, no smoothing. The
    flagship chart of a data-integrity product may not owe its shape to a rendering default.
-2. **An always-present accessible table > a toggle that hides one** — NFR-3 asks that the data *be
-   available*, and unconditional availability is strictly stronger than availability behind a
+2. **An always-present accessible table > a toggle that hides one** — NFR-3 asks that the data _be
+   available_, and unconditional availability is strictly stronger than availability behind a
    control. Nothing is built to satisfy a mental model the requirement does not contain.
 3. **A pinned rendered contract > a pinned prop spelling** — Cypress asserts SVG attributes, so the
    requirement survives a library API Cedar cannot verify from here, and the test proves geometry
@@ -1735,8 +1754,8 @@ protocol) · **Revision human-approved (HITL):** 2026-08-06, Rayan
 ## Revision history
 
 **2026-08-06 — revision applied, RESOLVED.** A human-approved review on 2026-08-05 flagged one
-substantive gap: `.claude/scripts/subtotal-gap.py` was specced as a *reporter* (prints a table,
-exits 0) even though the SPEC names `verify-figures.py` — a *checker* (pins `PINNED` values in the
+substantive gap: `.claude/scripts/subtotal-gap.py` was specced as a _reporter_ (prints a table,
+exits 0) even though the SPEC names `verify-figures.py` — a _checker_ (pins `PINNED` values in the
 file, exits 1 on drift) — as the style to copy. The cost landed on this SPEC's own Tipping Point,
 "the gap closes, or extends backward before 2021," which as a reporter had no mechanical detector —
 a human would have to run the script, open ADR 0002, and eyeball-compare eight number pairs, the
@@ -1747,7 +1766,7 @@ script now pins `PINNED_GAPS` for both series and exits 1 on any moved cell, mir
 clause 3 forces a mismatch, confirms exit 1, and reverts — a green run alone never proves a
 detector detects. Two other flagged judgment calls were reviewed and **endorsed unchanged**: the
 `mvcc-data/SKILL.md` edit's placement (the six subgroup fields flagged inline at the field list as
-*breakdown fields that do not reconcile*, not appended as unflagged peers — a bare field list reads
+_breakdown fields that do not reconcile_, not appended as unflagged peers — a bare field list reads
 as "safe to use," and separating the fields from the caveat would rebuild the exact
 fields-here/warning-there split that caused the bug), and the Redwood-first ordering (precedent:
 `.claude/scripts/` holds no test files, and `verify-figures.py` — 212 lines, live-network,
@@ -1769,22 +1788,22 @@ nothing renders them) were implicated by the revision.
 
 - **Requirement**: Defends **FR-11 [P0]** (fail loud on an absent core aggregate) and **NFR-4**
   (no displayed figure produced by a language model). FR-11's text is **correct as written and is
-  not being revised** — the correction is to a *proposed mitigation* recorded in the research
+  not being revised** — the correction is to a _proposed mitigation_ recorded in the research
   layer, which currently contradicts the requirement it was meant to serve.
 
 - **Inputs/Outputs**:
 
-  - *Input*: clean tree; `SOCRATA_APP_TOKEN` in the gitignored `.env` (optional — the script
+  - _Input_: clean tree; `SOCRATA_APP_TOKEN` in the gitignored `.env` (optional — the script
     must run anonymously, matching `verify-figures.py`'s behavior).
 
-  - *Step 0 — baseline the citation hook before editing anything.* Run
+  - _Step 0 — baseline the citation hook before editing anything._ Run
     `./.claude/hooks/check-citations.sh` and record its full output. `docs/nyc-collision-analytics-
-    deep-research.md` lines 206–210 contain cross-links inherited from the fellowship repo
+deep-research.md` lines 206–210 contain cross-links inherited from the fellowship repo
     (`../../wiki/DataAnalytics.md`, `../week-4/...`) that may already fail to resolve here. **Any
     link already broken at Step 0 is pre-existing and out of scope — do not fix it.** Only a link
     this task newly breaks is this task's problem. Re-run after editing and diff against baseline.
 
-  - *Output 1 — `.claude/scripts/subtotal-gap.py`* (**new**; port of the session script at
+  - _Output 1 — `.claude/scripts/subtotal-gap.py`_ (**new**; port of the session script at
     `/tmp/claude-1000/-home-rayan-Documents-data-projects-pursuit-mvcc-data-integrity/8f8bde0b-ca03-43cb-a172-aaeaedcc4e73/scratchpad/subtotal_gap.py`).
     A **checker**, not a reporter — matches `verify-figures.py`'s house style and structure
     exactly, not merely its import list: **stdlib only** (`json`, `os`, `sys`,
@@ -1807,17 +1826,17 @@ nothing renders them) were implicated by the revision.
     `2` — the fetch itself failed (network/HTTP/timeout), raised before any comparison is
     attempted, exactly as `verify-figures.py`'s `fetch()` does with `SystemExit(2)`.
 
-  - *Output 2 — the four prose corrections.* Content requirements are pinned below; wording is the
+  - _Output 2 — the four prose corrections._ Content requirements are pinned below; wording is the
     executing agent's, except the two table cells given verbatim.
 
-  - *Output 3 — `docs/adr/0002-no-synthetic-subtotal-fallback.md`* (**new**), mirroring ADR 0001's
+  - _Output 3 — `docs/adr/0002-no-synthetic-subtotal-fallback.md`_ (**new**), mirroring ADR 0001's
     structure exactly: `# 0002 — <title>`, then `- **Status**: Accepted`, `- **Date**: 2026-08-05`,
     `- **Supersedes / Superseded by**: none`, then `## Context`, `## Decision`, `## Consequences`.
 
 - **Query** (the reproduction contract — dataset `h9gi-nx95`, verified live 2026-08-05):
+```
 
-  ```
-  $select = date_extract_y(crash_date) AS year,
+$select = date_extract_y(crash_date) AS year,
             sum(number_of_persons_killed) AS killed,
             sum(number_of_pedestrians_killed) AS k_ped,
             sum(number_of_cyclist_killed) AS k_cyc,
@@ -1826,298 +1845,299 @@ nothing renders them) were implicated by the revision.
             sum(number_of_pedestrians_injured) AS i_ped,
             sum(number_of_cyclist_injured) AS i_cyc,
             sum(number_of_motorist_injured) AS i_mot
-  $where  = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
-  $group  = date_extract_y(crash_date)
-  $order  = year
-  ```
+  $where = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+$group  = date_extract_y(crash_date)
+  $order = year
 
-  *Expected response shape*: a JSON array of exactly 8 objects, one per year 2018–2025, every
-  value a **string** (cast explicitly — skill rule). Aggregated server-side to 8 rows, so trap 5's
-  1,000-row default limit is not in play and no `$limit` is needed.
+```
 
-  *Field-provenance note, so this is not mistaken for an unpinned query*: the `mvcc-data` skill's
-  "Verified fields" list names only five `h9gi-nx95` fields and does **not** yet include the six
-  subgroup fields above. They are nonetheless verified by two independent sources — the live
-  2026-08-05 run, and `docs/nyc-collision-analytics-deep-research.md` lines 46–47, which confirm
-  the pedestrian/cyclist/motorist fields remain populated. Output 4 below adds them to that list,
-  which is why this SPEC may pin them.
+*Expected response shape*: a JSON array of exactly 8 objects, one per year 2018–2025, every
+value a **string** (cast explicitly — skill rule). Aggregated server-side to 8 rows, so trap 5's
+1,000-row default limit is not in play and no `$limit` is needed.
 
-  *Expected diff (`authoritative − subgroup_sum`)* — **this is a value to diff against, never a
-  value to transcribe**:
+*Field-provenance note, so this is not mistaken for an unpinned query*: the `mvcc-data` skill's
+"Verified fields" list names only five `h9gi-nx95` fields and does **not** yet include the six
+subgroup fields above. They are nonetheless verified by two independent sources — the live
+2026-08-05 run, and `docs/nyc-collision-analytics-deep-research.md` lines 46–47, which confirm
+the pedestrian/cyclist/motorist fields remain populated. Output 4 below adds them to that list,
+which is why this SPEC may pin them.
 
-  | Year | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 |
-  |---|---|---|---|---|---|---|---|---|
-  | deaths gap | 0 | 0 | 0 | 12 | 20 | 19 | 9 | 6 |
-  | injuries gap | 23 | 1 | 0 | 2,132 | 2,392 | 2,411 | 1,835 | 1,405 |
+*Expected diff (`authoritative − subgroup_sum`)* — **this is a value to diff against, never a
+value to transcribe**:
 
-  **NFR-4 chain of custody, binding.** The figures written into the corrected docs must be
-  transcribed from `subtotal-gap.py`'s own stdout on a fresh run — **not** copied from this SPEC,
-  not retyped from prose, not adjusted. This table is the expected result of that run. If the run
-  disagrees at any cell, that is a **finding**: halt, report the diff, and do not write either
-  number. (PRD §7 flags 2025 as a fragile preliminary endpoint; a moved cell is exactly the signal
-  `/verify-figures` exists to catch, and adjudicating it is not this task's job.)
+| Year | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 |
+|---|---|---|---|---|---|---|---|---|
+| deaths gap | 0 | 0 | 0 | 12 | 20 | 19 | 9 | 6 |
+| injuries gap | 23 | 1 | 0 | 2,132 | 2,392 | 2,411 | 1,835 | 1,405 |
+
+**NFR-4 chain of custody, binding.** The figures written into the corrected docs must be
+transcribed from `subtotal-gap.py`'s own stdout on a fresh run — **not** copied from this SPEC,
+not retyped from prose, not adjusted. This table is the expected result of that run. If the run
+disagrees at any cell, that is a **finding**: halt, report the diff, and do not write either
+number. (PRD §7 flags 2025 as a fragile preliminary endpoint; a moved cell is exactly the signal
+`/verify-figures` exists to catch, and adjudicating it is not this task's job.)
 
 - **Design Pattern**: **none — simple case.** Variance analysis per Rule 8 found nothing varying to
-  encapsulate: this is a fixed correction to four static prose sites plus one script. There is no
-  axis of change here, and the project's live axis (the set of series rendered) is untouched.
+encapsulate: this is a fixed correction to four static prose sites plus one script. There is no
+axis of change here, and the project's live axis (the set of series rendered) is untouched.
 
 - **Intellectual Control**:
 
-  - *Why the correction is not confined to the one line quoted in the goal.* A mitigation that
-    survives in three other places has not been corrected; it has been relocated. The
-    `nyc-collision-reporting-drift.md` line 257 instance is the most dangerous of the four because
-    it sits in a two-column comparison table whose whole purpose is to tell a reader which defect
-    they are looking at and what to do about it — read in isolation it presents the fallback as the
-    settled answer, with none of the surrounding hedging the research doc's table row has.
-  - *Why the skill is edited even though its trap 1 is already correct.* Trap 1 says "never coerce
-    to zero." It does not say "never substitute the subgroup sum," and those are different errors:
-    the subgroup sum is not a zero, it is a plausible non-zero number that is quietly wrong in a
-    direction that flatters the data. Under the context-diet rule an agent cites the FR and does
-    not load the research docs, but it is *required* to load `mvcc-data` before any query, chart,
-    or figure-asserting test. Correcting only the docs would leave the one file on the re-invention
-    path uncorrected. This edit passes the 7th-file test's limb (i): it is the only mechanism in
-    the mandatory-load path.
-  - *Why the script earns a durable file rather than the query text sufficing.* A pinned query
-    reproduces the *inputs*; the finding is the *difference*. If only the query survives, the next
-    session to ask "is this still true?" must run two aggregations and subtract them — and a model
-    performing that subtraction to produce a number that then appears in a normative doc is the
-    precise NFR-4 violation this project exists to criticize. "Compute deterministically, summarize
-    generatively" names `verify-figures.py` as the pattern to copy; this is the same shape of
-    problem and gets the same shape of answer. It is also the only way the gap stays measurable as
-    it moves, and it has moved: it was zero for three years and then wasn't.
-  - *Why the status change must not be overstated.* Three distinct claims are in play and the
-    correction must keep them apart: the **symptom** (post-2026-05-05 dropout) was and remains
-    *confirmed*; the **cause** was and remains *unconfirmed* — one Help Desk ticket, no official
-    diagnosis; only the **proposed remedy** changes state, from untested-suggestion to *falsified*.
-    Nothing in this task may upgrade or downgrade the first two. The research doc's existing
-    "Unconfirmed" root-cause label at line 156 is correct and stays exactly as it is.
-  - *Why the residual-category pattern is recorded but not adopted.* Crashmapper's "Other/Unknown"
-    fourth category is the constructive half and belongs on the record. It is **not** implemented
-    here, and the ADR must state why: we currently render no casualty-by-role breakdown at all, so
-    there is no total for a residual to reconcile against — the pattern has no site to apply to.
-    More importantly it must **not** be conflated with our property-damage-only tier. The PDO tier
-    is `raw − casualty-filtered`, a residual over *collision records*; crashmapper's is
-    `persons_injured − sum(role-assigned persons)`, a residual over *people within a record*. They
-    rhyme structurally and are different quantities over different denominators. Adopting the
-    pattern for FR-2 or any future breakdown requires its own `[SPEC]`, named as such in the ADR.
-  - *Why this will not break at scale.* The output is four short prose edits, one ~80-line stdlib
-    script, and one ADR. Nothing is imported by anything; nothing runs in CI; nothing ships to a
-    client. The only durable coupling created is the ADR's inbound links, which
-    `check-citations.sh` verifies mechanically.
+- *Why the correction is not confined to the one line quoted in the goal.* A mitigation that
+  survives in three other places has not been corrected; it has been relocated. The
+  `nyc-collision-reporting-drift.md` line 257 instance is the most dangerous of the four because
+  it sits in a two-column comparison table whose whole purpose is to tell a reader which defect
+  they are looking at and what to do about it — read in isolation it presents the fallback as the
+  settled answer, with none of the surrounding hedging the research doc's table row has.
+- *Why the skill is edited even though its trap 1 is already correct.* Trap 1 says "never coerce
+  to zero." It does not say "never substitute the subgroup sum," and those are different errors:
+  the subgroup sum is not a zero, it is a plausible non-zero number that is quietly wrong in a
+  direction that flatters the data. Under the context-diet rule an agent cites the FR and does
+  not load the research docs, but it is *required* to load `mvcc-data` before any query, chart,
+  or figure-asserting test. Correcting only the docs would leave the one file on the re-invention
+  path uncorrected. This edit passes the 7th-file test's limb (i): it is the only mechanism in
+  the mandatory-load path.
+- *Why the script earns a durable file rather than the query text sufficing.* A pinned query
+  reproduces the *inputs*; the finding is the *difference*. If only the query survives, the next
+  session to ask "is this still true?" must run two aggregations and subtract them — and a model
+  performing that subtraction to produce a number that then appears in a normative doc is the
+  precise NFR-4 violation this project exists to criticize. "Compute deterministically, summarize
+  generatively" names `verify-figures.py` as the pattern to copy; this is the same shape of
+  problem and gets the same shape of answer. It is also the only way the gap stays measurable as
+  it moves, and it has moved: it was zero for three years and then wasn't.
+- *Why the status change must not be overstated.* Three distinct claims are in play and the
+  correction must keep them apart: the **symptom** (post-2026-05-05 dropout) was and remains
+  *confirmed*; the **cause** was and remains *unconfirmed* — one Help Desk ticket, no official
+  diagnosis; only the **proposed remedy** changes state, from untested-suggestion to *falsified*.
+  Nothing in this task may upgrade or downgrade the first two. The research doc's existing
+  "Unconfirmed" root-cause label at line 156 is correct and stays exactly as it is.
+- *Why the residual-category pattern is recorded but not adopted.* Crashmapper's "Other/Unknown"
+  fourth category is the constructive half and belongs on the record. It is **not** implemented
+  here, and the ADR must state why: we currently render no casualty-by-role breakdown at all, so
+  there is no total for a residual to reconcile against — the pattern has no site to apply to.
+  More importantly it must **not** be conflated with our property-damage-only tier. The PDO tier
+  is `raw − casualty-filtered`, a residual over *collision records*; crashmapper's is
+  `persons_injured − sum(role-assigned persons)`, a residual over *people within a record*. They
+  rhyme structurally and are different quantities over different denominators. Adopting the
+  pattern for FR-2 or any future breakdown requires its own `[SPEC]`, named as such in the ADR.
+- *Why this will not break at scale.* The output is four short prose edits, one ~80-line stdlib
+  script, and one ADR. Nothing is imported by anything; nothing runs in CI; nothing ships to a
+  client. The only durable coupling created is the ADR's inbound links, which
+  `check-citations.sh` verifies mechanically.
 
 - **Constraints**:
 
-  1. **FR-11 is not amended, and neither is any other requirement.** `docs/project-mvcc-data.md`
-     is **not in this task's file list** and must not be opened for editing. Its FR-11 (line 207)
-     and risk register (line 262) were both checked and already specify fail-loud with no fallback.
-     If the executing agent believes the PRD needs a change, **halt and request a revised `[SPEC]`**.
-  2. **No file under `src/` is touched.** `src/lib/deaths.ts` was verified correct: `RawRowSchema`
-     requires `deaths: z.string().regex(/^\d+$/)`, `parseRow` returns an error (never a 0) on any
-     missing/null/empty value, and `SELECT_CLAUSE` selects only `number_of_persons_killed` — the
-     subgroup fields are never fetched, making the fallback unreachable rather than merely unused.
-     Do not "improve," comment, or defensively harden it.
-  3. **Query contracts are frozen (Rule 4).** The query in this SPEC is for the standalone
-     verification script only. It does **not** become a Route Handler, is not wired into the app,
-     and `DEATHS_SOQL` does not change.
-  4. **Chain of custody on every figure** — see the Query section. Transcribe from script stdout;
-     halt on disagreement.
-  5. **Task 2 isolation.** Touch none of: `package.json`, `package-lock.json`,
-     `src/components/DeathsChart.tsx`, `src/components/DeathsChart.module.css`, `src/app/page.tsx`,
-     `src/app/page.test.tsx`, `src/components/DeathsChart.test.tsx`, `vitest.setup.ts`, `SPEC.md`.
-     `SPEC.md` is occupied by Task 2 and is the main session's to manage, not this task's.
-  6. **No new dependency**, pip or npm. Stdlib only. This is not a Rule 9 halt — it is a design
-     requirement, since `verify-figures.py` already proves stdlib suffices for this exact job.
-  7. **Do not repair pre-existing broken cross-links** surfaced by `check-citations.sh` at Step 0
-     (Output/Step 0 above). Scope creep into the fellowship-inherited link paths would blow the
-     budget on an unrelated problem.
-  8. **The two `stop-quality-gate.sh` defects carried in the ledger are not owed here** — this task
-     does not touch that file.
-  9. **Headings must not change** in either research doc. Other files link to these documents and
-     `check-citations.sh` verifies anchors; renaming a heading would break inbound anchors for no
-     gain. Edit cell contents and body prose only.
+1. **FR-11 is not amended, and neither is any other requirement.** `docs/project-mvcc-data.md`
+   is **not in this task's file list** and must not be opened for editing. Its FR-11 (line 207)
+   and risk register (line 262) were both checked and already specify fail-loud with no fallback.
+   If the executing agent believes the PRD needs a change, **halt and request a revised `[SPEC]`**.
+2. **No file under `src/` is touched.** `src/lib/deaths.ts` was verified correct: `RawRowSchema`
+   requires `deaths: z.string().regex(/^\d+$/)`, `parseRow` returns an error (never a 0) on any
+   missing/null/empty value, and `SELECT_CLAUSE` selects only `number_of_persons_killed` — the
+   subgroup fields are never fetched, making the fallback unreachable rather than merely unused.
+   Do not "improve," comment, or defensively harden it.
+3. **Query contracts are frozen (Rule 4).** The query in this SPEC is for the standalone
+   verification script only. It does **not** become a Route Handler, is not wired into the app,
+   and `DEATHS_SOQL` does not change.
+4. **Chain of custody on every figure** — see the Query section. Transcribe from script stdout;
+   halt on disagreement.
+5. **Task 2 isolation.** Touch none of: `package.json`, `package-lock.json`,
+   `src/components/DeathsChart.tsx`, `src/components/DeathsChart.module.css`, `src/app/page.tsx`,
+   `src/app/page.test.tsx`, `src/components/DeathsChart.test.tsx`, `vitest.setup.ts`, `SPEC.md`.
+   `SPEC.md` is occupied by Task 2 and is the main session's to manage, not this task's.
+6. **No new dependency**, pip or npm. Stdlib only. This is not a Rule 9 halt — it is a design
+   requirement, since `verify-figures.py` already proves stdlib suffices for this exact job.
+7. **Do not repair pre-existing broken cross-links** surfaced by `check-citations.sh` at Step 0
+   (Output/Step 0 above). Scope creep into the fellowship-inherited link paths would blow the
+   budget on an unrelated problem.
+8. **The two `stop-quality-gate.sh` defects carried in the ledger are not owed here** — this task
+   does not touch that file.
+9. **Headings must not change** in either research doc. Other files link to these documents and
+   `check-citations.sh` verifies anchors; renaming a heading would break inbound anchors for no
+   gain. Edit cell contents and body prose only.
 
 - **The four correction sites** (content pinned; the two table cells verbatim):
 
-  1. **`docs/nyc-collision-analytics-deep-research.md` line 156** — the Aggregate Nullification
-     row's **Mitigation** cell. Root-cause cell (`**Unconfirmed** — …`) stays untouched. New cell:
+1. **`docs/nyc-collision-analytics-deep-research.md` line 156** — the Aggregate Nullification
+   row's **Mitigation** cell. Root-cause cell (`**Unconfirmed** — …`) stays untouched. New cell:
 
-     > **Fail loud — never a synthetic total.** Raise the error state when the primary field is
-     > absent. The subgroup sum is **not** a valid substitute: it undercounts by a margin that is
-     > 0 for 2018–2020 then opens from 2021 (see [ADR 0002](adr/0002-no-synthetic-subtotal-fallback.md))
+   > **Fail loud — never a synthetic total.** Raise the error state when the primary field is
+   > absent. The subgroup sum is **not** a valid substitute: it undercounts by a margin that is
+   > 0 for 2018–2020 then opens from 2021 (see [ADR 0002](adr/0002-no-synthetic-subtotal-fallback.md))
 
-  2. **`docs/nyc-collision-analytics-deep-research.md` lines 168–171** — the **Data engineers**
-     strategic-recommendation bullet. Strike the "computes synthetic fallback totals" clause and
-     replace with schema validation that *fails loud* on an absent primary aggregate, with a
-     one-clause note that the obvious fallback was tried in production by another team and failed.
-     The spatial pre-filtering clause in the same bullet is unaffected — leave it.
+2. **`docs/nyc-collision-analytics-deep-research.md` lines 168–171** — the **Data engineers**
+   strategic-recommendation bullet. Strike the "computes synthetic fallback totals" clause and
+   replace with schema validation that *fails loud* on an absent primary aggregate, with a
+   one-clause note that the obvious fallback was tried in production by another team and failed.
+   The spatial pre-filtering clause in the same bullet is unaffected — leave it.
 
-  3. **`docs/nyc-collision-reporting-drift.md` line 257** — the comparison table's **Fix** row,
-     right-hand cell only. The left cell (`Casualty filter (validated above)`) is untouched.
-     Verbatim replacement:
+3. **`docs/nyc-collision-reporting-drift.md` line 257** — the comparison table's **Fix** row,
+   right-hand cell only. The left cell (`Casualty filter (validated above)`) is untouched.
+   Verbatim replacement:
 
-     > Fail loud on the absent aggregate (FR-11). **Not** a synthetic subgroup-sum total — that
-     > remedy is falsified; see [ADR 0002](adr/0002-no-synthetic-subtotal-fallback.md)
+   > Fail loud on the absent aggregate (FR-11). **Not** a synthetic subgroup-sum total — that
+   > remedy is falsified; see [ADR 0002](adr/0002-no-synthetic-subtotal-fallback.md)
 
-  4. **`docs/nyc-collision-analytics-deep-research.md` lines 40–48** — the trust note's item 4.
-     A **narrow** addition only: the symptom stays confirmed, the cause stays unconfirmed, and one
-     new sentence records that the report's *proposed remedy* has since been independently
-     falsified, pointing at ADR 0002. Do not re-litigate the root cause and do not soften the
-     existing "unconfirmed speculation dressed up as a citation" language — it is still accurate.
+4. **`docs/nyc-collision-analytics-deep-research.md` lines 40–48** — the trust note's item 4.
+   A **narrow** addition only: the symptom stays confirmed, the cause stays unconfirmed, and one
+   new sentence records that the report's *proposed remedy* has since been independently
+   falsified, pointing at ADR 0002. Do not re-litigate the root cause and do not soften the
+   existing "unconfirmed speculation dressed up as a citation" language — it is still accurate.
 
 - **The skill edit** (`.claude/skills/mvcc-data/SKILL.md`), deliberately minimal — two changes:
 
-  - **Trap 1** gains one clause: the subgroup fields are **not** a substitute for an absent
-    primary aggregate; the sums genuinely disagree from 2021 onward because NYPD records a
-    casualty without always assigning that person a role; fail loud is the only behavior. One
-    sentence plus a pointer to ADR 0002. **Do not paste the gap table into the skill** — it is
-    loaded before every query, it is volatile, and a stale table there would be worse than a
-    pointer to a dated one.
-  - **Verified fields** gains the six subgroup fields for `h9gi-nx95`, flagged as *breakdown
-    fields that do not reconcile to the totals* so their addition cannot be read as an
-    endorsement of summing them.
+- **Trap 1** gains one clause: the subgroup fields are **not** a substitute for an absent
+  primary aggregate; the sums genuinely disagree from 2021 onward because NYPD records a
+  casualty without always assigning that person a role; fail loud is the only behavior. One
+  sentence plus a pointer to ADR 0002. **Do not paste the gap table into the skill** — it is
+  loaded before every query, it is volatile, and a stale table there would be worse than a
+  pointer to a dated one.
+- **Verified fields** gains the six subgroup fields for `h9gi-nx95`, flagged as *breakdown
+  fields that do not reconcile to the totals* so their addition cannot be read as an
+  endorsement of summing them.
 
 - **ADR 0002 — required content** (structure mirrors ADR 0001):
 
-  - *Context*: the falsified mitigation and where it was recorded; the prior art
-    (GreenInfo-Network/nyc-crash-mapper, crashmapper.org, React/Redux/Leaflet over CARTO, same
-    `h9gi-nx95`, ~1M rows, maintained through Oct 2025; issue **#111** "Investigate sum
-    discrepancies 2021-2024", opened on a user-reported mismatch against NYC Open Data); the root
-    cause in their words — NYPD records a casualty on the crash record without always assigning
-    that person a role, so the subgroup sum is **"casualties we could classify," not
-    "casualties"**; their four-part fix (authoritative field for grand totals; an "Other/Unknown"
-    category showing `total − sum(categories)`; 968 repairable records backfilled; About copy
-    explaining that some injuries have no role ascribed); and our own measurement over 2018–2025.
-  - *Decision*: fail loud, per FR-11. The subgroup sum is never a fallback, a default, a
-    placeholder, or a cross-check that overrides the primary field.
-  - *Consequences* — must include all four:
-    (a) **Why the shape of the gap matters more than its size**: exactly 0 for 2018–2020, opening
-        in 2021 and persisting. A fatality series built on the subgroup sum would slope down more
-        steeply than the real one, with the extra steepness manufactured entirely by a change in
-        classification practice — the same failure mode as the 2020 reporting break, one field
-        down, and the precise thing this product exists to expose. This is the payload; a future
-        session must be able to reach it without re-deriving it.
-    (b) The remedy is **falsified**, while the dropout's cause remains **unconfirmed** — the two
-        must not be conflated.
-    (c) The residual-as-category pattern is recorded as the constructive half, with the explicit
-        warning from § Intellectual Control that it is a different residual from our PDO tier and
-        needs its own `[SPEC]` before it is applied anywhere.
-    (d) Re-verification is `.claude/scripts/subtotal-gap.py`, dated, not a re-derivation.
-  - Also record that the same 2026-08-05 live run **re-confirmed all 8 pinned deaths figures in
-    PRD Appendix A with zero drift** — a dated corroboration worth keeping next to the finding.
+- *Context*: the falsified mitigation and where it was recorded; the prior art
+  (GreenInfo-Network/nyc-crash-mapper, crashmapper.org, React/Redux/Leaflet over CARTO, same
+  `h9gi-nx95`, ~1M rows, maintained through Oct 2025; issue **#111** "Investigate sum
+  discrepancies 2021-2024", opened on a user-reported mismatch against NYC Open Data); the root
+  cause in their words — NYPD records a casualty on the crash record without always assigning
+  that person a role, so the subgroup sum is **"casualties we could classify," not
+  "casualties"**; their four-part fix (authoritative field for grand totals; an "Other/Unknown"
+  category showing `total − sum(categories)`; 968 repairable records backfilled; About copy
+  explaining that some injuries have no role ascribed); and our own measurement over 2018–2025.
+- *Decision*: fail loud, per FR-11. The subgroup sum is never a fallback, a default, a
+  placeholder, or a cross-check that overrides the primary field.
+- *Consequences* — must include all four:
+  (a) **Why the shape of the gap matters more than its size**: exactly 0 for 2018–2020, opening
+      in 2021 and persisting. A fatality series built on the subgroup sum would slope down more
+      steeply than the real one, with the extra steepness manufactured entirely by a change in
+      classification practice — the same failure mode as the 2020 reporting break, one field
+      down, and the precise thing this product exists to expose. This is the payload; a future
+      session must be able to reach it without re-deriving it.
+  (b) The remedy is **falsified**, while the dropout's cause remains **unconfirmed** — the two
+      must not be conflated.
+  (c) The residual-as-category pattern is recorded as the constructive half, with the explicit
+      warning from § Intellectual Control that it is a different residual from our PDO tier and
+      needs its own `[SPEC]` before it is applied anywhere.
+  (d) Re-verification is `.claude/scripts/subtotal-gap.py`, dated, not a re-derivation.
+- Also record that the same 2026-08-05 live run **re-confirmed all 8 pinned deaths figures in
+  PRD Appendix A with zero drift** — a dated corroboration worth keeping next to the finding.
 
 - **Edge Cases**:
 
-  1. **A gap cell disagrees with the expected table** → halt and report; write nothing. Do not
-     adjudicate, do not update the pinned table, do not average.
-  2. **`SOCRATA_APP_TOKEN` is unset** → the script runs anonymously with a stderr `note:`, exactly
-     as `verify-figures.py` does. Absence degrades throughput, never correctness. Not a failure.
-  3. **A queried key is absent from the response** → the script exits non-zero and names the field.
-     It must never print a gap computed from a missing operand.
-  4. **`check-citations.sh` reports a link failure after the edit** → compare against the Step 0
-     baseline. Newly broken (e.g. a mistyped ADR path or a wrong relative depth from
-     `docs/` to `docs/adr/`) is this task's to fix. Already broken at baseline is not.
-  5. **The scratchpad script is gone** (session-scoped storage) → rebuild it from the pinned query
-     above; the query, not the file, is the contract. Do not reconstruct expected values from
-     memory.
-  6. **The pinned deaths figures reappear as literals** — the script legitimately prints figures.
-     `guard-data-integrity.sh` exits 0 on any non-JS/TS extension (lines 29–32), so neither the
-     `.py` nor the `.md` files can be blocked by it. That means **the hook is not a net here**;
-     the constraint is honored by the chain-of-custody rule, not by tooling.
-  7. **`post-edit-lint.sh` runs `ruff` on the new Python file** → expected. Fix what it flags;
-     do not disable it.
+1. **A gap cell disagrees with the expected table** → halt and report; write nothing. Do not
+   adjudicate, do not update the pinned table, do not average.
+2. **`SOCRATA_APP_TOKEN` is unset** → the script runs anonymously with a stderr `note:`, exactly
+   as `verify-figures.py` does. Absence degrades throughput, never correctness. Not a failure.
+3. **A queried key is absent from the response** → the script exits non-zero and names the field.
+   It must never print a gap computed from a missing operand.
+4. **`check-citations.sh` reports a link failure after the edit** → compare against the Step 0
+   baseline. Newly broken (e.g. a mistyped ADR path or a wrong relative depth from
+   `docs/` to `docs/adr/`) is this task's to fix. Already broken at baseline is not.
+5. **The scratchpad script is gone** (session-scoped storage) → rebuild it from the pinned query
+   above; the query, not the file, is the contract. Do not reconstruct expected values from
+   memory.
+6. **The pinned deaths figures reappear as literals** — the script legitimately prints figures.
+   `guard-data-integrity.sh` exits 0 on any non-JS/TS extension (lines 29–32), so neither the
+   `.py` nor the `.md` files can be blocked by it. That means **the hook is not a net here**;
+   the constraint is honored by the chain-of-custody rule, not by tooling.
+7. **`post-edit-lint.sh` runs `ruff` on the new Python file** → expected. Fix what it flags;
+   do not disable it.
 
 - **Files** (max 5 — five used):
 
-  1. **`docs/nyc-collision-analytics-deep-research.md`** — correction sites 1, 2, and 4.
-  2. **`docs/nyc-collision-reporting-drift.md`** — correction site 3 (line 257 cell only).
-  3. **`.claude/skills/mvcc-data/SKILL.md`** — trap 1 clause + six subgroup fields.
-  4. **`docs/adr/0002-no-synthetic-subtotal-fallback.md`** — *new.*
-  5. **`.claude/scripts/subtotal-gap.py`** — *new.*
+1. **`docs/nyc-collision-analytics-deep-research.md`** — correction sites 1, 2, and 4.
+2. **`docs/nyc-collision-reporting-drift.md`** — correction site 3 (line 257 cell only).
+3. **`.claude/skills/mvcc-data/SKILL.md`** — trap 1 clause + six subgroup fields.
+4. **`docs/adr/0002-no-synthetic-subtotal-fallback.md`** — *new.*
+5. **`.claude/scripts/subtotal-gap.py`** — *new.*
 
-  **Verified correct and deliberately excluded**: `docs/project-mvcc-data.md` (FR-11 line 207 and
-  the risk register line 262 both already specify fail-loud), `src/lib/deaths.ts`,
-  `src/app/api/deaths/route.ts`.
+**Verified correct and deliberately excluded**: `docs/project-mvcc-data.md` (FR-11 line 207 and
+the risk register line 262 both already specify fail-loud), `src/lib/deaths.ts`,
+`src/app/api/deaths/route.ts`.
 
-  **Not counted against this budget, by standing project convention**: `SESSION_STATE.md` (the
-  main session writes the ledger; `stop-session-state.sh` enforces it) and `SPEC.md` (main session
-  persists it, and it is occupied by Task 2 until that task closes).
+**Not counted against this budget, by standing project convention**: `SESSION_STATE.md` (the
+main session writes the ledger; `stop-session-state.sh` enforces it) and `SPEC.md` (main session
+persists it, and it is occupied by Task 2 until that task closes).
 
-  **If a sixth file seems required**, halt and request a revision naming (i) the specific failure
-  it is the only thing that catches and (ii) which of the five cannot carry it.
+**If a sixth file seems required**, halt and request a revision naming (i) the specific failure
+it is the only thing that catches and (ii) which of the five cannot carry it.
 
 - **Tipping Point**: revisit when **any one** trips —
-  - **A third normative document acquires a "what to do about Aggregate Nullification" statement.**
-    Four sites are already one too many for prose to stay consistent; at five, the guidance moves
-    into the skill as the single source and the docs cite it rather than restating it.
-  - **The gap closes, or extends backward before 2021.** Either would mean NYPD changed
-    classification practice again, which is a new finding and needs a re-run plus an ADR
-    supersession — not an edit to 0002.
-  - **We render any casualty-by-role breakdown** (a future FR-2 elaboration). That is the moment
-    the "Other/Unknown" residual category stops being a recorded pattern and needs its own `[SPEC]`.
-  - **`.claude/scripts/` reaches a third script** — at three, the shared Socrata fetch/token/cast
-    logic is duplicated twice and should be extracted into a small local module. At two, extracting
-    it is the unearned abstraction Rule 8 rejects.
+- **A third normative document acquires a "what to do about Aggregate Nullification" statement.**
+  Four sites are already one too many for prose to stay consistent; at five, the guidance moves
+  into the skill as the single source and the docs cite it rather than restating it.
+- **The gap closes, or extends backward before 2021.** Either would mean NYPD changed
+  classification practice again, which is a new finding and needs a re-run plus an ADR
+  supersession — not an edit to 0002.
+- **We render any casualty-by-role breakdown** (a future FR-2 elaboration). That is the moment
+  the "Other/Unknown" residual category stops being a recorded pattern and needs its own `[SPEC]`.
+- **`.claude/scripts/` reaches a third script** — at three, the shared Socrata fetch/token/cast
+  logic is duplicated twice and should be extracted into a small local module. At two, extracting
+  it is the unearned abstraction Rule 8 rejects.
 
 - **Ordering — deliberate deviation from the standard `[SPEC]` sequence, stated so it is a decision
-  and not drift.** The default is Cypress-first, red tests before implementation. **Redwood
-  executes first here, and Cypress audits after.** Writing failing tests for prose corrections
-  would be ceremony — there is no behavior to specify, and the only genuinely mechanical assertions
-  (greps and a script re-run) are verification, not specification, so they are worth more pointed
-  at the finished artifact than written against nothing. Redwood rather than Magnolia because the
-  deliverable that carries real risk is a deterministic Socrata script in `.claude/scripts/`, which
-  is Redwood's domain; nothing here is chart, layout, or styling work. Rule 2's "match ceremony to
-  the task" governs. Redwood emits a `[COMPLETION-REPORT]`; Cypress then emits a
-  `[COMPLIANCE-REPORT]` against the acceptance clauses below.
+and not drift.** The default is Cypress-first, red tests before implementation. **Redwood
+executes first here, and Cypress audits after.** Writing failing tests for prose corrections
+would be ceremony — there is no behavior to specify, and the only genuinely mechanical assertions
+(greps and a script re-run) are verification, not specification, so they are worth more pointed
+at the finished artifact than written against nothing. Redwood rather than Magnolia because the
+deliverable that carries real risk is a deterministic Socrata script in `.claude/scripts/`, which
+is Redwood's domain; nothing here is chart, layout, or styling work. Rule 2's "match ceremony to
+the task" governs. Redwood emits a `[COMPLETION-REPORT]`; Cypress then emits a
+`[COMPLIANCE-REPORT]` against the acceptance clauses below.
 
 - **Acceptance, by command** (Redwood runs each and records output; Cypress re-runs 2, 3, 5, and 6):
 
-  1. `./.claude/hooks/check-citations.sh` **before** any edit — baseline recorded (Step 0).
-  2. `python3 .claude/scripts/subtotal-gap.py` on the unedited script — exit code `0` recorded,
-     full stdout recorded, every row's status `ok`, matching the expected table above. Any other
-     exit code here is a **finding** under Edge Case 1: halt and report, write nothing to the docs.
-  3. **Detector proof — mandatory, not optional.** Temporarily edit exactly one cell of
-     `PINNED_GAPS` in the script (e.g. add `1` to the 2022 deaths entry), re-run, and confirm (a)
-     the exit code is `1` and (b) stdout names the mutated series, year, and signed delta. Then
-     **revert the edit** and re-run once more, confirming exit `0` is restored before proceeding.
-     A green run alone never proves a detector detects — this step is what proves it.
-  4. `ruff check .claude/scripts/subtotal-gap.py` exits 0 (or the `post-edit-lint.sh` equivalent
-     already applied cleanly).
-  5. `./.claude/hooks/check-citations.sh` **after** — no failure that is not in the Step 0
-     baseline. Confirms both new ADR links resolve.
-  6. **The residual-mention grep**, expected to return only intentional, corrected text:
-     `git grep -nEi 'synthetic (fallback|total)' -- docs .claude` → every remaining hit is either
-     inside ADR 0002 or is a correction explicitly naming the remedy as falsified. **Zero hits that
-     still recommend it.**
-  7. `git grep -n 'number_of_pedestrians_killed' -- src` → **zero hits** (proves the correction did
-     not leak the subgroup fields into product code).
-  8. Confirm `git status` shows exactly the five files, and that none of Constraint 5's Task 2
-     paths appear.
+1. `./.claude/hooks/check-citations.sh` **before** any edit — baseline recorded (Step 0).
+2. `python3 .claude/scripts/subtotal-gap.py` on the unedited script — exit code `0` recorded,
+   full stdout recorded, every row's status `ok`, matching the expected table above. Any other
+   exit code here is a **finding** under Edge Case 1: halt and report, write nothing to the docs.
+3. **Detector proof — mandatory, not optional.** Temporarily edit exactly one cell of
+   `PINNED_GAPS` in the script (e.g. add `1` to the 2022 deaths entry), re-run, and confirm (a)
+   the exit code is `1` and (b) stdout names the mutated series, year, and signed delta. Then
+   **revert the edit** and re-run once more, confirming exit `0` is restored before proceeding.
+   A green run alone never proves a detector detects — this step is what proves it.
+4. `ruff check .claude/scripts/subtotal-gap.py` exits 0 (or the `post-edit-lint.sh` equivalent
+   already applied cleanly).
+5. `./.claude/hooks/check-citations.sh` **after** — no failure that is not in the Step 0
+   baseline. Confirms both new ADR links resolve.
+6. **The residual-mention grep**, expected to return only intentional, corrected text:
+   `git grep -nEi 'synthetic (fallback|total)' -- docs .claude` → every remaining hit is either
+   inside ADR 0002 or is a correction explicitly naming the remedy as falsified. **Zero hits that
+   still recommend it.**
+7. `git grep -n 'number_of_pedestrians_killed' -- src` → **zero hits** (proves the correction did
+   not leak the subgroup fields into product code).
+8. Confirm `git status` shows exactly the five files, and that none of Constraint 5's Task 2
+   paths appear.
 
 - **Background/reference resources (Constraint of Three)**:
-  1. `docs/adr/0001-preserve-reasoning-when-condensing.md` — the structural template for 0002, and
-     the standing argument for why the *why* is the payload.
-  2. `.claude/scripts/verify-figures.py` — the house style the new script copies: stdlib-only
-     imports, token-optional fetch, `main() -> int`, `PINNED`-dict-plus-exit-code shape.
-  3. `src/lib/deaths.ts` — **read-only**, to confirm rather than assume that fail-loud is already
-     implemented correctly (`parseRow`, `RawRowSchema`, and a `SELECT_CLAUSE` that never fetches
-     the subgroup fields). Cited so the "no source change owed" claim is verifiable, not asserted.
+1. `docs/adr/0001-preserve-reasoning-when-condensing.md` — the structural template for 0002, and
+   the standing argument for why the *why* is the payload.
+2. `.claude/scripts/verify-figures.py` — the house style the new script copies: stdlib-only
+   imports, token-optional fetch, `main() -> int`, `PINNED`-dict-plus-exit-code shape.
+3. `src/lib/deaths.ts` — **read-only**, to confirm rather than assume that fail-loud is already
+   implemented correctly (`parseRow`, `RawRowSchema`, and a `SELECT_CLAUSE` that never fetches
+   the subgroup fields). Cited so the "no source change owed" claim is verifiable, not asserted.
 
-  The **`mvcc-data` skill load is mandatory and is not a reference item** — this task edits it, and
-  traps 1 and 5 both bear directly on the pinned query.
+The **`mvcc-data` skill load is mandatory and is not a reference item** — this task edits it, and
+traps 1 and 5 both bear directly on the pinned query.
 
 [FORCES]
 
 1. **Correcting every instance > correcting the one that was reported** — a falsified mitigation
-   surviving in three other files has been relocated, not corrected.
+ surviving in three other files has been relocated, not corrected.
 2. **Inoculating the file that gets read > inoculating the file that is right** — the skill is the
-   mandatory pre-query load; the research docs are deliberately not routinely read.
+ mandatory pre-query load; the research docs are deliberately not routinely read.
 3. **A re-runnable, self-checking script > a re-derivable number** — the finding is a difference,
-   and a model performing that subtraction to refresh a normative doc, or a human eyeballing eight
-   cells against stdout, is the same NFR-4 failure one level up.
+ and a model performing that subtraction to refresh a normative doc, or a human eyeballing eight
+ cells against stdout, is the same NFR-4 failure one level up.
 4. **Preserving why the remedy is wrong > recording that it is wrong** — "rejected" without its
-   reasoning is the exact archive failure ADR 0001 was written about.
+ reasoning is the exact archive failure ADR 0001 was written about.
 5. **Three claims kept distinct > one tidy status line** — symptom confirmed, cause unconfirmed,
-   remedy falsified; collapsing them would trade one error for another.
+ remedy falsified; collapsing them would trade one error for another.
 6. **Simplicity > Pattern purity.**
 ```
 
@@ -2168,7 +2188,7 @@ of scope here.
 
 ---
 
-```markdown
+````markdown
 [SPEC] — Injuries per year: parameterize the data layer for a second series (FR-2)
 
 - **Objective**: Add total persons injured per year (2018–2025) as a second, independently-fetched
@@ -2190,11 +2210,11 @@ of scope here.
   a silent zero — trap 1 applies to `number_of_persons_injured` exactly as it does to
   `number_of_persons_killed`), **NFR-1** (ISR caching, inherited via the shared transport layer, and
   strengthened by parallel fetching — see Constraints), **NFR-2** (token read server-side only — this
-  task *narrows* the token's reading surface from one file to one, by consolidating both metrics'
+  task _narrows_ the token's reading surface from one file to one, by consolidating both metrics'
   transport into `socrata.ts`), **NFR-3** (a second screen-reader-accessible table), **NFR-4** (every
   figure from SoQL aggregation, no exception).
   Explicitly **not** in scope: **FR-3** (collisions, dashed + labelled — needs a Redwood data task
-  *and* a Magnolia chart task; deliberately not combined here), **FR-4** (% change — its text asks
+  _and_ a Magnolia chart task; deliberately not combined here), **FR-4** (% change — its text asks
   for "each of the three metrics," so it stays blocked until collisions exists too), **FR-9**
   (caveats), **FR-12** (casualty-filtered repair — needs FR-3's raw collisions series to compare
   against), **FR-13**, and the severable FR-5–7 arrest group. Also **not** in scope: adding injuries
@@ -2202,23 +2222,37 @@ of scope here.
   will trip Task 2's chart Tipping Point (legend, crosshair/tooltip, rename), not this task.
 
 - **Inputs/Outputs**:
-  - *Input*: a clean tree with Tasks 1–2 and the subgroup-sum correction merged; `SOCRATA_APP_TOKEN`
+  - _Input_: a clean tree with Tasks 1–2 and the subgroup-sum correction merged; `SOCRATA_APP_TOKEN`
     in a gitignored `.env`.
-  - *Step 0*: run and record `node -v` / `npm -v` (Amendment 3(b), binding); must satisfy
+  - _Step 0_: run and record `node -v` / `npm -v` (Amendment 3(b), binding); must satisfy
     `engines.node` (`>=22.22.2`).
-  - *Output 1 — `src/lib/socrata.ts`* (new; server-only by construction; never imported by a
+  - _Output 1 — `src/lib/socrata.ts`_ (new; server-only by construction; never imported by a
     `'use client'` module). Cedar's intended shape — implementation-detail flexibility is Redwood's
     to absorb, the pinned contract is listed below:
     ```ts
-    export type YearlyMetricRow<K extends string> = { year: number } & Record<K, number>;
+    export type YearlyMetricRow<K extends string> = { year: number } & Record<
+      K,
+      number
+    >;
 
     export type YearlyMetricResult<K extends string> =
       | { status: "ok"; soql: string; rows: YearlyMetricRow<K>[] }
       | { status: "empty"; soql: string }
-      | { status: "error"; soql: string; kind: "upstream" | "contract"; reason: string };
+      | {
+          status: "error";
+          soql: string;
+          kind: "upstream" | "contract";
+          reason: string;
+        };
 
-    export function buildYearlySoql(aggregateExpr: string, fieldAlias: string): string;
-    export function buildYearlyUrl(aggregateExpr: string, fieldAlias: string): URL;
+    export function buildYearlySoql(
+      aggregateExpr: string,
+      fieldAlias: string,
+    ): string;
+    export function buildYearlyUrl(
+      aggregateExpr: string,
+      fieldAlias: string,
+    ): URL;
     export function fetchYearlyMetric<K extends string>(
       aggregateExpr: string,
       fieldAlias: K,
@@ -2227,8 +2261,8 @@ of scope here.
     `fetchYearlyMetric` takes **only** `aggregateExpr` and `fieldAlias` as parameters. The
     `$where`/`$group`/`$order` clauses (the fixed 2018–2025 window, `date_extract_y(crash_date)`,
     `year`) are **fixed internal constants inside this module, not parameters** — do not add a
-    `whereClause` or `groupClause` parameter. That generality is unearned until a *third distinct
-    query shape* arrives (FR-12's extra `$where`, or FR-6's group-key change); this task moves the
+    `whereClause` or `groupClause` parameter. That generality is unearned until a _third distinct
+    query shape_ arrives (FR-12's extra `$where`, or FR-6's group-key change); this task moves the
     "parameterize at two, encapsulate at three" counter to exactly two, no further. It performs: token
     read + header assembly (warn, don't fail, if absent — Edge Case 8), `fetch` with
     `AbortSignal.timeout(10_000)` and `next: { revalidate: 86400 }`, non-2xx → `error`/`upstream`
@@ -2242,30 +2276,30 @@ of scope here.
     function validates against a neutral `{ year, value }` shape internally and the per-metric caller
     (below) does a one-line `rows.map(r => ({ year: r.year, [fieldAlias]: r.value }))` rename. Either
     is acceptable; the outward `YearlyMetricRow<K>` shape is what's pinned.
-  - *Output 2 — `src/lib/deaths.ts`* (edited, not replaced). Becomes a thin wrapper:
+  - _Output 2 — `src/lib/deaths.ts`_ (edited, not replaced). Becomes a thin wrapper:
     `AGGREGATE_EXPR = "sum(number_of_persons_killed)"`, `FIELD_ALIAS = "deaths" as const`,
     `DEATHS_SOQL` and `buildDeathsUrl()` built by calling `buildYearlySoql`/`buildYearlyUrl` with
     those two constants, `DeathsRow`/`DeathsResult` as `YearlyMetricRow<"deaths">`/
     `YearlyMetricResult<"deaths">`, `fetchDeathsPerYear()` as a one-line call into
     `fetchYearlyMetric`. **`DEATHS_SOQL`'s string value must be byte-identical to today's** — this
-    refactor changes *how* the string is built, never *what* it says (Rule 4: the freeze is on the
+    refactor changes _how_ the string is built, never _what_ it says (Rule 4: the freeze is on the
     query text, not the file's editability; this SPEC is Cedar's sanctioned exception to Task 2's
     "deaths.ts is read-only," which bound Magnolia only, not a future Redwood SPEC).
-  - *Output 3 — `src/lib/injuries.ts`* (new). FR-2's twin of the above:
+  - _Output 3 — `src/lib/injuries.ts`_ (new). FR-2's twin of the above:
     `AGGREGATE_EXPR = "sum(number_of_persons_injured)"`, `FIELD_ALIAS = "injuries" as const`,
     exporting `INJURIES_SOQL`, `buildInjuriesUrl()`, `InjuriesRow`, `InjuriesResult`,
     `fetchInjuriesPerYear()`.
-  - *Output 4 — `src/app/api/injuries/route.ts`* (new). `export async function GET()`, identical
+  - _Output 4 — `src/app/api/injuries/route.ts`_ (new). `export async function GET()`, identical
     union-to-HTTP mapping as `api/deaths/route.ts`:
 
-    | `status` / `kind` | HTTP | Body |
-    |---|---|---|
-    | `ok` | 200 | `{ status, soql, rows }` |
-    | `empty` | 200 | `{ status, soql }` |
-    | `error` / `upstream` | 502 | `{ status, soql, kind, reason }` |
-    | `error` / `contract` | 422 | `{ status, soql, kind, reason }` |
+    | `status` / `kind`    | HTTP | Body                             |
+    | -------------------- | ---- | -------------------------------- |
+    | `ok`                 | 200  | `{ status, soql, rows }`         |
+    | `empty`              | 200  | `{ status, soql }`               |
+    | `error` / `upstream` | 502  | `{ status, soql, kind, reason }` |
+    | `error` / `contract` | 422  | `{ status, soql, kind, reason }` |
 
-  - *Output 5 — `src/app/page.tsx`* (edited). Fetch both metrics **in parallel**:
+  - _Output 5 — `src/app/page.tsx`_ (edited). Fetch both metrics **in parallel**:
     `const [deathsResult, injuriesResult] = await Promise.all([fetchDeathsPerYear(), fetchInjuriesPerYear()])`
     — not sequential `await`s, per NFR-1. Below the existing deaths block (chart + table +
     disclosure, untouched), add an independent injuries block with the same three-branch shape
@@ -2278,12 +2312,12 @@ of scope here.
     `"SoQL query — deaths"` / `"SoQL query — injuries"`) so they're both reachable by accessible
     name; this changes the existing deaths disclosure's summary text from the current generic
     `"SoQL query"`, which Cypress's test-first pass must account for. Update the intro sentence to:
-    *"Reported collisions, injuries, and deaths move very differently over this period; collisions
+    _"Reported collisions, injuries, and deaths move very differently over this period; collisions
     are the most discretionary figure (an officer decides whether to file), injuries typically
     involve an ambulance or hospital record, and deaths are the least discretionary, the medical
-    examiner's count."* — verbatim, not paraphrased; correlation language only, no causal claim
+    examiner's count."_ — verbatim, not paraphrased; correlation language only, no causal claim
     (NFR-5).
-  - *Acceptance, by command, `node -v` recorded beside results*:
+  - _Acceptance, by command, `node -v` recorded beside results_:
     1. `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` each exit 0.
     2. `npm ls zod` and `npm ls recharts` — both unchanged from before this task (no install step is
        expected; if one becomes necessary, halt and request a revised SPEC per Rule 9).
@@ -2298,7 +2332,7 @@ of scope here.
        injuries body against the mvcc-data skill's pinned Injuries column and re-confirms Deaths is
        unchanged. Redwood transports; it does not judge correctness (NFR-4).
     7. `git grep -n SOCRATA_APP_TOKEN -- src .env.example` — the token name now appears in exactly
-       **one** source file (`socrata.ts`) plus `.env.example`, a *smaller* surface than before this
+       **one** source file (`socrata.ts`) plus `.env.example`, a _smaller_ surface than before this
        task (previously `deaths.ts`), and a value in none.
     8. `npm audit` run; report high/critical (no install expected, so this is a hygiene check, not
        a response to new risk).
@@ -2309,83 +2343,87 @@ of scope here.
   Task 1, only the aggregate differs.
 
   **Deaths (unchanged, restated for verification only — do not re-derive):**
-  ```
-  $select = date_extract_y(crash_date) AS year, sum(number_of_persons_killed) AS deaths
-  $where  = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
-  $group  = date_extract_y(crash_date)
-  $order  = year
-  ```
+````
 
-  **Injuries (new, pinned by this SPEC):**
-  ```
-  $select = date_extract_y(crash_date) AS year, sum(number_of_persons_injured) AS injuries
-  $where  = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
-  $group  = date_extract_y(crash_date)
-  $order  = year
-  ```
+$select = date_extract_y(crash_date) AS year, sum(number_of_persons_killed) AS deaths
+  $where = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+$group  = date_extract_y(crash_date)
+  $order = year
 
-  Header: `X-App-Token: <SOCRATA_APP_TOKEN>`, set only when non-empty.
+```
 
-  **Expected response shape**, both endpoints — a JSON array of exactly 8 objects, ascending by
-  year, every numeric field a string:
-  ```json
-  [{ "year": "2018", "injuries": "61940" }, ... 8 entries through "2025" ]
-  ```
+**Injuries (new, pinned by this SPEC):**
+```
 
-  **Pinned figures (mvcc-data skill, verified 2026-08-03)** — for Cypress's diff, never for a
-  literal in `src/**`: Injuries 2018→2025: 61940, 61391, 44615, 51785, 51933, 54252, 54030, 49634.
-  Unlike Task 1/2's deaths values (3-digit, a deliberate hook blind spot), **these injuries figures
-  are already in `guard-data-integrity.sh`'s 26 pinned-literal list** — a real mechanical net exists
-  for this task that didn't exist for deaths. Do not treat that net as license to be careless with
-  the deaths side of this refactor, which remains unguarded.
+$select = date_extract_y(crash_date) AS year, sum(number_of_persons_injured) AS injuries
+  $where = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+$group  = date_extract_y(crash_date)
+  $order = year
 
-  **Do not alter the deaths clauses' values.** If Socrata rejects the new injuries query as
-  constructed, halt and request a revised SPEC — do not repair it in place.
+````
 
-- **Design Pattern**: **none — simple case**, but this task executes the *parameterization* step
+Header: `X-App-Token: <SOCRATA_APP_TOKEN>`, set only when non-empty.
+
+**Expected response shape**, both endpoints — a JSON array of exactly 8 objects, ascending by
+year, every numeric field a string:
+```json
+[{ "year": "2018", "injuries": "61940" }, ... 8 entries through "2025" ]
+````
+
+**Pinned figures (mvcc-data skill, verified 2026-08-03)** — for Cypress's diff, never for a
+literal in `src/**`: Injuries 2018→2025: 61940, 61391, 44615, 51785, 51933, 54252, 54030, 49634.
+Unlike Task 1/2's deaths values (3-digit, a deliberate hook blind spot), **these injuries figures
+are already in `guard-data-integrity.sh`'s 26 pinned-literal list** — a real mechanical net exists
+for this task that didn't exist for deaths. Do not treat that net as license to be careless with
+the deaths side of this refactor, which remains unguarded.
+
+**Do not alter the deaths clauses' values.** If Socrata rejects the new injuries query as
+constructed, halt and request a revised SPEC — do not repair it in place.
+
+- **Design Pattern**: **none — simple case**, but this task executes the _parameterization_ step
   Task 1's own Tipping Point named ("parameterize at two, encapsulate at three"), which is ordinary
   generics over a two-field parameter object, not a GoF pattern. `composition-patterns` was
   consulted: its rule set targets React component props (boolean-prop proliferation, compound
   components), which don't govern a server-only data module — but its underlying principle (explicit,
   typed parameters over a hidden-branching config object) is exactly what `{aggregateExpr,
-  fieldAlias}` is: two required, named, non-boolean parameters, no config object, no hidden branch.
-  A Strategy or series registry remains unearned until a *third* distinct query shape arrives (FR-12
+fieldAlias}` is: two required, named, non-boolean parameters, no config object, no hidden branch.
+  A Strategy or series registry remains unearned until a _third_ distinct query shape arrives (FR-12
   or FR-6) — that SPEC is where "encapsulate" is due, not this one.
 
 - **UI Scope**: N/A — no chart, no CSS, no client component. `page.tsx`'s new markup is plain
   semantic HTML inheriting `globals.css` only, exactly as Task 1's UI Scope specified for deaths.
 
 - **Intellectual Control**:
-  - *Why the transport extraction happens now, not later.* Task 1's own Tipping Point named "a
+  - _Why the transport extraction happens now, not later._ Task 1's own Tipping Point named "a
     second Route Handler appears" as the near-certain first trip and said the extraction is due
-    *then*, not on a hunch beforehand. This task is that exact moment arriving — deferring it again
+    _then_, not on a hunch beforehand. This task is that exact moment arriving — deferring it again
     would be the second silent inheritance ADR 0001 was written about, this time by Cedar's own
     hand.
-  - *Why `fetchYearlyMetric` takes only the aggregate and alias, not the where/group/order.* Widening
+  - _Why `fetchYearlyMetric` takes only the aggregate and alias, not the where/group/order._ Widening
     the parameter surface now, before a caller needs a different `$where` or group key, is exactly
     the unearned-abstraction failure Rule 8 rejects — it would pre-build for FR-12/FR-6 before either
     SPEC exists to justify the shape. Keeping the window and grouping as fixed constants inside
     `socrata.ts` means the function can only express "some yearly aggregate over the fixed 2018–2025
     window" — which is precisely and only what deaths and injuries both need today.
-  - *Why `DeathsRow`/`DeathsResult` must stay structurally identical.* `DeathsChart.tsx` consumes
+  - _Why `DeathsRow`/`DeathsResult` must stay structurally identical._ `DeathsChart.tsx` consumes
     `rows: DeathsRow[]` and reads `.deaths` by name (`dataKey="deaths"`, the end-label renderer,
     Task 2's pinned rendered contract). `YearlyMetricRow<"deaths">` is `{ year: number } &
-    Record<"deaths", number>`, which TypeScript resolves to the exact same structural type as
+Record<"deaths", number>`, which TypeScript resolves to the exact same structural type as
     `{ year: number; deaths: number }` — so this refactor is invisible to every existing consumer and
     every existing test that doesn't reach into `deaths.ts`'s internals. That invisibility is the
     acceptance bar, not a nice-to-have: Constraint and Acceptance-clause 5 make it checkable
     (`git diff --stat` on the two existing test files must show nothing).
-  - *Why the two per-metric fetches run in `Promise.all`, not sequential awaits.* NFR-1's 2.5s Slow-4G
+  - _Why the two per-metric fetches run in `Promise.all`, not sequential awaits._ NFR-1's 2.5s Slow-4G
     budget was set for one round trip; adding a second server-side fetch sequentially would add its
     full latency on top rather than overlapping it. Both requests are independent and cacheable
     (`revalidate: 86400`), so there is no ordering dependency to preserve.
-  - *Why the two branches are independent rather than one combined error state.* Collapsing "deaths
+  - _Why the two branches are independent rather than one combined error state._ Collapsing "deaths
     failed" and "injuries failed" into one shared error would hide a working metric behind an
     unrelated one's failure — the opposite of FR-10's "defined state," which this project has always
     scoped per-metric (Task 1's `DeathsResult` never referenced any other series).
-  - *Why this will not break at scale.* `socrata.ts` knows nothing about deaths or injuries by name —
+  - _Why this will not break at scale._ `socrata.ts` knows nothing about deaths or injuries by name —
     it takes an aggregate expression and an alias and returns a generically-typed result. Adding a
-    third yearly metric with a *matching* shape (same window, same group key, different aggregate)
+    third yearly metric with a _matching_ shape (same window, same group key, different aggregate)
     costs one new five-line file, zero changes to `socrata.ts`. The moment a metric needs a different
     `$where` or group key, the Tipping Point below says stop parameterizing and encapsulate instead —
     that boundary is named, not guessed at.
@@ -2397,14 +2435,14 @@ of scope here.
      ever gain that directive).
   2. **No figure may be authored.** Injuries values are already caught by
      `guard-data-integrity.sh`'s pinned list (unlike deaths); rely on that but do not rely on it
-     *only* — no injuries or deaths figure may appear as a literal anywhere in `src/**` outside test
+     _only_ — no injuries or deaths figure may appear as a literal anywhere in `src/**` outside test
      files, fallback, placeholder, comment, default, or "temporary" mock.
   3. **`DEATHS_SOQL`'s string value is frozen** (Rule 4) — this refactor may change how it's
      assembled, never what it says. `INJURIES_SOQL` is pinned by this SPEC and frozen from this point
      forward; a future SPEC revises it, not a local repair.
   4. **No zero-coercion, anywhere, for either metric** (FR-11, trap 1). An absent key, `null`, or a
      non-matching string for `deaths` or `injuries` in any year of the window produces
-     `status: "error"`, `kind: "contract"` for *that metric only*.
+     `status: "error"`, `kind: "contract"` for _that metric only_.
   5. **No new dependency.** Zero install expected — `zod@^4` and `recharts@^3.10.1` are already in
      the tree and sufficient. If the generic-Zod-schema approach genuinely requires a new package,
      halt and request a revised SPEC (Rule 9); do not add one silently.
@@ -2453,15 +2491,15 @@ of scope here.
       committed.
 
 - **Files** (max 5 — five used):
-  1. **`src/lib/socrata.ts`** — *new.* The generic transport + validation engine
+  1. **`src/lib/socrata.ts`** — _new._ The generic transport + validation engine
      (`fetchYearlyMetric`, `buildYearlySoql`, `buildYearlyUrl`, `YearlyMetricRow`/
      `YearlyMetricResult`). The only file in the repo that reads the token after this task.
-  2. **`src/lib/deaths.ts`** — *edited, not replaced.* Reduced to the four deaths-specific constants
+  2. **`src/lib/deaths.ts`** — _edited, not replaced._ Reduced to the four deaths-specific constants
      and thin re-exports over `socrata.ts`. `DEATHS_SOQL`'s value must not change.
-  3. **`src/lib/injuries.ts`** — *new.* FR-2's twin of the reduced `deaths.ts`.
-  4. **`src/app/api/injuries/route.ts`** — *new.* `GET` only, identical union-to-HTTP mapping as the
+  3. **`src/lib/injuries.ts`** — _new._ FR-2's twin of the reduced `deaths.ts`.
+  4. **`src/app/api/injuries/route.ts`** — _new._ `GET` only, identical union-to-HTTP mapping as the
      deaths route.
-  5. **`src/app/page.tsx`** — *edited.* Parallel fetch of both metrics; the new independent injuries
+  5. **`src/app/page.tsx`** — _edited._ Parallel fetch of both metrics; the new independent injuries
      block; the updated intro sentence (verbatim, above); the disambiguated disclosure summaries.
 
   **Not in this budget, and not owed by this task:** the two `stop-quality-gate.sh` defects carried
@@ -2474,17 +2512,17 @@ of scope here.
 - **Tipping Point**: this is two thin per-metric modules over one generic transport function, one
   new Route Handler, and one page holding two independent series. Decompose or revise when **any
   one** trips:
-  - **A third distinct query *shape* arrives** (FR-12's extra `$where`, or FR-6's borough filter,
+  - **A third distinct query _shape_ arrives** (FR-12's extra `$where`, or FR-6's borough filter,
     which changes the group key). This is where "parameterize" stops paying and a Strategy or small
-    series registry is finally earned — *that* SPEC must say so explicitly. This task moves the
+    series registry is finally earned — _that_ SPEC must say so explicitly. This task moves the
     counter to exactly two; it does not cross three.
-  - **A third yearly-aggregate metric with the *same* shape arrives** (a hypothetical future metric
+  - **A third yearly-aggregate metric with the _same_ shape arrives** (a hypothetical future metric
     needing only a different `sum()`/`count()` expression). `socrata.ts` absorbs it as a third
     one-line caller module; no change to `fetchYearlyMetric` itself is expected.
   - **`src/app/page.tsx` holds more than one series plus FR-9's caveats section, or exceeds ~150
     lines.** Inherited unchanged from Task 1. This task roughly doubles the file (two metrics, no
     caveats yet); if it lands near or over 150 lines, split the table+disclosure markup into a small
-    shared presentational component *at that point* — not preemptively here, since two near-identical
+    shared presentational component _at that point_ — not preemptively here, since two near-identical
     blocks is still within Rule 8's "earned at three" tolerance for markup duplication.
   - **`src/lib/socrata.ts` exceeds ~120 lines or gains a second exported fetch function** with
     materially different transport behavior (e.g. pagination for a non-aggregated dataset like
@@ -2508,6 +2546,7 @@ mvcc-data figures. Add an `axe-core` assertion on the new injuries table and bot
 disclosures.
 
 **Background/reference resources (Constraint of Three)**:
+
 1. `.claude/skills/mvcc-data/SKILL.md` — the FR-2 query pattern (confirmed identical shape to FR-1),
    trap 1 applied to `number_of_persons_injured`, and the pinned Injuries column.
 2. `ARCHIVED_SPECS.md`, Task 1's `[SPEC]` — specifically its Tipping Point (the "parameterize at
@@ -2532,7 +2571,8 @@ disclosures.
    must stay byte-identical in shape so `DeathsChart.tsx` and every existing test are unaffected by a
    refactor they have no reason to know occurred.
 5. **Simplicity > Pattern purity.**
-```
+
+````
 
 ---
 
@@ -2724,36 +2764,38 @@ decision than this one.
   same `$where`/`$group`/`$order` as deaths and injuries — only the `$select` aggregate differs.
 
   **Collisions (new, pinned by this SPEC):**
-  ```
-  $select = date_extract_y(crash_date) AS year, count(collision_id) AS collisions
-  $where  = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
-  $group  = date_extract_y(crash_date)
-  $order  = year
-  ```
+````
 
-  **Deaths and injuries clauses are unchanged — restated nowhere in code, verify against the
-  live modules, do not re-derive.**
+$select = date_extract_y(crash_date) AS year, count(collision_id) AS collisions
+  $where = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+$group  = date_extract_y(crash_date)
+  $order = year
 
-  Header: `X-App-Token: <SOCRATA_APP_TOKEN>`, set only when non-empty.
+````
 
-  **Expected response shape** — a JSON array of exactly 8 objects, ascending by year, every
-  numeric field a string:
-  ```json
-  [{ "year": "2018", "collisions": "231564" }, ... 8 entries through "2025" ]
-  ```
+**Deaths and injuries clauses are unchanged — restated nowhere in code, verify against the
+live modules, do not re-derive.**
 
-  **Pinned figures (mvcc-data skill, verified 2026-08-03)** — for Cypress's diff, never for a
-  literal in `src/**`: Collisions 2018→2025: 231564, 211486, 112918, 110558, 103887, 96607,
-  91316, 85546. Several of these are already in `guard-data-integrity.sh`'s 26 pinned-literal
-  list (per Task 2's Constraint 3, the six-digit collisions/injuries/casualty-filtered figures
-  are covered; the two 5-digit later years are not — do not treat partial mechanical coverage as
-  license to be careless with the rest).
+Header: `X-App-Token: <SOCRATA_APP_TOKEN>`, set only when non-empty.
 
-  **`count(collision_id)` chosen over `count(*)`:** `collision_id` is a verified, non-null
-  primary-key field (mvcc-data skill), so the two are numerically equivalent here, but naming the
-  counted field keeps the FR-8 disclosure self-documenting rather than relying on an implicit
-  `*`. **If Socrata rejects this query as constructed, halt and request a revised SPEC — do not
-  repair it in place.**
+**Expected response shape** — a JSON array of exactly 8 objects, ascending by year, every
+numeric field a string:
+```json
+[{ "year": "2018", "collisions": "231564" }, ... 8 entries through "2025" ]
+````
+
+**Pinned figures (mvcc-data skill, verified 2026-08-03)** — for Cypress's diff, never for a
+literal in `src/**`: Collisions 2018→2025: 231564, 211486, 112918, 110558, 103887, 96607,
+91316, 85546. Several of these are already in `guard-data-integrity.sh`'s 26 pinned-literal
+list (per Task 2's Constraint 3, the six-digit collisions/injuries/casualty-filtered figures
+are covered; the two 5-digit later years are not — do not treat partial mechanical coverage as
+license to be careless with the rest).
+
+**`count(collision_id)` chosen over `count(*)`:** `collision_id` is a verified, non-null
+primary-key field (mvcc-data skill), so the two are numerically equivalent here, but naming the
+counted field keeps the FR-8 disclosure self-documenting rather than relying on an implicit
+`*`. **If Socrata rejects this query as constructed, halt and request a revised SPEC — do not
+repair it in place.**
 
 - **Design Pattern**: **none — simple case.** `composition-patterns` was consulted: its rule set
   (boolean-prop avoidance, compound components, explicit variants) targets client component
@@ -2768,29 +2810,29 @@ decision than this one.
   semantic HTML inheriting `globals.css` only, exactly as FR-1/FR-2 specified.
 
 - **Intellectual Control**:
-  - *Why this genuinely only closes half of FR-3, and why that's the honest scoping rather than
-    a shortcut.* FR-3's acceptance criterion is stroke-and-label, conjunctively. A table renders
+  - _Why this genuinely only closes half of FR-3, and why that's the honest scoping rather than
+    a shortcut._ FR-3's acceptance criterion is stroke-and-label, conjunctively. A table renders
     neither a stroke by definition, so no amount of care in this task can make FR-3 fully PASS —
     claiming otherwise would be the kind of drift ADR 0001 was written about. Recording FR-3 as
     "partially satisfied, stroke clause pending" is more honest than either closing it early or
     leaving it wholly unaddressed.
-  - *Why the inline note uses different wording from FR-3's example phrase.* FR-3's PRD text
-    gives "affected by reporting decline — see caveats" as an *example* (`e.g.,`), not verbatim
+  - _Why the inline note uses different wording from FR-3's example phrase._ FR-3's PRD text
+    gives "affected by reporting decline — see caveats" as an _example_ (`e.g.,`), not verbatim
     required copy — and "see caveats" would point at FR-9's caveats section, which does not exist
     yet. A dangling reference to a nonexistent section is worse than a short self-contained
     sentence. The chosen text states the documented cause directly (mvcc-data skill: "this is
     documented policy, not inference — state it as cause"), which is stronger and more honest
     than a forward reference. When FR-9 lands, that SPEC may replace "This series is affected
     by..." with a cross-reference; that is FR-9's decision to make, not pre-empted here.
-  - *Why NFR-5's "in every rendering" clause is honestly split.* NFR-5 says the collision series
+  - _Why NFR-5's "in every rendering" clause is honestly split._ NFR-5 says the collision series
     "shall carry FR-3's dashed-stroke-plus-label treatment in every rendering." A table is a
     rendering. The label component of that treatment is renderable in a table (it's just text);
     the stroke component structurally is not. Adding the label now and deferring the stroke to
     the chart SPEC is the closest honest approximation of "every rendering" available before a
     chart exists — omitting the label entirely until the chart lands would under-satisfy NFR-5
     for a rendering surface (the table) that exists today and is live on `/` today.
-  - *Why the shared table+disclosure component is **not** extracted in this task, despite this
-    being the third near-identical block.* FR-2's own Tipping Point named the trigger precisely:
+  - _Why the shared table+disclosure component is **not** extracted in this task, despite this
+    being the third near-identical block._ FR-2's own Tipping Point named the trigger precisely:
     "`page.tsx` exceeds ~150 lines" or "holds more than one series plus FR-9's caveats section" —
     not "a third block appears." The caveats-section half of that compound trigger cannot fire
     (FR-9 doesn't exist), and the line-count half is a genuine "report and watch" item this SPEC
@@ -2800,13 +2842,13 @@ decision than this one.
     the kind of unrequested scope a `[COMPLETION-REPORT]`'s Jevons's-Paradox check exists to
     catch. If the reported line count lands at or over ~150, that is the trigger for a dedicated
     follow-up (Banyan mechanical refactor, or a small Cedar SPEC) — named here, not executed here.
-  - *Why FR-4 stays blocked even though "each of the three metrics" now technically exist.* FR-4
+  - _Why FR-4 stays blocked even though "each of the three metrics" now technically exist._ FR-4
     needs a UI landing spot for a computed percentage — some element on the page that displays
     it. That's a rendering decision entangled with where the chart's legend/labels live, which is
     exactly what the next Magnolia SPEC is about to redesign. Building FR-4's display now risks
     building it twice: once against today's page shape, once against the post-chart-redesign
     shape.
-  - *Why this will not break at scale.* `collisions.ts` knows nothing about deaths or injuries by
+  - _Why this will not break at scale._ `collisions.ts` knows nothing about deaths or injuries by
     name; `socrata.ts` remains untouched and un-widened. Adding a fourth yearly-aggregate metric
     with a matching shape costs one more five-line file, zero changes to the transport. The
     moment a metric needs a different `$where` or group key (FR-12, FR-6), the inherited Tipping
@@ -2819,7 +2861,7 @@ decision than this one.
      `NEXT_PUBLIC_`, never in a `'use client'` file (none of the touched/new files gain that
      directive).
   2. **No figure may be authored.** Several collisions values are already caught by
-     `guard-data-integrity.sh`'s pinned list; rely on that but not *only* on it — no collisions,
+     `guard-data-integrity.sh`'s pinned list; rely on that but not _only_ on it — no collisions,
      injuries, or deaths figure may appear as a literal anywhere in `src/**` outside test files,
      fallback, placeholder, comment, default, or "temporary" mock.
   3. **`COLLISIONS_SOQL` is pinned by this SPEC and frozen from this point forward** (Rule 4); a
@@ -2827,7 +2869,7 @@ decision than this one.
      unchanged and unread by this task except for verification.
   4. **No zero-coercion, anywhere, for any of the three metrics** (FR-11, trap 1). An absent key,
      `null`, or a non-matching string for `collisions` in any year of the window produces
-     `status: "error"`, `kind: "contract"` for *that metric only*.
+     `status: "error"`, `kind: "contract"` for _that metric only_.
   5. **No new dependency.** Zero install expected. If one genuinely becomes necessary, halt and
      request a revised SPEC (Rule 9).
   6. **`DeathsChart.tsx`, `DeathsChart.module.css`, `DeathsChart.test.tsx` are untouched.** No
@@ -2880,12 +2922,12 @@ decision than this one.
       threshold, and do not silently ignore it either (Acceptance clause 9, Intellectual Control).
 
 - **Files** (max 5 — three used):
-  1. **`src/lib/collisions.ts`** — *new.* `AGGREGATE_EXPR = "count(collision_id)"`,
+  1. **`src/lib/collisions.ts`** — _new._ `AGGREGATE_EXPR = "count(collision_id)"`,
      `FIELD_ALIAS = "collisions"`, `COLLISIONS_SOQL`, `buildCollisionsUrl()`, `CollisionsRow`,
      `CollisionsResult`, `fetchCollisionsPerYear()`. FR-2's `injuries.ts` twin.
-  2. **`src/app/api/collisions/route.ts`** — *new.* `GET` only, identical union-to-HTTP mapping
+  2. **`src/app/api/collisions/route.ts`** — _new._ `GET` only, identical union-to-HTTP mapping
      as the deaths and injuries routes.
-  3. **`src/app/page.tsx`** — *edited.* Third parallel fetch; the new independent collisions
+  3. **`src/app/page.tsx`** — _edited._ Third parallel fetch; the new independent collisions
      block (table, inline note, disclosure); no other change.
 
   **Not in this budget, and not owed by this task:** the two `stop-quality-gate.sh` defects
@@ -2903,13 +2945,13 @@ decision than this one.
   - **`page.tsx`'s line count is at or over ~150 after this task** (Acceptance clause 9). Split
     the table+disclosure markup into a small shared presentational component **then** — the
     trigger this task's own Intellectual Control section declines to act on preemptively.
-  - **A fourth yearly-aggregate metric with the *same* shape arrives.** `socrata.ts` absorbs it
+  - **A fourth yearly-aggregate metric with the _same_ shape arrives.** `socrata.ts` absorbs it
     as a fourth one-line caller module; no change to `fetchYearlyMetric` expected — inherited
     unchanged from FR-2.
-  - **A third distinct query *shape* arrives** (FR-12's extra `$where`, or FR-6's borough
+  - **A third distinct query _shape_ arrives** (FR-12's extra `$where`, or FR-6's borough
     filter). This task does **not** cross that boundary — same shape as deaths/injuries, only
     the aggregate expression differs. The counter Task 1 named ("parameterize at two, encapsulate
-    at three") stays at two query *shapes*; this is the second metric-*count* trigger, not the
+    at three") stays at two query _shapes_; this is the second metric-_count_ trigger, not the
     shape trigger.
   - **`DeathsChart.tsx`'s own Tipping Point** (a second series lands, i.e. collisions or
     injuries wired into the chart) — inherited unchanged from Task 2's SPEC, and is **not**
@@ -2923,7 +2965,8 @@ decision than this one.
 1. Honest partial closure of FR-3's data half > closing the whole requirement prematurely with a table that cannot carry a stroke.
 2. Mirroring the proven FR-2 pattern exactly > inventing a new shape for a task that is structurally identical to one already shipped.
 3. Simplicity > Pattern purity (deferring the third-block extraction rather than restructuring two working, tested blocks under cover of a data task).
-```
+
+````
 
 ---
 
@@ -3318,7 +3361,7 @@ territory for the FR-3 chart-redesign SPEC to land next.
 [FORCES]
 1. Clearing `page.tsx`'s territory before the FR-3 chart-redesign task lands > shipping a new FR this round
 2. Simplicity > Pattern purity
-```
+````
 
 ---
 
@@ -3329,7 +3372,6 @@ territory for the FR-3 chart-redesign SPEC to land next.
 Cypress PASS on both the Phase 1 red-test check and the Phase 3 audit — no rejection loop spent.
 FR-3 is now fully satisfied (dashed stroke + inline label, in both the table and this chart, via
 one shared constant). Full narrative and reasoning in `ARCHIVED_SESSIONS.md`.
-
 
 # Active SPEC
 
@@ -3345,14 +3387,14 @@ which implies one shared-axis plot. Cedar rejected that outright rather than imp
 briefed. Deaths run 229–297; collisions run 85,546–231,564 — roughly an 800× spread. On one
 zero-based linear axis, the deaths line would sit within ~0.15% of the axis height from zero:
 visually indistinguishable from flat-at-zero. That erases the exact contrast (deaths essentially
-flat, collisions cratering) that Task 2's Constraint 6 wrote the zero-based-axis rule to *protect*,
+flat, collisions cratering) that Task 2's Constraint 6 wrote the zero-based-axis rule to _protect_,
 and it's `dataviz`'s own named anti-pattern #1 (dual/shared axes across incompatible scales invent
 a correlation the data doesn't support; the prescribed fix is "two charts, small multiples, or index
 both series to a common base"). This SPEC builds **two independently-scaled single-series charts**
 instead — small multiples — each keeping its own zero-based axis.
 
 That correction cascades cleanly: because each panel stays single-series, `dataviz`'s legend rule
-("mandatory at ≥2 series in *one* plot") never fires, and the deferred tooltip/crosshair's original
+("mandatory at ≥2 series in _one_ plot") never fires, and the deferred tooltip/crosshair's original
 justification (every value already reachable in the table below, and no series overlap so nothing
 crosses) still holds — small multiples never let two lines cross. The three-way trigger the backlog
 note (legend + tooltip + dashed stroke, all at once) was written against the merged-axis reading;
@@ -3367,16 +3409,18 @@ exact trigger Task 2's own Tipping Point pre-named ("a second series lands... th
 being `DeathsChart`... takes an explicit series list, gets renamed").
 
 **Two copy sub-decisions, human-confirmed as proposed** (no change from the defaults below):
+
 1. Deaths chart's `ariaLabel`/`captionText` stay byte-identical to Task 2's hardcoded strings, now
    passed explicitly as props instead of hardcoded internally.
 2. Collisions chart reuses the identical reporting-policy sentence already shipped on the table
    (not a reworded chart-specific variant) — NFR-5's "in every rendering" reads most honestly as
-   *the same claim*, not a paraphrase that could drift from it per rendering surface.
+   _the same claim_, not a paraphrase that could drift from it per rendering surface.
 
 ---
 
-```markdown
+````markdown
 [SPEC]
+
 - **Objective**: Close FR-3's remaining chart half by adding recorded collisions per year as its
   own single-series, dashed-stroke, inline-labelled line chart — **not** a second `<Line>` merged
   onto `DeathsChart.tsx`'s axis. `DeathsChart.tsx` generalizes into
@@ -3395,7 +3439,7 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
   carries the dashed-stroke-plus-label treatment "in every rendering" — table and chart both;
   copy stays consistent between them, not reworded per surface), **NFR-6** (no new browser API).
   Explicitly **not** in scope: **FR-4** (% change — still blocked; see Tipping Point for why an
-  indexed/percent view is a *different* component, not this one), **FR-9** (caveats section),
+  indexed/percent view is a _different_ component, not this one), **FR-9** (caveats section),
   **FR-13** (policy-date reference markers — a small-multiples design accommodates these more
   naturally later than a merged chart would have, but they are not added here), the severable
   FR-5–7 arrest group.
@@ -3418,7 +3462,7 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
      - `strokeStyle="dashed"` produces a non-null, non-`"0"`, non-`"none"` `stroke-dasharray` on
        `.recharts-line-curve` (exact dash values are Magnolia's choice, not pinned here).
      - `colorSlot={2}` — assert via the rendered class/attribute the component actually uses to
-       select the token (Magnolia's implementation choice; Cypress asserts the *effect*, e.g. that
+       select the token (Magnolia's implementation choice; Cypress asserts the _effect_, e.g. that
        a distinct CSS custom property or class is present, not a literal hex — colour stays
        untestable-by-jsdom exactly as Task 2 established).
      - The `Legend: none` and `Tooltip: none` rows from Task 2's pinned contract still hold for
@@ -3441,7 +3485,7 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
      assertion currently keyed to "`DeathsChart` called once / not called" to check the **deaths**
      instantiation specifically, and add the parallel set for the **collisions** instantiation:
      called once positioned immediately before the collisions table when `collisionsResult.status
-     === "ok"`; never called when `"empty"`/`"error"`; and — this is the independence guarantee
+=== "ok"`; never called when `"empty"`/`"error"`; and — this is the independence guarantee
      already established for the three `MetricSection` blocks, now extended to charts — **a
      collisions failure must never suppress the deaths chart, and vice versa**. Update the
      `DeathsChartProps` type import to whatever `YearlyLineChart` exports.
@@ -3450,10 +3494,10 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
 
   **Phase 2 — Magnolia (implementation).**
 
-  - *Step 0*: `node -v` / `npm -v` recorded (Amendment 3(b)); `npm ls recharts` — expect the same
+  - _Step 0_: `node -v` / `npm -v` recorded (Amendment 3(b)); `npm ls recharts` — expect the same
     3.x already installed, unchanged. No new dependency this task.
 
-  - *Output 1 — `src/components/YearlyLineChart.tsx`* (**new**, replaces `DeathsChart.tsx`,
+  - _Output 1 — `src/components/YearlyLineChart.tsx`_ (**new**, replaces `DeathsChart.tsx`,
     `'use client'`). Exports:
 
     ```ts
@@ -3461,13 +3505,13 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
 
     export type YearlyLineChartProps<K extends string> = {
       rows: YearlyMetricRow<K>[];
-      fieldAlias: K;               // which row key to plot — mirrors MetricSectionProps<K>
-      seriesLabel: string;         // Y-axis title text, e.g. "Deaths" | "Collisions"
+      fieldAlias: K; // which row key to plot — mirrors MetricSectionProps<K>
+      seriesLabel: string; // Y-axis title text, e.g. "Deaths" | "Collisions"
       strokeStyle: "solid" | "dashed"; // FR-3's treatment; explicit, not a boolean
-      colorSlot: 1 | 2;            // dataviz categorical slot — 1 = blue (deaths), 2 = orange (collisions)
-      ariaLabel: string;           // role="img" accessible name, full text, caller-supplied
-      captionText: string;         // figcaption's primary sentence, caller-supplied
-      note?: string;               // FR-3's inline caveat; rendered as a second figcaption block only when present
+      colorSlot: 1 | 2; // dataviz categorical slot — 1 = blue (deaths), 2 = orange (collisions)
+      ariaLabel: string; // role="img" accessible name, full text, caller-supplied
+      captionText: string; // figcaption's primary sentence, caller-supplied
+      note?: string; // FR-3's inline caveat; rendered as a second figcaption block only when present
     };
 
     export function YearlyLineChart<K extends string>(
@@ -3480,33 +3524,35 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
     call sites (`composition-patterns`: parameterize what varies, nothing else).
 
     Rendered structure (contract; JSX shape is Magnolia's):
+
     ```html
     <figure class="figure">
       <div class="plot" role="img" aria-label="{ariaLabel}">
         <!-- ResponsiveContainer > LineChart > CartesianGrid, XAxis, YAxis, Line -->
       </div>
       <figcaption class="caption">
-        {captionText}
-        {note && <p>{note}</p>}
+        {captionText} {note &&
+        <p>{note}</p>
+        }
       </figcaption>
     </figure>
     ```
 
-  - *Output 2 — `src/components/YearlyLineChart.module.css`* (**new**, replaces
+  - _Output 2 — `src/components/YearlyLineChart.module.css`_ (**new**, replaces
     `DeathsChart.module.css`). Both series' tokens declared together (still **one** component, two
-    instantiations — the Tipping Point's "second *component*" trigger for hoisting to
+    instantiations — the Tipping Point's "second _component_" trigger for hoisting to
     `globals.css` has not fired):
 
-    | Token | Light | Dark | Role |
-    |---|---|---|---|
-    | `--chart-series-1` | `#2a78d6` | `#3987e5` | categorical slot 1 — deaths |
-    | `--chart-series-2` | `#eb6834` | `#d95926` | categorical slot 2 — collisions |
-    | `--chart-grid` | `#e1e0d9` | `#2c2c2a` | shared chrome, unchanged from Task 2 |
-    | `--chart-rule` | `#c3c2b7` | `#383835` | shared chrome, unchanged |
-    | `--chart-ink` | `#52514e` | `#c3c2b7` | shared chrome, unchanged |
+    | Token              | Light     | Dark      | Role                                 |
+    | ------------------ | --------- | --------- | ------------------------------------ |
+    | `--chart-series-1` | `#2a78d6` | `#3987e5` | categorical slot 1 — deaths          |
+    | `--chart-series-2` | `#eb6834` | `#d95926` | categorical slot 2 — collisions      |
+    | `--chart-grid`     | `#e1e0d9` | `#2c2c2a` | shared chrome, unchanged from Task 2 |
+    | `--chart-rule`     | `#c3c2b7` | `#383835` | shared chrome, unchanged             |
+    | `--chart-ink`      | `#52514e` | `#c3c2b7` | shared chrome, unchanged             |
 
     The component selects between the two series tokens **without a colour literal in the `.tsx`
-    file**: set an inline custom property on the `<figure>` whose *value* is a `var()` reference
+    file**: set an inline custom property on the `<figure>` whose _value_ is a `var()` reference
     to the chosen slot — e.g. `style={{ "--chart-series": `var(--chart-series-${colorSlot})` }}` —
     and have every paint rule in this stylesheet (`.recharts-line-curve`, `.recharts-line-dot`)
     read `var(--chart-series)`, not `var(--chart-series-1)` directly. This is a reference to a
@@ -3514,7 +3560,7 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
     exactly as it did in Task 2. All other selectors (grid, axis line/tick, `.recharts-label`,
     `.endLabel`) carry forward byte-for-byte from `DeathsChart.module.css`.
 
-  - *Output 3 — `src/app/page.tsx`* (**edited**). Replace the single `<DeathsChart rows={...} />`
+  - _Output 3 — `src/app/page.tsx`_ (**edited**). Replace the single `<DeathsChart rows={...} />`
     mount with two `<YearlyLineChart>` calls, each positioned exactly where its metric's chart
     belongs relative to the existing table blocks (deaths chart stays immediately above the deaths
     table, unchanged position; a new collisions chart is inserted immediately above the collisions
@@ -3533,12 +3579,12 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
     Chart copy, human-confirmed:
     1. Deaths chart: `ariaLabel="Line chart of NYC traffic deaths per year from 2018 to 2025."`,
        `captionText="NYC traffic deaths per year, 2018–2025. Every plotted figure is listed in the
-       table below."` — byte-identical to Task 2's hardcoded strings, now passed explicitly.
+table below."` — byte-identical to Task 2's hardcoded strings, now passed explicitly.
     2. Collisions chart: `ariaLabel="Line chart of NYC recorded collisions per year from 2018 to
-       2025."`, `captionText="NYC recorded collisions per year, 2018–2025. Every plotted figure is
-       listed in the table below."`, `note={COLLISIONS_REPORTING_NOTE}`.
+2025."`, `captionText="NYC recorded collisions per year, 2018–2025. Every plotted figure is
+listed in the table below."`, `note={COLLISIONS_REPORTING_NOTE}`.
 
-  - *Acceptance, by command, `node -v` recorded beside every result*:
+  - _Acceptance, by command, `node -v` recorded beside every result_:
     1. `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` each exit 0.
     2. `npm ls recharts` — unchanged 3.x, no reinstall.
     3. `npm run dev`; load `/`, look at it in light **and** dark mode, desktop **and** 320px width:
@@ -3549,9 +3595,9 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
        one page and the convention must hold across it):
        - `node <dataviz-base>/scripts/validate_palette.js "#2a78d6,#eb6834" --mode light --surface "#ffffff"`
        - `node <dataviz-base>/scripts/validate_palette.js "#3987e5,#d95926" --mode dark --surface "#0a0a0a"`
-       Record resolved path and full output; halt and request a revised SPEC on any FAIL — do not
-       re-pick a hue locally (this is why colorSlot 2 is pinned to the *documented* slot-2 orange,
-       not an arbitrary "look distinct from blue" choice).
+         Record resolved path and full output; halt and request a revised SPEC on any FAIL — do not
+         re-pick a hue locally (this is why colorSlot 2 is pinned to the _documented_ slot-2 orange,
+         not an arbitrary "look distinct from blue" choice).
     5. The no-authored-figure grep, extended to the eight real collisions values (Constraint 3,
        generalized) → zero hits.
     6. The client-boundary greps, updated: `git grep -n 'lib/socrata' -- src/components` → exactly
@@ -3574,7 +3620,7 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
   `patterns-explicit-variants` is why `strokeStyle`/`colorSlot` are typed unions, not derived
   implicitly from `fieldAlias` (colour assignment is a design decision independent of which field
   is plotted — a future third metric could need slot 3, not automatically "next available"). A
-  merged two-series chart (which *would* justify a real pattern — a small series registry or a
+  merged two-series chart (which _would_ justify a real pattern — a small series registry or a
   `<Chart.Line>` compound component) is explicitly rejected below, not merely deferred.
 
 - **UI Scope**: **structural.** A second `role="img"` figure enters the page; a component is
@@ -3583,41 +3629,41 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
   tables, and all three disclosures are untouched.
 
 - **Intellectual Control**:
-  - *Why a shared y-axis is rejected outright, not deferred.* Deaths (229–297) and collisions
+  - _Why a shared y-axis is rejected outright, not deferred._ Deaths (229–297) and collisions
     (85,546–231,564) differ by ~800×. `dataviz`'s anti-pattern #1 names this exact shape of problem
     — a 0–30k series plotted against a 0–800k series — as fabricating an impression the data
     doesn't support, and its own prescribed fix is "two charts, small multiples, or index to a
     common base," never a shared or dual axis. Task 2's Constraint 6 argued zero-basing the deaths
-    axis is an *integrity* requirement, not taste, specifically so the flatness of deaths reads
+    axis is an _integrity_ requirement, not taste, specifically so the flatness of deaths reads
     honestly; putting collisions on that same axis would visually erase the exact thing Constraint
     6 protects. Indexing to a common base (=100 at 2018) is the one alternative the skill offers
     that stays on one axis — deliberately not taken here, because it changes the claim from "here
     are the two literal series" to "here is relative change," which is FR-4's territory (still
     blocked pending its own SPEC) and would require a new computed, tested transform rather than
     plotting the arrays as fetched.
-  - *Why this means the "legend + tooltip" half of the prior Tipping Point doesn't fire.* Both
+  - _Why this means the "legend + tooltip" half of the prior Tipping Point doesn't fire._ Both
     triggers were written against a merged plot. Small multiples keep each panel single-series, so
-    `dataviz`'s "single series needs no legend box" rule (marks-and-anatomy.md) applies to *both*
+    `dataviz`'s "single series needs no legend box" rule (marks-and-anatomy.md) applies to _both_
     panels independently, and the tooltip's original deferral reasoning — every value already sits
     in the table directly below, and nothing on the chart can ever visually cross since the two
     lines never share a plot — still holds without modification. Only the dashed-stroke trigger
     was ever really about the collisions series itself, and it fires here as intended.
-  - *Why `colorSlot` is a separate prop from `fieldAlias`, not derived from it.* Coupling colour to
+  - _Why `colorSlot` is a separate prop from `fieldAlias`, not derived from it._ Coupling colour to
     the data key would make the component silently assume it only ever plots exactly two known
     fields. A future third chart (e.g. FR-12's casualty-filtered repair, if ever charted) should be
     free to take slot 3 (aqua — pre-validated all-pairs per `palette.md`) without the component
     needing a lookup table of field-name-to-colour baked in.
-  - *Why `import type { YearlyMetricRow } from "../lib/socrata"` and not from `lib/deaths` or
-    `lib/collisions`.* The component now genuinely serves either metric; importing a
+  - _Why `import type { YearlyMetricRow } from "../lib/socrata"` and not from `lib/deaths` or
+    `lib/collisions`._ The component now genuinely serves either metric; importing a
     metric-specific module's type would misstate the dependency. `socrata.ts` is still the one file
     that reads the token, so the `import type` discipline from Constraint 1 carries forward
     unchanged — only the import path and the expected hit-count (now 2, matching `MetricSection`'s
     existing import) change.
-  - *Why the collisions chart's caveat text is a shared constant, not restated.* NFR-5 requires the
+  - _Why the collisions chart's caveat text is a shared constant, not restated._ NFR-5 requires the
     dashed-stroke-plus-label treatment "in every rendering." Two independently-typed copies of the
     same claim is exactly the drift ADR 0001 was written about — one wrong edit later and the table
-    and the chart disagree about *why* the series is different, which is worse than either alone.
-  - *Why this will not break at scale.* One component, two call sites, both fully parameterized;
+    and the chart disagree about _why_ the series is different, which is worse than either alone.
+  - _Why this will not break at scale._ One component, two call sites, both fully parameterized;
     a third metric costs one more call, zero component change (mirrors `MetricSection`'s own
     already-proven claim). The two charts cannot disagree with their tables because both read the
     same `rows` arrays from the same `Promise.all` fetch; neither can fabricate a figure, since
@@ -3636,7 +3682,7 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
      `YearlyLineChart.tsx`.
   5. **The dashed stroke is spent exactly once, on the collisions instantiation.** The deaths call
      passes `strokeStyle="solid"`; nothing else in the app may pass `"dashed"` this task.
-  6. **Zero-based y-axis, linear interpolation, on *both* panels independently.** Neither chart's
+  6. **Zero-based y-axis, linear interpolation, on _both_ panels independently.** Neither chart's
      axis may be non-zero or shared with the other.
   7. **No animation, no `accessibilityLayer`** — both panels, unchanged from Task 2's Constraints
      7–8.
@@ -3681,24 +3727,25 @@ being `DeathsChart`... takes an explicit series list, gets renamed").
   - **A genuine two-series-on-one-axis chart becomes justified** (comparable scales — e.g. an
     indexed-to-100 percent-change view under a future FR-4 SPEC, or arrests vs. deaths if ever
     scale-compatible). That is a **different component** — a real multi-line chart with the legend
-    + crosshair/tooltip layer this task deliberately did not build — not a third `YearlyLineChart`
-    call. Do not retrofit multi-series support onto `YearlyLineChart` in advance.
+    - crosshair/tooltip layer this task deliberately did not build — not a third `YearlyLineChart`
+      call. Do not retrofit multi-series support onto `YearlyLineChart` in advance.
   - **A third single-series metric needs a chart** (e.g. FR-12's casualty-filtered repair). Costs
     one more `YearlyLineChart` call with `colorSlot={3}` (aqua, pre-validated all-pairs), zero
     component change — mirrors `MetricSection`'s already-proven claim exactly.
   - **`YearlyLineChart.tsx` exceeds ~140 lines**, or the label renderer grows a second case.
   - **`page.tsx` exceeds ~150 lines**, or holds more than ~4 chart/table pairs.
-  - **A second *component* (not a second call site) needs the chart-chrome tokens** — only then do
+  - **A second _component_ (not a second call site) needs the chart-chrome tokens** — only then do
     they hoist to `globals.css`.
   - **A measured performance problem** (real Slow-4G/Lighthouse number), not a hunch.
 
 [FORCES]
+
 1. Honesty of presentation (NFR-5) > matching the task's literal framing — a shared-axis chart was
    the requested shape, but it would fabricate the deaths-flatness claim the product exists to
    protect; small multiples is the correction, not a scope cut.
 2. Earned parameterization (MetricSection's precedent) > a new GoF pattern for two call sites.
 3. Simplicity > Pattern purity (always present unless explicitly overridden).
-```
+````
 
 ---
 
@@ -3711,7 +3758,6 @@ audit — no rejection loop spent. FR-12 is fully closed (its text has no stroke
 unlike FR-3). The byte-identical invariant on `socrata.ts`'s 2-argument call path was verified
 both by unit test and against the live API — all three pre-existing metrics' figures unchanged.
 Full narrative in `ARCHIVED_SESSIONS.md`.
-
 
 # Active SPEC
 
@@ -3726,12 +3772,12 @@ Cedar was handed a backlog of seven candidates (deploy SPEC, FR-4, FR-9, FR-13, 
 group, the two hook defects — already fixed — and the live-browser QA gap) and instead recommended
 **FR-12 — the casualty-filtered "repaired" collision series, data half only** — found by re-reading
 the PRD directly rather than working only from the candidate list. FR-12 is **P0**, unshipped, and
-the PRD's own text names it as the single most important remaining piece: *"the verified
+the PRD's own text names it as the single most important remaining piece: _"the verified
 remediation, which turns the product from diagnosis-only into diagnosis-plus-fix... it is P0
-because without it the product diagnoses a problem and offers no usable number in its place."* The
+because without it the product diagnoses a problem and offers no usable number in its place."_ The
 page currently shows the break (deaths flat, collisions cratering) but never delivers the tagline's
 second half — "the number you should use instead." FR-12 is that number. It was tracked across the
-last five archived SPECs as queued backlog and was explicitly *blocked* until FR-3's chart half
+last five archived SPECs as queued backlog and was explicitly _blocked_ until FR-3's chart half
 landed, because it needs a raw collisions series to compare against — that landed the session
 immediately before this one (`bfc6b81`). It is now, for the first time, genuinely unblocked.
 
@@ -3746,21 +3792,21 @@ direct check rather than guessed at. The live-browser QA gap is tooling, not a s
 The two hook fixes are already done, correctly excluded.
 
 The task itself is unusually well-scoped: the PRD pins the exact `$where` clause, the `mvcc-data`
-skill pins the exact expected 8-year figures, and the PRD explicitly frames this as *"a single
-additional SoQL query with a `$where` clause, not a new subsystem."* Unlike FR-3, FR-12's text
+skill pins the exact expected 8-year figures, and the PRD explicitly frames this as _"a single
+additional SoQL query with a `$where` clause, not a new subsystem."_ Unlike FR-3, FR-12's text
 imposes no stroke/chart requirement — only "display... alongside the raw series" — so this task,
 Redwood-only, is positioned to **fully close FR-12** rather than partially.
 
 **A four-times-repeated pre-commitment, engaged with rather than silently followed or ignored.**
 FR-12 was named in four consecutive prior SPECs as the trigger for widening `socrata.ts` past two
 parameters ("parameterize at two, encapsulate at three... a Strategy or series registry is finally
-earned" when a third distinct query *shape* arrives). Having the concrete case in hand, Cedar
+earned" when a third distinct query _shape_ arrives). Having the concrete case in hand, Cedar
 declined that escalation: FR-12's actual variance is one additional AND-ed `$where` fragment — a
-data value, not a second algorithm. A GoF Strategy pattern encapsulates interchangeable *behavior*;
+data value, not a second algorithm. A GoF Strategy pattern encapsulates interchangeable _behavior_;
 nothing about `fetchYearlyMetric`'s fetch/validate/parse pipeline varies across any of the four
 metrics, only three small strings do. Widening the signature with one more **optional, named,
 non-boolean** parameter (`extraWhere?: string`) is the same "explicit typed parameters over a
-hidden-branching config object" principle the FR-2 SPEC already used to justify the *current*
+hidden-branching config object" principle the FR-2 SPEC already used to justify the _current_
 two-parameter shape. The real encapsulation trigger isn't "a third shape," it's **a second
 independent axis of variation** — FR-6's borough filter (metric × borough), not FR-12 (metric, with
 one shape variant). That correction is named explicitly here so it doesn't get silently inherited
@@ -3768,7 +3814,7 @@ as unexamined fact by the next session.
 
 ---
 
-```markdown
+````markdown
 [SPEC] — Casualty-filtered "repaired" collisions per year (FR-12), data half — the corrected number
 
 - **Objective**: Add a fourth, independently-fetched yearly SoQL aggregate — recorded collisions
@@ -3794,19 +3840,21 @@ as unexamined fact by the next session.
   to this task); **FR-9** (caveats — separate); **FR-13**; the severable FR-5–7 arrest group.
 
 - **Inputs/Outputs**:
-  - *Input*: a clean tree with FR-3's chart half merged (`bfc6b81`); `SOCRATA_APP_TOKEN` in a
+  - _Input_: a clean tree with FR-3's chart half merged (`bfc6b81`); `SOCRATA_APP_TOKEN` in a
     gitignored `.env`.
-  - *Step 0*: run and record `node -v` / `npm -v` (Amendment 3(b), binding); must satisfy
+  - _Step 0_: run and record `node -v` / `npm -v` (Amendment 3(b), binding); must satisfy
     `engines.node` (`>=22.22.2`).
 
-  - *Output 1 — `src/lib/socrata.ts`* (**edited**). Widen `buildYearlySoql`, `buildYearlyUrl`, and
+  - _Output 1 — `src/lib/socrata.ts`_ (**edited**). Widen `buildYearlySoql`, `buildYearlyUrl`, and
     `fetchYearlyMetric` to accept a third, **optional** parameter, `extraWhere?: string`, AND-ed
     onto the fixed `WHERE_CLAUSE` when present:
+
     ```ts
     function whereClause(extraWhere?: string): string {
       return extraWhere ? `${WHERE_CLAUSE} AND ${extraWhere}` : WHERE_CLAUSE;
     }
     ```
+
     Replace the two literal `WHERE_CLAUSE` references in `buildYearlySoql`/`buildYearlyUrl` with
     `whereClause(extraWhere)`; add the parameter to `fetchYearlyMetric`'s signature and forward it
     to both builders. **`$group`/`$order` stay fixed constants, untouched — do not parameterize
@@ -3814,8 +3862,9 @@ as unexamined fact by the next session.
     existing callers), output must be **byte-for-byte identical** to today's — this is the load
     -bearing invariant, checked mechanically (Acceptance clause 5).
 
-  - *Output 2 — `src/lib/repairedCollisions.ts`* (**new**). Fourth thin wrapper, same shape as
+  - _Output 2 — `src/lib/repairedCollisions.ts`_ (**new**). Fourth thin wrapper, same shape as
     `collisions.ts` plus the new third argument:
+
     ```ts
     import {
       buildYearlySoql,
@@ -3844,26 +3893,28 @@ as unexamined fact by the next session.
       return fetchYearlyMetric(AGGREGATE_EXPR, FIELD_ALIAS, EXTRA_WHERE);
     }
     ```
+
     `FIELD_ALIAS` is the lowercase single-word `"repaired"`, matching the `deaths`/`injuries`/
     `collisions` naming convention exactly (not `repairedCollisions` — an untested camelCase SoQL
     alias is an avoidable risk when a plain word already reads clearly in context: the module
     name, the table caption, and the column label all carry "repaired collisions"; the bare field
     key does not need to repeat it).
 
-  - *Output 3 — `src/app/api/repaired-collisions/route.ts`* (**new**). `export async function
-    GET()`, identical union-to-HTTP mapping as the three existing routes:
+  - _Output 3 — `src/app/api/repaired-collisions/route.ts`_ (**new**). `export async function
+GET()`, identical union-to-HTTP mapping as the three existing routes:
 
-    | `status` / `kind` | HTTP | Body |
-    |---|---|---|
-    | `ok` | 200 | `{ status, soql, rows }` |
-    | `empty` | 200 | `{ status, soql }` |
-    | `error` / `upstream` | 502 | `{ status, soql, kind, reason }` |
-    | `error` / `contract` | 422 | `{ status, soql, kind, reason }` |
+    | `status` / `kind`    | HTTP | Body                             |
+    | -------------------- | ---- | -------------------------------- |
+    | `ok`                 | 200  | `{ status, soql, rows }`         |
+    | `empty`              | 200  | `{ status, soql }`               |
+    | `error` / `upstream` | 502  | `{ status, soql, kind, reason }` |
+    | `error` / `contract` | 422  | `{ status, soql, kind, reason }` |
 
-  - *Output 4 — `src/app/page.tsx`* (**edited**). Fetch all four metrics **in parallel**:
+  - _Output 4 — `src/app/page.tsx`_ (**edited**). Fetch all four metrics **in parallel**:
     `const [result, injuriesResult, collisionsResult, repairedResult] = await Promise.all([...,
-    fetchRepairedCollisionsPerYear()])` — not a sequential fifth `await` (NFR-1). After the
+fetchRepairedCollisionsPerYear()])` — not a sequential fifth `await` (NFR-1). After the
     existing collisions `MetricSection`, add a fourth, independent block:
+
     ```tsx
     <MetricSection
       fieldAlias="repaired"
@@ -3874,17 +3925,18 @@ as unexamined fact by the next session.
       note={REPAIRED_COLLISIONS_NOTE}
     />
     ```
+
     `REPAIRED_COLLISIONS_NOTE` is a new local constant, sibling to the existing
-    `COLLISIONS_REPORTING_NOTE`, verbatim text: *"This series counts only collisions with a
+    `COLLISIONS_REPORTING_NOTE`, verbatim text: _"This series counts only collisions with a
     recorded injury or death — records that still required an officer response after the 2020
     policy change, unlike the property-damage-only collisions the raw count above stopped
     capturing. It tracks close to the injuries trend and is the more reliable figure for judging
-    whether collisions actually declined."* Correlation language only, no causal claim beyond the
+    whether collisions actually declined."_ Correlation language only, no causal claim beyond the
     documented policy mechanism (mvcc-data skill: "this is documented policy, not inference").
     **All four metrics' branches stay fully independent** — one failing must never suppress or
     alter another's render, extending the guarantee established at three metrics to a fourth.
 
-  - *Acceptance, by command, `node -v` recorded beside results*:
+  - _Acceptance, by command, `node -v` recorded beside results_:
     1. `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` each exit 0.
     2. `npm ls zod` and `npm ls recharts` — both unchanged; zero installs expected.
     3. `npm run dev`; `curl -s localhost:3000/api/deaths`, `/api/injuries`, `/api/collisions`
@@ -3917,40 +3969,42 @@ as unexamined fact by the next session.
   and grouping as the other three metrics; the aggregate and the `$where` extension are new.
 
   **Repaired collisions (new, pinned by this SPEC):**
-  ```
-  $select = date_extract_y(crash_date) AS year, count(collision_id) AS repaired
-  $where  = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
-            AND (number_of_persons_injured > 0 OR number_of_persons_killed > 0)
-  $group  = date_extract_y(crash_date)
-  $order  = year
-  ```
-  Deaths, injuries, and raw-collisions clauses are **unchanged** — restated nowhere in code,
-  verify against the live modules, do not re-derive.
+````
 
-  Header: `X-App-Token: <SOCRATA_APP_TOKEN>`, set only when non-empty.
+$select = date_extract_y(crash_date) AS year, count(collision_id) AS repaired
+  $where = crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+AND (number_of_persons_injured > 0 OR number_of_persons_killed > 0)
+$group  = date_extract_y(crash_date)
+  $order = year
 
-  **Expected response shape** — a JSON array of exactly 8 objects, ascending by year, every
-  numeric field a string:
-  ```json
-  [{ "year": "2018", "repaired": "45774" }, ... 8 entries through "2025" ]
-  ```
+````
+Deaths, injuries, and raw-collisions clauses are **unchanged** — restated nowhere in code,
+verify against the live modules, do not re-derive.
 
-  **Pinned figures (mvcc-data skill, verified 2026-08-03)** — for Cypress's diff, never a literal
-  in `src/**`: Repaired collisions 2018→2025: 45774, 45439, 33362, 38809, 39336, 40472, 40229,
-  37420 (−18.2% across the window). **All eight values are already in
-  `guard-data-integrity.sh`'s pinned-literal list** — a real mechanical net exists here, same as
-  the injuries/collisions figures did.
+Header: `X-App-Token: <SOCRATA_APP_TOKEN>`, set only when non-empty.
 
-  **`count(collision_id)` chosen over `count(*)`**, matching `collisions.ts`'s established
-  reasoning: a verified non-null primary-key field, so numerically equivalent, kept for a
-  self-documenting FR-8 disclosure. **If Socrata rejects this query as constructed, halt and
-  request a revised SPEC — do not repair it in place.**
+**Expected response shape** — a JSON array of exactly 8 objects, ascending by year, every
+numeric field a string:
+```json
+[{ "year": "2018", "repaired": "45774" }, ... 8 entries through "2025" ]
+````
+
+**Pinned figures (mvcc-data skill, verified 2026-08-03)** — for Cypress's diff, never a literal
+in `src/**`: Repaired collisions 2018→2025: 45774, 45439, 33362, 38809, 39336, 40472, 40229,
+37420 (−18.2% across the window). **All eight values are already in
+`guard-data-integrity.sh`'s pinned-literal list** — a real mechanical net exists here, same as
+the injuries/collisions figures did.
+
+**`count(collision_id)` chosen over `count(*)`**, matching `collisions.ts`'s established
+reasoning: a verified non-null primary-key field, so numerically equivalent, kept for a
+self-documenting FR-8 disclosure. **If Socrata rejects this query as constructed, halt and
+request a revised SPEC — do not repair it in place.**
 
 - **Design Pattern**: **none — simple case**, with an explicit refinement of the multi-SPEC
   pre-commitment ("parameterize at two, encapsulate at three... a Strategy or series registry is
   finally earned" at a third query shape). Having the concrete third case in hand, a Strategy
   pattern is not earned by it: FR-12's variance is a single additional data value (one AND-ed
-  `$where` fragment), not a second interchangeable *behavior* — `fetchYearlyMetric`'s fetch/
+  `$where` fragment), not a second interchangeable _behavior_ — `fetchYearlyMetric`'s fetch/
   validate/parse pipeline is identical across all four metrics; only three small strings differ
   per caller. `composition-patterns`' actual principle (explicit, typed, non-boolean parameters
   over a hidden-branching config object) is satisfied by a third **optional, named** parameter
@@ -3969,31 +4023,31 @@ as unexamined fact by the next session.
   enhancement, not required by FR-12's text and not owed by this task.**
 
 - **Intellectual Control**:
-  - *Why this task, unlike FR-3's data half, is expected to fully close its requirement.* FR-3's
+  - _Why this task, unlike FR-3's data half, is expected to fully close its requirement._ FR-3's
     text conjunctively requires a dashed stroke **and** a label — a table cannot render a stroke,
     so FR-3's data half was honestly recorded as partial. FR-12's text requires only "display...
     alongside the raw series" and explicitly self-describes as "a single additional SoQL query...
     not a new subsystem" — no stroke, no chart language at all. Two tables on the same page,
     fetched from the same window, literally satisfy "alongside." Recording this as fully closing
     FR-12 is the honest reading of the requirement as written, not a shortcut past it.
-  - *Why `extraWhere` is a single optional string, not a config object or a richer query builder.*
+  - _Why `extraWhere` is a single optional string, not a config object or a richer query builder._
     Widening the parameter surface further than the one dimension that actually varies (the
     `$where` clause) would be building for FR-6 before its SPEC exists to justify the shape — the
     same unearned-abstraction failure Rule 8 rejected when `fetchYearlyMetric` was first
     generalized. `$group`/`$order` remain fixed constants; only `$where` gained an extension point,
     because that is the only clause FR-12 actually needs to change.
-  - *Why the byte-for-byte invariant on the 2-argument call path is the load-bearing acceptance
-    criterion.* `DEATHS_SOQL`, `INJURIES_SOQL`, and `COLLISIONS_SOQL` are frozen contracts (Rule 4)
+  - _Why the byte-for-byte invariant on the 2-argument call path is the load-bearing acceptance
+    criterion._ `DEATHS_SOQL`, `INJURIES_SOQL`, and `COLLISIONS_SOQL` are frozen contracts (Rule 4)
     displayed on the page today (FR-8). Silently changing their output while "just adding a
     parameter" would be an invisible contract violation nobody would notice until Cypress's live
     `curl` diverged from the pinned table. Acceptance clause 5's unmodified-test-file check turns
     that invisible invariant into something `git diff --stat` can prove.
-  - *Why the note is affirmative framing, not another caveat.* Every existing inline note on this
-    page (`COLLISIONS_REPORTING_NOTE`) tells the reader a series is *unreliable*. This is the first
-    note telling the reader a series is *the one to trust*, tying that claim to the same documented
+  - _Why the note is affirmative framing, not another caveat._ Every existing inline note on this
+    page (`COLLISIONS_REPORTING_NOTE`) tells the reader a series is _unreliable_. This is the first
+    note telling the reader a series is _the one to trust_, tying that claim to the same documented
     policy mechanism (officers still respond to casualty collisions) rather than asserting it
     independently — correlation/documented-fact language only, consistent with NFR-5.
-  - *Why this will not break at scale.* `repairedCollisions.ts` knows nothing about deaths,
+  - _Why this will not break at scale._ `repairedCollisions.ts` knows nothing about deaths,
     injuries, or raw collisions by name. A fifth yearly-aggregate metric with a matching shape
     (same window, same group key, an aggregate and optionally one `$where` fragment) costs one
     more five-line file and zero further changes to `socrata.ts`. The real remaining boundary —
@@ -4012,7 +4066,7 @@ as unexamined fact by the next session.
      task except for verification.
   4. **No zero-coercion, anywhere, for any of the four metrics** (FR-11, trap 1). An absent key,
      `null`, or a non-matching string for `repaired` in any year of the window produces `status:
-     "error"`, `kind: "contract"` for *that metric only*.
+"error"`, `kind: "contract"` for _that metric only_.
   5. **`socrata.ts`'s 2-argument call path must be byte-identical to today's output** — verified
      by Acceptance clause 5, not merely asserted.
   6. **No new dependency.** Zero install expected; halt and request a revised SPEC if one becomes
@@ -4062,15 +4116,15 @@ as unexamined fact by the next session.
       extract a shared component to dodge it, and do not silently ignore it (Acceptance clause 9).
 
 - **Files** (max 5 — four used):
-  1. **`src/lib/socrata.ts`** — *edited.* Add optional third param `extraWhere` to
+  1. **`src/lib/socrata.ts`** — _edited._ Add optional third param `extraWhere` to
      `buildYearlySoql`/`buildYearlyUrl`/`fetchYearlyMetric`; no other change.
-  2. **`src/lib/repairedCollisions.ts`** — *new.* `AGGREGATE_EXPR = "count(collision_id)"`,
+  2. **`src/lib/repairedCollisions.ts`** — _new._ `AGGREGATE_EXPR = "count(collision_id)"`,
      `FIELD_ALIAS = "repaired"`, `EXTRA_WHERE`, `REPAIRED_COLLISIONS_SOQL`,
      `buildRepairedCollisionsUrl()`, `RepairedCollisionsRow`, `RepairedCollisionsResult`,
      `fetchRepairedCollisionsPerYear()`.
-  3. **`src/app/api/repaired-collisions/route.ts`** — *new.* `GET` only, identical
+  3. **`src/app/api/repaired-collisions/route.ts`** — _new._ `GET` only, identical
      union-to-HTTP mapping as the three existing routes.
-  4. **`src/app/page.tsx`** — *edited.* Fourth parallel fetch; the new independent
+  4. **`src/app/page.tsx`** — _edited._ Fourth parallel fetch; the new independent
      repaired-collisions `MetricSection` block plus `REPAIRED_COLLISIONS_NOTE`; no other change.
 
   **Not in this budget, and not owed by this task:** the deploy SPEC's Vercel/First-Load-JS
@@ -4087,7 +4141,7 @@ as unexamined fact by the next session.
   - **`page.tsx`'s line count is at or over ~150 after this task** (Acceptance clause 9). Split
     the table+disclosure markup further, or move the per-metric constants out of `page.tsx` into
     their own module, then — not preemptively.
-  - **A fifth yearly-aggregate metric with a *matching* shape arrives** (no new `$where`).
+  - **A fifth yearly-aggregate metric with a _matching_ shape arrives** (no new `$where`).
     Absorbed as a fifth one-line caller module; zero further changes to `socrata.ts` expected.
   - **A second independent axis of variation arrives** (FR-6's borough filter: metric × borough,
     not metric-with-one-more-optional-field). This is the corrected trigger for a small series
@@ -4102,7 +4156,8 @@ as unexamined fact by the next session.
 1. Delivering the product's promised "number you should use instead" (FR-12, now unblocked) > continuing to add summary/context features (FR-4, FR-9) around a diagnosis with no fix on the page yet.
 2. Honoring a four-times-repeated pre-commitment by engaging with it explicitly > either silently ignoring it or silently over-building a Strategy pattern the concrete case doesn't warrant.
 3. Simplicity > Pattern purity (one optional parameter, not a config object or registry, for one data value that varies).
-```
+
+````
 
 ---
 
@@ -4261,7 +4316,7 @@ FR-2/FR-3-data-half/FR-12 tasks that came before it.
 2. Generic (first/last row) > window-specific (hardcoded 2018/2025) — keeps the analysis-window
    contract owned solely by `socrata.ts`, per Rule 4.
 3. Simplicity > Pattern purity (always present).
-```
+````
 
 ---
 
@@ -4275,7 +4330,6 @@ question (additive, not a consolidation of the two existing inline notes) withou
 `/grill-me` round. The verbatim-prose constraint was independently re-verified byte-for-byte by
 Cypress's audit via a standalone script diff against SPEC.md's pinned text, not just a passing
 test. Full narrative in `ARCHIVED_SESSIONS.md`.
-
 
 # Active SPEC
 
@@ -4295,9 +4349,9 @@ Reading FR-9's actual text (§5.3 item 9) against the two existing inline notes
 all: the notes never mention the two policy dates, borough-coverage drift, the COVID confounder,
 congestion pricing, or DOT SIP placement. There's nothing to consolidate or deduplicate, so this
 isn't a "cross-reference vs. coexist" dilemma — it's additive. The one real, previously-deferred
-decision (flagged explicitly in the FR-3 data-half archive: *"Cedar chose to state the documented
+decision (flagged explicitly in the FR-3 data-half archive: _"Cedar chose to state the documented
 cause directly instead of leaving a forward reference to nothing... named this as FR-9's decision
-to revise later"*) is closed here: both notes gain a one-sentence forward pointer to the new
+to revise later"_) is closed here: both notes gain a one-sentence forward pointer to the new
 section. FR-13 (policy-date markers, P1, Magnolia chart work) and FR-5–7 (severable P1, still
 carrying its named design risks) stay deferred — not urgent this round, and FR-13 in particular
 benefits from sequencing after FR-9 since it will want the same two dates FR-9 pins as prose. The
@@ -4312,8 +4366,9 @@ becoming Magnolia work.
 
 ---
 
-```markdown
+````markdown
 [SPEC]
+
 - **Objective**: Add a standalone, page-level caveats section covering the five items FR-9 names,
   and close the forward-reference gap the FR-3 data-half SPEC deliberately deferred by pointing
   both existing inline notes at it.
@@ -4395,7 +4450,7 @@ becoming Magnolia work.
     past its own historical ~150-line Tipping Point) and makes the section independently testable.
   - Renders unconditionally, independent of all four metrics' fetch status. Unlike `MetricSection`,
     Caveats has no data dependency — a reader is arguably most in need of these caveats exactly when
-    something *has* gone wrong (an error state showing), so gating it behind any `result.status`
+    something _has_ gone wrong (an error state showing), so gating it behind any `result.status`
     would be actively wrong, not merely unnecessary.
   - The two policy dates (2019-03-18, 2020-04-06) are hardcoded as prose deliberately: they are
     fixed historical facts named directly in FR-9's and FR-13's own PRD text, not Socrata-derived
@@ -4438,7 +4493,7 @@ becoming Magnolia work.
     post-edit, not just trusting the PostToolUse pass).
   - The appended pointer text must not break any existing `toContain(COLLISIONS_NOTE_TEXT)` /
     `toContain(REPAIRED_NOTE_TEXT)` assertion in `page.test.tsx` — those are substring checks against
-    the *original* (unappended) constants defined in the test file itself, so they remain valid
+    the _original_ (unappended) constants defined in the test file itself, so they remain valid
     against the longer, pointer-appended strings in `page.tsx` without modification. Confirm this by
     reading the test file, not by assuming.
 - **Files** (4, under the 5-file cap):
@@ -4455,6 +4510,7 @@ becoming Magnolia work.
   chart code — the trigger named above, not a line count in isolation.
 
 [FORCES]
+
 1. Additive, standalone section > rewriting the two existing inline notes — the two content
    surfaces don't overlap, so consolidating them would manufacture a merge neither requirement asks
    for.
@@ -4462,7 +4518,7 @@ becoming Magnolia work.
    numbers belong to FR-7's not-yet-built warning; a second copy here is exactly the drift ADR 0001
    was written about.
 3. Simplicity > Pattern purity (always present).
-```
+````
 
 ---
 
@@ -4481,7 +4537,6 @@ limit and resumed from transcript rather than respawned, catching and fixing one
 (`isFront` isn't a valid Recharts `ReferenceLine` prop) before the interruption. FR-13 fully
 closed — the product now visually locates the 2019/2020 reporting-policy break on both the deaths
 and collisions charts, not just in FR-9's prose. Full narrative in `ARCHIVED_SESSIONS.md`.
-
 
 # Active SPEC
 
@@ -4516,7 +4571,7 @@ tables, and Rule 8 doesn't let it get built just because it would look nice. The
 gap is confirmed environment-blocked (`sudo` required, no password in this sandbox) and isn't
 spec-shaped — noted, not picked.
 
-FR-13 is the one candidate that's both well-motivated *now* (FR-9 shipped and already pins these
+FR-13 is the one candidate that's both well-motivated _now_ (FR-9 shipped and already pins these
 exact two dates as prose, and FR-9's own closing SPEC named "FR-13 gets specced" as the explicit
 trigger to stop deferring a shared `policyDates.ts` module) and cleanly scoped: no new SoQL (both
 dates are already-verified static facts, not a query result — NFR-4 doesn't apply), touches only
@@ -4531,8 +4586,9 @@ stroke.
 
 ---
 
-```markdown
+````markdown
 [SPEC]
+
 - **Objective**: Mark the two documented NYPD reporting-policy dates as labelled vertical reference
   lines on every `YearlyLineChart` instance, and extract the two dates into a shared, reusable data
   module — closing the deferred extraction FR-9's own closing SPEC named as FR-13's trigger.
@@ -4545,14 +4601,22 @@ stroke.
     accessible caption sentence below are generated from, so the two can never independently drift:
     ```ts
     export type PolicyDateMarker = {
-      year: number;      // the category-axis tick this marker snaps to
-      isoDate: string;   // the actual day, carried in text only — the axis cannot express it
-      label: string;     // pinned verbatim below, asserted by Cypress with toBe
+      year: number; // the category-axis tick this marker snaps to
+      isoDate: string; // the actual day, carried in text only — the axis cannot express it
+      label: string; // pinned verbatim below, asserted by Cypress with toBe
     };
 
     export const POLICY_DATE_MARKERS: readonly PolicyDateMarker[] = [
-      { year: 2019, isoDate: "2019-03-18", label: "Staten Island pilot begins" },
-      { year: 2020, isoDate: "2020-04-06", label: "Citywide policy takes effect" },
+      {
+        year: 2019,
+        isoDate: "2019-03-18",
+        label: "Staten Island pilot begins",
+      },
+      {
+        year: 2020,
+        isoDate: "2020-04-06",
+        label: "Citywide policy takes effect",
+      },
     ];
     ```
   - `src/components/YearlyLineChart.tsx` (edit) — import `ReferenceLine` from `recharts` and
@@ -4570,13 +4634,15 @@ stroke.
       list:
       ```ts
       function buildPolicyMarkerCaption(markers: PolicyDateMarker[]): string {
-        const parts = markers.map((m) => `${m.isoDate} (${m.label})`).join(" and ");
+        const parts = markers
+          .map((m) => `${m.isoDate} (${m.label})`)
+          .join(" and ");
         return `Vertical reference lines mark ${parts} — see Caveats, below, for details.`;
       }
       ```
       For the current full 2018–2025 window (both markers present), this renders verbatim as:
       `"Vertical reference lines mark 2019-03-18 (Staten Island pilot begins) and 2020-04-06
-      (Citywide policy takes effect) — see Caveats, below, for details."`
+(Citywide policy takes effect) — see Caveats, below, for details."`
       Rendered as an unconditional third `<p>` inside `<figcaption>` (after `captionText` and the
       optional `note`), present on **every** instantiation (deaths and collisions both), not gated
       by the `note` prop — the deaths chart currently has no `note` and must still carry this
@@ -4590,7 +4656,9 @@ stroke.
       --chart-annotation: <light value, AA-contrast-validated>;
     }
     @media (prefers-color-scheme: dark) {
-      .figure { --chart-annotation: <dark value, AA-contrast-validated>; }
+      .figure {
+        --chart-annotation: <dark value, AA-contrast-validated>;
+      }
     }
     .figure :global(.recharts-reference-line line) {
       stroke: var(--chart-annotation);
@@ -4604,7 +4672,7 @@ stroke.
     series), and its `stroke-dasharray` must be a real, non-empty pattern **different from** the
     `"8 6"` pattern `DASH_PATTERN` already spends on the reporting-affected collisions line — pick a
     finer pattern (e.g. a short dot/dash) so an annotation is visually distinguishable from a dashed
-    *series* on sight, not just by a legend that doesn't exist here.
+    _series_ on sight, not just by a legend that doesn't exist here.
 - **Query**: None. No SoQL, no new fetch. Both dates are static, already-verified historical facts —
   the same pinned values `Caveats.tsx`/FR-9 already renders as prose and the `mvcc-data` skill
   carries under "The documented cause." Nothing here is a Socrata-derived figure, so NFR-4 governs
@@ -4636,7 +4704,7 @@ stroke.
     unearned generality). FR-13 now defines that shape precisely: `{ year, isoDate, label }`, a
     coordinate-shaped need distinct from FR-9's prose-shaped need. Building it now is the trigger
     firing, not a preemptive build.
-  - **Why `Caveats.tsx` is deliberately *not* touched to import from this new module.** It would
+  - **Why `Caveats.tsx` is deliberately _not_ touched to import from this new module.** It would
     remove one instance of literal-date duplication, but `Caveats.tsx`'s five items are under a
     verbatim-prose test contract (`Caveats.test.tsx` diffs the shipped text character-for-character
     against `SPEC.md`'s pinned strings) — editing it for an unrelated task risks that contract for a
@@ -4690,12 +4758,13 @@ stroke.
   indexed/percent secondary view) — not a line count in isolation.
 
 [FORCES]
+
 1. Text-carried precision over position-implied precision — a categorical axis cannot express a day,
    so the label carries the date and the tick carries only the year, honestly.
 2. Single source of truth (`policyDates.ts`) over two independently-typed copies of the same two
    dates in the chart's visual and accessible layers.
 3. Simplicity > Pattern purity (always present).
-```
+````
 
 ---
 
@@ -4718,7 +4787,6 @@ full audit PASS on the same pass. FR-5 fully closed — the product now shows a 
 witness (arrest counts) alongside deaths/injuries/collisions/repaired-collisions, without touching
 `socrata.ts` or any of the four existing metrics. Full narrative in `ARCHIVED_SESSIONS.md`.
 
-
 # Active SPEC
 
 **Status:** approved — ready to dispatch to Cypress (tests first, standard ordering)
@@ -4737,7 +4805,7 @@ deaths' misreading") and the same `dataviz` anti-pattern. FR-6/FR-7 are out of s
 the human's explicit choice, and their eventual shape (a global filter across all five series) is
 recorded in the ledger, not restated here.
 
-Where this deviated from the two-SPEC FR-3 template: FR-3 needed a data-half *and* a chart-half
+Where this deviated from the two-SPEC FR-3 template: FR-3 needed a data-half _and_ a chart-half
 because the chart-half built a brand-new generic component from scratch (`YearlyLineChart`, its
 CSS module, a color-token decision) — a real 5-file task on its own. Here, `YearlyLineChart<K>` and
 `MetricSection<K>` are already fully generic; mounting arrests as a fifth panel costs zero new
@@ -4749,7 +4817,7 @@ pattern-purity over simplicity (Rule 8's own default force).
 The one non-obvious build decision: **don't widen `socrata.ts`**. It hardcodes `h9gi-nx95`/
 `crash_date`, and a prior SPEC already declined to make `$group`/`$order` parameters ("that
 generality remains unearned"). Widening the one file every P0 metric depends on, to serve a
-feature the PRD explicitly names as *droppable* (§5.2: "dropping FR-5–7 shrinks the product
+feature the PRD explicitly names as _droppable_ (§5.2: "dropping FR-5–7 shrinks the product
 without breaking it"), is the wrong trade — it would make severability a documentation claim
 instead of a code fact. `arrests.ts` ships self-contained, duplicating socrata.ts's fetch/validate
 scaffold (~130 lines) rather than sharing it; the Tipping Point below names exactly when that
@@ -4759,6 +4827,7 @@ duplication should be resolved instead.
 
 ```markdown
 [SPEC]
+
 - **Objective**: Ship FR-5 — traffic-enforcement arrest counts per year (2018–2025), filtered to
   the PRD §5.2 five-category offense list, as a fifth independently-scaled small-multiples panel
   (chart + accessible table), reusing the already-generic `YearlyLineChart<K>` and
@@ -4770,164 +4839,166 @@ duplication should be resolved instead.
 - **UI Scope**: structural — a new chart panel and a new table enter the page.
 
 - **Query** (dataset `8h9b-rp9u`, NYPD Arrests Data Historic):
-  ```
-  $select=date_extract_y(arrest_date) AS year, count(*) AS arrests
+```
+
+$select=date_extract_y(arrest_date) AS year, count(*) AS arrests
   $where=arrest_date >= '2018-01-01T00:00:00' AND arrest_date < '2026-01-01T00:00:00'
-    AND (ofns_desc = 'VEHICLE AND TRAFFIC LAWS'
-      OR ofns_desc = 'OTHER TRAFFIC INFRACTION'
-      OR ofns_desc = 'INTOXICATED & IMPAIRED DRIVING'
-      OR ofns_desc = 'INTOXICATED/IMPAIRED DRIVING'
-      OR ofns_desc = 'HOMICIDE-NEGLIGENT-VEHICLE')
-  $group=date_extract_y(arrest_date)
+AND (ofns_desc = 'VEHICLE AND TRAFFIC LAWS'
+OR ofns_desc = 'OTHER TRAFFIC INFRACTION'
+OR ofns_desc = 'INTOXICATED & IMPAIRED DRIVING'
+OR ofns_desc = 'INTOXICATED/IMPAIRED DRIVING'
+OR ofns_desc = 'HOMICIDE-NEGLIGENT-VEHICLE')
+$group=date_extract_y(arrest_date)
   $order=year
-  ```
-  Both `ofns_desc` spellings are required (Trap 4 — losing either loses ~10% of the series).
-  Vehicle-theft categories (`GRAND LARCENY OF MOTOR VEHICLE`, `UNAUTHORIZED USE OF A VEHICLE`) are
-  deliberately absent — already settled, PRD §5.2, not open. `arrest_boro` does not appear
-  anywhere in this query or this task's code; FR-6 is out of scope, not merely unused.
-  **Expected response shape**: a JSON array of up to 8 objects, each
-  `{ year: string | number, arrests: string }` (Socrata numeric-as-string convention, `count(*)`
-  included — same asymmetric-strictness casting socrata.ts's `ValueSchema` already applies). This
-  is a pinned contract: if Socrata rejects `count(*)` or any clause above, that is a halt and a
-  request for a revised SPEC (Rule 4), never a silent substitution.
+
+```
+Both `ofns_desc` spellings are required (Trap 4 — losing either loses ~10% of the series).
+Vehicle-theft categories (`GRAND LARCENY OF MOTOR VEHICLE`, `UNAUTHORIZED USE OF A VEHICLE`) are
+deliberately absent — already settled, PRD §5.2, not open. `arrest_boro` does not appear
+anywhere in this query or this task's code; FR-6 is out of scope, not merely unused.
+**Expected response shape**: a JSON array of up to 8 objects, each
+`{ year: string | number, arrests: string }` (Socrata numeric-as-string convention, `count(*)`
+included — same asymmetric-strictness casting socrata.ts's `ValueSchema` already applies). This
+is a pinned contract: if Socrata rejects `count(*)` or any clause above, that is a halt and a
+request for a revised SPEC (Rule 4), never a silent substitution.
 
 - **Inputs/Outputs**:
-  - `fetchArrestsPerYear(): Promise<YearlyMetricResult<"arrests">>` — zero-arg, matching
-    `fetchDeathsPerYear()`'s signature. Reuses `YearlyMetricRow<K>`/`YearlyMetricResult<K>` from
-    `src/lib/socrata.ts` via `import type` only (generic, dataset-agnostic types; zero coupling,
-    zero edit to that file).
-  - `ARRESTS_SOQL: string` — the exact SoQL above, built once as a module constant so the
-    displayed query (FR-8) and the sent request can never drift apart, mirroring
-    `REPAIRED_COLLISIONS_SOQL`'s pattern in `repairedCollisions.ts`.
-  - `GET /api/arrests` — identical three-way status→HTTP mapping as the four existing routes:
-    `ok`/`empty` → 200, `error` with `kind: "upstream"` → 502, `error` with `kind: "contract"` →
-    422. Same JSON body shape as `src/app/api/collisions/route.ts`.
-  - `page.tsx` additions: `fetchArrestsPerYear()` added to the existing `Promise.all`; one
-    `<YearlyLineChart>` mount and one `<MetricSection>` call, inserted after the repaired-
-    collisions `MetricSection` and before `<Caveats />`.
-  - Pinned strings (byte-exact, Cypress tests against these verbatim — ADR 0001 discipline):
-    - `columnLabel`: `"Arrests"`
-    - table `captionText`: `"NYC traffic-enforcement arrests per year, 2018–2025 (five offense categories)"`
-    - chart `captionText`: `"NYC traffic-enforcement arrests per year, 2018–2025. Every plotted figure is listed in the table below."`
-    - `ariaLabel`: `"Line chart of NYC traffic-enforcement arrest counts per year from 2018 to 2025."`
-    - `seriesLabel` (Y axis): `"Arrests"`
-    - `fieldAlias`: `"arrests"`
-    - `strokeStyle`: `"solid"` (arrests carry no reporting-decline artifact — the dash pattern is
-      reserved for that specific semantic, per `YearlyLineChart.tsx`'s own header comment; using
-      it here would falsely imply the same caveat)
-    - `colorSlot`: `1` (reuse — see Intellectual Control)
-    - No `note` prop passed to either the chart or the table — see Intellectual Control.
+- `fetchArrestsPerYear(): Promise<YearlyMetricResult<"arrests">>` — zero-arg, matching
+  `fetchDeathsPerYear()`'s signature. Reuses `YearlyMetricRow<K>`/`YearlyMetricResult<K>` from
+  `src/lib/socrata.ts` via `import type` only (generic, dataset-agnostic types; zero coupling,
+  zero edit to that file).
+- `ARRESTS_SOQL: string` — the exact SoQL above, built once as a module constant so the
+  displayed query (FR-8) and the sent request can never drift apart, mirroring
+  `REPAIRED_COLLISIONS_SOQL`'s pattern in `repairedCollisions.ts`.
+- `GET /api/arrests` — identical three-way status→HTTP mapping as the four existing routes:
+  `ok`/`empty` → 200, `error` with `kind: "upstream"` → 502, `error` with `kind: "contract"` →
+  422. Same JSON body shape as `src/app/api/collisions/route.ts`.
+- `page.tsx` additions: `fetchArrestsPerYear()` added to the existing `Promise.all`; one
+  `<YearlyLineChart>` mount and one `<MetricSection>` call, inserted after the repaired-
+  collisions `MetricSection` and before `<Caveats />`.
+- Pinned strings (byte-exact, Cypress tests against these verbatim — ADR 0001 discipline):
+  - `columnLabel`: `"Arrests"`
+  - table `captionText`: `"NYC traffic-enforcement arrests per year, 2018–2025 (five offense categories)"`
+  - chart `captionText`: `"NYC traffic-enforcement arrests per year, 2018–2025. Every plotted figure is listed in the table below."`
+  - `ariaLabel`: `"Line chart of NYC traffic-enforcement arrest counts per year from 2018 to 2025."`
+  - `seriesLabel` (Y axis): `"Arrests"`
+  - `fieldAlias`: `"arrests"`
+  - `strokeStyle`: `"solid"` (arrests carry no reporting-decline artifact — the dash pattern is
+    reserved for that specific semantic, per `YearlyLineChart.tsx`'s own header comment; using
+    it here would falsely imply the same caveat)
+  - `colorSlot`: `1` (reuse — see Intellectual Control)
+  - No `note` prop passed to either the chart or the table — see Intellectual Control.
 
 - **Design Pattern**: none — simple case. The genuine variance (which series render) was already
-  encapsulated by `MetricSection<K>` and `YearlyLineChart<K>` across the four prior metrics; this
-  task is a fifth instantiation of an already-earned generic, not a new pattern decision.
+encapsulated by `MetricSection<K>` and `YearlyLineChart<K>` across the four prior metrics; this
+task is a fifth instantiation of an already-earned generic, not a new pattern decision.
 
 - **Intellectual Control**:
-  1. **Why small multiples, not a secondary axis, overriding the PRD's literal FR-5 text.**
-     Arrests range ~8,330–29,007; deaths range 229–297 — a ~30–100× spread, the same class of
-     problem FR-3's chart-half already solved for deaths (229–297) vs. collisions (85,546–
-     231,564). A shared zero-based linear axis would flatten the deaths line to visual noise, and
-     `dataviz`'s own anti-pattern #1 names dual/shared axes across incompatible scales as
-     inventing a correlation the data doesn't support. The risk register (PRD §5.4) names exactly
-     this misreading as Med/Med; small multiples on an independently-scaled panel is the
-     mitigation, matching FR-3's own precedent rather than a fresh decision.
-  2. **Why `arrests.ts` is a self-contained sibling module, not a widened `socrata.ts`.**
-     `socrata.ts` hardcodes `BASE_URL` (`h9gi-nx95`) and `crash_date`-keyed `$group`/`$order` as
-     fixed constants — its own header states this was a deliberate prior decision ("that
-     generality remains unearned"). Widening it to accept a dataset ID and date-field parameter
-     would touch the one file every P0 metric (deaths, injuries, collisions, repaired) depends on,
-     for the benefit of a feature PRD §5.2 explicitly marks droppable. Severability should be a
-     code fact, not just a requirements-doc claim: with `arrests.ts` self-contained, dropping
-     FR-5 later means deleting one lib file, one route, and reverting three `page.tsx` additions —
-     `socrata.ts` and the four P0 metrics are never at risk. The cost is real duplication (~130
-     lines of fetch/parse/coverage-validation logic reimplemented) — named honestly, not hidden,
-     with a Tipping Point below for when to stop paying it.
-  3. **Why this ships as one SPEC, not a data-half/chart-half split like FR-3.** FR-3's chart-half
-     was substantial on its own (new `YearlyLineChart` component, new CSS module, a validated
-     color-token pair) — a genuine 5-file task. Here, `YearlyLineChart<K>` already exists and
-     `colorSlot: 1` is a reuse, not a new token; the entire task is 3 files. Splitting it to mirror
-     FR-3's shape would be ceremony without a corresponding risk to sequence around.
-  4. **Why `colorSlot: 1` (reuse), not a new `colorSlot: 3`.** Color reuse is a comprehension risk
-     only when two elements sharing meaning must be visually distinguished in the same context
-     (a legend, a merged chart). These are five separate `<figure>` elements, never juxtaposed in
-     one plot, each with its own caption and axis label — reusing deaths' blue costs nothing here.
-     A new `--chart-series-3` token would require re-running `dataviz`'s CVD-separation validator
-     against both existing tokens, the annotation token, and both light/dark surfaces (see
-     `YearlyLineChart.module.css`'s own comment on why the FR-13 marker got a *separate* token
-     instead of a third series slot) — real, avoidable scope for zero comprehension benefit.
-  5. **Why no new inline `note` and no `Caveats.tsx` edit.** `Caveats.tsx`'s `ITEM_3` already
-     states, page-wide: "This page does not attribute the 2020–2021 rise, or any later change, to
-     enforcement activity or its absence — it shows the series moving together." That sentence
-     already covers arrests without modification. Deaths and injuries — two of the four existing
-     metrics — carry no bespoke inline `note` either; only collisions and repaired-collisions do,
-     because their caveat (the reporting-policy artifact) is specific and non-obvious. Arrests'
-     relevant caveat (NFR-5's correlation-only framing) is general and already covered page-wide,
-     so following the deaths/injuries precedent — no inline note — is the honest reading of
-     "matching the independence guarantee already established," not a gap.
+1. **Why small multiples, not a secondary axis, overriding the PRD's literal FR-5 text.**
+   Arrests range ~8,330–29,007; deaths range 229–297 — a ~30–100× spread, the same class of
+   problem FR-3's chart-half already solved for deaths (229–297) vs. collisions (85,546–
+   231,564). A shared zero-based linear axis would flatten the deaths line to visual noise, and
+   `dataviz`'s own anti-pattern #1 names dual/shared axes across incompatible scales as
+   inventing a correlation the data doesn't support. The risk register (PRD §5.4) names exactly
+   this misreading as Med/Med; small multiples on an independently-scaled panel is the
+   mitigation, matching FR-3's own precedent rather than a fresh decision.
+2. **Why `arrests.ts` is a self-contained sibling module, not a widened `socrata.ts`.**
+   `socrata.ts` hardcodes `BASE_URL` (`h9gi-nx95`) and `crash_date`-keyed `$group`/`$order` as
+   fixed constants — its own header states this was a deliberate prior decision ("that
+   generality remains unearned"). Widening it to accept a dataset ID and date-field parameter
+   would touch the one file every P0 metric (deaths, injuries, collisions, repaired) depends on,
+   for the benefit of a feature PRD §5.2 explicitly marks droppable. Severability should be a
+   code fact, not just a requirements-doc claim: with `arrests.ts` self-contained, dropping
+   FR-5 later means deleting one lib file, one route, and reverting three `page.tsx` additions —
+   `socrata.ts` and the four P0 metrics are never at risk. The cost is real duplication (~130
+   lines of fetch/parse/coverage-validation logic reimplemented) — named honestly, not hidden,
+   with a Tipping Point below for when to stop paying it.
+3. **Why this ships as one SPEC, not a data-half/chart-half split like FR-3.** FR-3's chart-half
+   was substantial on its own (new `YearlyLineChart` component, new CSS module, a validated
+   color-token pair) — a genuine 5-file task. Here, `YearlyLineChart<K>` already exists and
+   `colorSlot: 1` is a reuse, not a new token; the entire task is 3 files. Splitting it to mirror
+   FR-3's shape would be ceremony without a corresponding risk to sequence around.
+4. **Why `colorSlot: 1` (reuse), not a new `colorSlot: 3`.** Color reuse is a comprehension risk
+   only when two elements sharing meaning must be visually distinguished in the same context
+   (a legend, a merged chart). These are five separate `<figure>` elements, never juxtaposed in
+   one plot, each with its own caption and axis label — reusing deaths' blue costs nothing here.
+   A new `--chart-series-3` token would require re-running `dataviz`'s CVD-separation validator
+   against both existing tokens, the annotation token, and both light/dark surfaces (see
+   `YearlyLineChart.module.css`'s own comment on why the FR-13 marker got a *separate* token
+   instead of a third series slot) — real, avoidable scope for zero comprehension benefit.
+5. **Why no new inline `note` and no `Caveats.tsx` edit.** `Caveats.tsx`'s `ITEM_3` already
+   states, page-wide: "This page does not attribute the 2020–2021 rise, or any later change, to
+   enforcement activity or its absence — it shows the series moving together." That sentence
+   already covers arrests without modification. Deaths and injuries — two of the four existing
+   metrics — carry no bespoke inline `note` either; only collisions and repaired-collisions do,
+   because their caveat (the reporting-policy artifact) is specific and non-obvious. Arrests'
+   relevant caveat (NFR-5's correlation-only framing) is general and already covered page-wide,
+   so following the deaths/injuries precedent — no inline note — is the honest reading of
+   "matching the independence guarantee already established," not a gap.
 
 - **Constraints**:
-  1. No secondary/dual axis, no merged chart with any other metric.
-  2. `arrest_boro`, `perp_race`, `perp_sex`, `age_group` excluded entirely — no reference in code,
-     comments, or query (PRD §6, permanent, not open here).
-  3. `src/lib/socrata.ts` is not edited. Its file-header comment ("the only file in the repo that
-     reads `SOCRATA_APP_TOKEN`") becomes imprecise once `arrests.ts` also reads it — accepted,
-     non-blocking; `arrests.ts`'s own header states it explicitly and points back to this SPEC's
-     severability reasoning, so the record stays honest without touching the frozen file.
-  4. NFR-1 caching/timeout values copied exactly from `socrata.ts`: `next: { revalidate: 86400 }`,
-     `AbortSignal.timeout(10_000)`.
-  5. No new dependency — `zod` and `recharts` are already installed; nothing else may be added.
-  6. Query is a frozen contract (Rule 4): a Socrata rejection of any clause is a halt and a
-     request for a revised SPEC, never a local substitution.
-  7. NFR-5: `captionText`/`ariaLabel`/`seriesLabel` above are purely descriptive — no causal or
-     even correlational language in this task's own copy; the confounder framing lives in
-     `Caveats.tsx` per Intellectual Control point 5.
-  8. **Files not to touch**: `src/lib/socrata.ts`, `src/lib/deaths.ts`, `src/lib/injuries.ts`,
-     `src/lib/collisions.ts`, `src/lib/repairedCollisions.ts`, `src/components/YearlyLineChart.tsx`,
-     `src/components/YearlyLineChart.module.css`, `src/components/MetricSection.tsx`,
-     `src/components/Caveats.tsx`, the four existing route handlers, `vitest.config.mts`,
-     `vitest.setup.ts`, `tsconfig.json`, `eslint.config.mjs`, `next.config.ts`,
-     `src/app/layout.tsx`, `src/app/globals.css`, `.claude/**`, `CLAUDE.md`, `docs/**`,
-     `SESSION_STATE.md`.
-  9. Amendment 3(b) and `npm audit` reporting, as standing clauses.
+1. No secondary/dual axis, no merged chart with any other metric.
+2. `arrest_boro`, `perp_race`, `perp_sex`, `age_group` excluded entirely — no reference in code,
+   comments, or query (PRD §6, permanent, not open here).
+3. `src/lib/socrata.ts` is not edited. Its file-header comment ("the only file in the repo that
+   reads `SOCRATA_APP_TOKEN`") becomes imprecise once `arrests.ts` also reads it — accepted,
+   non-blocking; `arrests.ts`'s own header states it explicitly and points back to this SPEC's
+   severability reasoning, so the record stays honest without touching the frozen file.
+4. NFR-1 caching/timeout values copied exactly from `socrata.ts`: `next: { revalidate: 86400 }`,
+   `AbortSignal.timeout(10_000)`.
+5. No new dependency — `zod` and `recharts` are already installed; nothing else may be added.
+6. Query is a frozen contract (Rule 4): a Socrata rejection of any clause is a halt and a
+   request for a revised SPEC, never a local substitution.
+7. NFR-5: `captionText`/`ariaLabel`/`seriesLabel` above are purely descriptive — no causal or
+   even correlational language in this task's own copy; the confounder framing lives in
+   `Caveats.tsx` per Intellectual Control point 5.
+8. **Files not to touch**: `src/lib/socrata.ts`, `src/lib/deaths.ts`, `src/lib/injuries.ts`,
+   `src/lib/collisions.ts`, `src/lib/repairedCollisions.ts`, `src/components/YearlyLineChart.tsx`,
+   `src/components/YearlyLineChart.module.css`, `src/components/MetricSection.tsx`,
+   `src/components/Caveats.tsx`, the four existing route handlers, `vitest.config.mts`,
+   `vitest.setup.ts`, `tsconfig.json`, `eslint.config.mjs`, `next.config.ts`,
+   `src/app/layout.tsx`, `src/app/globals.css`, `.claude/**`, `CLAUDE.md`, `docs/**`,
+   `SESSION_STATE.md`.
+9. Amendment 3(b) and `npm audit` reporting, as standing clauses.
 
 - **Edge Cases**:
-  1. **Absent or invalid `arrests` aggregate for any of the 8 expected years** → `error` status,
-     never a defaulted zero (Trap 1, FR-11) — same `validateYearCoverage`-shaped check as
-     `socrata.ts`, reimplemented in `arrests.ts`.
-  2. **Zero rows returned** → `empty` status (FR-10), rendered via `MetricSection`'s existing
-     empty-state paragraph, unmodified.
-  3. **Upstream failure** (network error, timeout, non-2xx, non-JSON body) → `error`/`upstream` →
-     502 in the route.
-  4. **Malformed row, duplicate year, or a year outside 2018–2025** → `error`/`contract` → 422.
-  5. **Arrests fetch failing must not affect deaths/injuries/collisions/repaired rendering**, and
-     vice versa — `Promise.all` plus fully independent per-branch rendering, unchanged from the
-     existing four-metric pattern.
-  6. **Both `ofns_desc` spellings must independently appear and both be tested** — Cypress asserts
-     both literal strings are present in `ARRESTS_SOQL`'s `$where`, not just one.
+1. **Absent or invalid `arrests` aggregate for any of the 8 expected years** → `error` status,
+   never a defaulted zero (Trap 1, FR-11) — same `validateYearCoverage`-shaped check as
+   `socrata.ts`, reimplemented in `arrests.ts`.
+2. **Zero rows returned** → `empty` status (FR-10), rendered via `MetricSection`'s existing
+   empty-state paragraph, unmodified.
+3. **Upstream failure** (network error, timeout, non-2xx, non-JSON body) → `error`/`upstream` →
+   502 in the route.
+4. **Malformed row, duplicate year, or a year outside 2018–2025** → `error`/`contract` → 422.
+5. **Arrests fetch failing must not affect deaths/injuries/collisions/repaired rendering**, and
+   vice versa — `Promise.all` plus fully independent per-branch rendering, unchanged from the
+   existing four-metric pattern.
+6. **Both `ofns_desc` spellings must independently appear and both be tested** — Cypress asserts
+   both literal strings are present in `ARRESTS_SOQL`'s `$where`, not just one.
 
 - **Files** (max 5 — three used):
-  1. `src/lib/arrests.ts` — *new.* Self-contained transport: SoQL builders, fetch, Zod validation,
-     8-year coverage check, mirroring `socrata.ts`'s internal shape but scoped to `8h9b-rp9u`.
-  2. `src/app/api/arrests/route.ts` — *new.* Same union-to-HTTP mapping as the four existing
-     routes.
-  3. `src/app/page.tsx` — *edited.* `fetchArrestsPerYear()` added to `Promise.all`; one
-     `<YearlyLineChart>` mount and one `<MetricSection>` call added after the repaired-collisions
-     section, before `<Caveats />`.
+1. `src/lib/arrests.ts` — *new.* Self-contained transport: SoQL builders, fetch, Zod validation,
+   8-year coverage check, mirroring `socrata.ts`'s internal shape but scoped to `8h9b-rp9u`.
+2. `src/app/api/arrests/route.ts` — *new.* Same union-to-HTTP mapping as the four existing
+   routes.
+3. `src/app/page.tsx` — *edited.* `fetchArrestsPerYear()` added to `Promise.all`; one
+   `<YearlyLineChart>` mount and one `<MetricSection>` call added after the repaired-collisions
+   section, before `<Caveats />`.
 
-  **Not in this budget**: `src/lib/arrests.test.ts`, `src/app/api/arrests/route.test.ts`, and the
-  `page.test.tsx` diff for the fifth metric are Cypress's Phase 1 work, dispatched first — test
-  files are Cypress's own budget, not counted here, per this project's established precedent
-  (FR-3's chart-half SPEC).
+**Not in this budget**: `src/lib/arrests.test.ts`, `src/app/api/arrests/route.test.ts`, and the
+`page.test.tsx` diff for the fifth metric are Cypress's Phase 1 work, dispatched first — test
+files are Cypress's own budget, not counted here, per this project's established precedent
+(FR-3's chart-half SPEC).
 
 - **Tipping Point**: `arrests.ts`'s self-contained duplication of `socrata.ts`'s fetch/validate
-  scaffold is deliberate, not an oversight — but it is a one-time exception, not a pattern to
-  repeat. Re-open when a **second** `8h9b-rp9u` caller needs its own yearly-aggregate query (the
-  most plausible trigger: a future FR-6 implementation that turns out to need a per-borough SoQL
-  variant rather than a client-side re-scope filter — note the interview's recorded default
-  expectation is a *global client-side* filter re-scoping all five series at once, which would
-  never fire this trigger at all). At that point, extract a shared generic transport parameterized
-  by base URL + date field + `$group`/`$order`, mirroring `socrata.ts`'s own extraction history
-  (Task 1 → Task 3's `fetchYearlyMetric`). Do not duplicate a third time.
+scaffold is deliberate, not an oversight — but it is a one-time exception, not a pattern to
+repeat. Re-open when a **second** `8h9b-rp9u` caller needs its own yearly-aggregate query (the
+most plausible trigger: a future FR-6 implementation that turns out to need a per-borough SoQL
+variant rather than a client-side re-scope filter — note the interview's recorded default
+expectation is a *global client-side* filter re-scoping all five series at once, which would
+never fire this trigger at all). At that point, extract a shared generic transport parameterized
+by base URL + date field + `$group`/`$order`, mirroring `socrata.ts`'s own extraction history
+(Task 1 → Task 3's `fetchYearlyMetric`). Do not duplicate a third time.
 
 [FORCES]
 1. Severability of the FR-5–7 group (PRD §5.2: "dropping FR-5–7 shrinks the product without breaking it") > code reuse via widening socrata.ts
@@ -4948,7 +5019,6 @@ by test and by `git diff`. Built by Redwood in one pass against Cypress's alread
 full suite 478/478 (up from 374/374). Committed `4035262` (feat) / `22dcc20` (docs), pushed to
 `origin/main`. This is 1 of 6 phases of the FR-6/FR-7 objective — the objective itself is not yet
 closed; Phase 2 (crash-metric propagation) follows in the reset `SPEC.md`.
-
 
 ---
 
@@ -5045,7 +5115,7 @@ Cypress rather than hand-fixed, and why `date_trunc_ym` was chosen over `date_ex
 
 ## Archived 2026-08-11 — Fallback Fixture Mechanism (COMPLETE)
 
-**Outcome:** Builds the deterministic *mechanism* for PRD §7's Socrata-outage risk mitigation —
+**Outcome:** Builds the deterministic _mechanism_ for PRD §7's Socrata-outage risk mitigation —
 mechanism only, deliberately not the `page.tsx` wiring or banner UI. `scripts/generate-fallback-
 fixture.ts` imports and calls the already-tested `fetchDeathsPerYear()` live, asserts `status:
 "ok"`, and writes its `.soql`/`.rows` verbatim to the committed `src/lib/fixtures/deaths-
@@ -5057,7 +5127,7 @@ be masked by a stale cache, since that's exactly the failure mode this product e
 
 Full TDD chain: Cypress wrote 13 failing tests first, using synthetic values deliberately disjoint
 from PRD Appendix A's real figures so a passing test can't mean "the wrong series leaked through,"
-and asserting the committed fixture's *shape* (row count, positive integers, valid ISO timestamp,
+and asserting the committed fixture's _shape_ (row count, positive integers, valid ISO timestamp,
 `soql` byte-equality) rather than its pinned literal values — NFR-4 discipline applied even where
 the mechanical guard hook wouldn't technically require it. Redwood implemented, hit and solved a
 real Node-ESM-vs-Next.js-bundler-resolution mismatch (the frozen `socrata.ts`/`deaths.ts`/
@@ -5074,7 +5144,6 @@ banner remains a deliberate, not-yet-written follow-up SPEC. Full reasoning — 
 scope decision, why deaths-only matches Rule 6's walking-skeleton discipline, and the resolution
 shim's exact justification — is in `ARCHIVED_SESSIONS.md`, "2026-08-11 — Fallback fixture
 mechanism."
-
 
 ---
 
@@ -5111,8 +5180,12 @@ mechanism."
     enforce the earlier SPEC's citywide-only decision at the one place it needs enforcing.
   - New component `src/components/CachedDataBanner.tsx`:
     ```ts
-    export interface CachedDataBannerProps { asOf: string; }
-    export function CachedDataBanner({ asOf }: CachedDataBannerProps): JSX.Element;
+    export interface CachedDataBannerProps {
+      asOf: string;
+    }
+    export function CachedDataBanner({
+      asOf,
+    }: CachedDataBannerProps): JSX.Element;
     ```
     Rendered as a sibling before the deaths chart, gated on
     `result.status === "ok" && result.source === "cache"`.
@@ -5190,16 +5263,18 @@ mechanism."
 
 - **Tipping Point**: wiring a second metric's fallback (injuries, collisions, repaired-collisions,
   arrests) triggers extracting the wiring pattern (`withFallback(raw, activeCode === undefined ?
-  fixture : undefined)` + conditional banner) into a small shared helper — four near-identical
+fixture : undefined)` + conditional banner) into a small shared helper — four near-identical
   repetitions is the threshold, not before.
 
 ## Acceptance criteria
 
 Tests first (Cypress), then implementation (Redwood). Per Amendment 3(b), **record `node -v`
 beside every result; it must read v22.x.** Prefix every command:
+
 ```
 export NVM_DIR="$HOME/.nvm"; . /usr/local/opt/nvm/nvm.sh; nvm use >/dev/null
 ```
+
 Baseline verified 2026-08-11 immediately before this SPEC: **626/626 in 25 files, `tsc --noEmit`
 clean, `eslint .` 0 errors / 2 known pre-existing warnings.**
 
@@ -5221,7 +5296,7 @@ clean, `eslint .` 0 errors / 2 known pre-existing warnings.**
 extended `page.test.tsx` with 7 new fallback-wiring tests (3 initially red for the right reason,
 4 guard-rail regression tests already green). Redwood implemented the wiring exactly per spec —
 `withFallback(rawDeathsResult, activeCode === undefined ? deathsFixtureData : undefined)` plus the
-banner as a sibling before the deaths chart — and surfaced a genuine collision: 7 *pre-existing*
+banner as a sibling before the deaths chart — and surfaced a genuine collision: 7 _pre-existing_
 tests (predating this SPEC) mocked a citywide deaths fetch as `kind: "upstream"` purely to test
 cross-metric independence and Caveats persistence (FR-9), and that exact mock shape is what the new
 wiring correctly substitutes instead of erroring. Redwood declined to touch test files (not its
@@ -5233,7 +5308,7 @@ excluded from fallback substitution (Edge Case 3) regardless of borough state. T
 time this project has hit a cross-cutting pre-existing-test collision from new wiring (the first
 was the Staten Island panel's Zero-Trust `process.env` confinement tests) — same resolution shape
 both times: the new code was correct, an old test's incidental mock shape became load-bearing by
-accident, and the fix goes to the test's *setup*, never its assertion. Verified node v22.23.2:
+accident, and the fix goes to the test's _setup_, never its assertion. Verified node v22.23.2:
 **640/640** (up from 626/626 baseline, +14 net: 7 new CachedDataBanner tests + 7 new page-level
 fallback tests), `tsc --noEmit` clean, `eslint .` 0 errors / 2 pre-existing warnings unchanged.
 Files touched, exactly the 4 the SPEC scoped: `src/components/CachedDataBanner.tsx` (new),
