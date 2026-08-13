@@ -146,12 +146,33 @@
 // Because a default "ok" CoverageWarning render adds a *sixth* unconditional
 // <details> disclosure to every render, the pre-existing assertions that
 // hard-coded "5 disclosures total" are updated in place to "6" throughout.
+//
+// This-SPEC addition ("Staten Island pilot panel, chart/UI half"): ../lib/
+// statenIslandPilot is mocked (fetchStatenIslandPilot only — page.tsx passes
+// the whole resolved result straight through to <StatenIslandPilotPanel>, it
+// never reads a separately-imported SI_PILOT_SOQL constant, per SPEC.md's
+// Inputs/Outputs contract), with its own default-"ok" beforeEach entry
+// mirroring the other five fetches, so every pre-existing test above now also
+// gets a well-formed SI-pilot result to Promise.all against without having to
+// touch that test's body. ../../components/StatenIslandPilotPanel is mocked
+// the same way YearlyLineChart and Caveats already are: a plain vi.fn() stub
+// identifiable by data-testid, whose call args this file inspects directly
+// (SPEC.md's own "the chart/UI half's rendered geometry is
+// StatenIslandPilotPanel.test.tsx's job, against the real component" split —
+// unchanged here). Because a default "ok" StatenIslandPilotPanel render adds
+// a *seventh* unconditional <details> disclosure to every render (SPEC.md:
+// "always present"), the pre-existing assertions that hard-coded "6
+// disclosures total" are updated in place to "7" throughout — a necessary
+// consequence of this file's own new default, not scope creep; the
+// assertions' original intent (this specific disclosure is present and
+// reachable) is preserved exactly, only the total-count arithmetic changes.
 
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axe from "axe-core";
 
 import type { YearlyLineChartProps } from "../../components/YearlyLineChart";
+import type { SIPilotResult } from "../../lib/statenIslandPilot";
 
 const {
   fetchDeathsPerYear,
@@ -160,13 +181,16 @@ const {
   fetchRepairedCollisionsPerYear,
   fetchArrestsPerYear,
   fetchCoverageData,
+  fetchStatenIslandPilot,
   SYNTHETIC_SOQL,
   INJURIES_SYNTHETIC_SOQL,
   COLLISIONS_SYNTHETIC_SOQL,
   REPAIRED_SYNTHETIC_SOQL,
   ARRESTS_SYNTHETIC_SOQL,
+  SI_PILOT_SYNTHETIC_SOQL,
   YearlyLineChart,
   Caveats,
+  StatenIslandPilotPanel,
 } = vi.hoisted(() => ({
   fetchDeathsPerYear: vi.fn(),
   fetchInjuriesPerYear: vi.fn(),
@@ -174,6 +198,7 @@ const {
   fetchRepairedCollisionsPerYear: vi.fn(),
   fetchArrestsPerYear: vi.fn(),
   fetchCoverageData: vi.fn(),
+  fetchStatenIslandPilot: vi.fn(),
   SYNTHETIC_SOQL:
     "SYNTHETIC SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   INJURIES_SYNTHETIC_SOQL:
@@ -184,6 +209,8 @@ const {
     "SYNTHETIC REPAIRED COLLISIONS SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   ARRESTS_SYNTHETIC_SOQL:
     "SYNTHETIC ARRESTS SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
+  SI_PILOT_SYNTHETIC_SOQL:
+    "SYNTHETIC SI PILOT SOQL FOR PAGE TEST $select=... $where=... $group=... $order=...",
   // A minimal stand-in, not the real chart — YearlyLineChart.test.tsx is
   // where the real component's rendered SVG geometry is asserted against
   // real recharts output. Here we only need something identifiable in the
@@ -220,6 +247,31 @@ const {
       <h2>Caveats</h2>
     </section>
   )),
+  // This-SPEC addition ("Staten Island pilot panel, chart/UI half"): a
+  // minimal stand-in, not the real component —
+  // StatenIslandPilotPanel.test.tsx is where the real component's rendered
+  // chart/table/stats geometry is asserted against real rendered output.
+  // Here we only need something identifiable in the DOM and a vi.fn() whose
+  // call args (the single `result` prop) this file can inspect directly, to
+  // prove page.tsx's *mounting* decisions: called with the exact object
+  // fetchStatenIslandPilot() resolved (never re-derived), positioned in a
+  // new section between Enforcement and Caveats, and — the point of this
+  // task's "unconditional" requirement — never gated behind any other
+  // metric's status and never varying with the active borough.
+  StatenIslandPilotPanel: vi.fn((props: { result: SIPilotResult }) => (
+    <section
+      data-testid="staten-island-pilot-panel-stub"
+      data-result-status={props.result.status}
+    >
+      stubbed SI pilot panel
+      <details>
+        <summary>SoQL query — staten-island-pilot</summary>
+        <pre>
+          <code>{props.result.soql}</code>
+        </pre>
+      </details>
+    </section>
+  )),
 }));
 
 vi.mock("../../lib/deaths", () => ({
@@ -251,10 +303,18 @@ vi.mock("../../lib/arrestsCoverage", () => ({
   fetchCoverageData,
 }));
 
+vi.mock("../../lib/statenIslandPilot", () => ({
+  fetchStatenIslandPilot,
+}));
+
 vi.mock("../../components/YearlyLineChart", () => ({ YearlyLineChart }));
 vi.mock("../../components/Caveats", () => ({ Caveats }));
+vi.mock("../../components/StatenIslandPilotPanel", () => ({
+  StatenIslandPilotPanel,
+}));
 
 import Home from "./page";
+import { BOROUGH_CODES } from "../../lib/boroughs";
 
 const SYNTHETIC_ROWS = [
   { year: 2018, deaths: 11 },
@@ -368,6 +428,36 @@ const COVERAGE_SYNTHETIC_RESULT = {
   },
 };
 
+// This-SPEC addition ("Staten Island pilot panel, chart/UI half"): a
+// synthetic 24-row Jan 2018-Dec 2019 monthly fixture, obviously distinct in
+// shape (monthly "YYYY-MM" keys, not `year`) and magnitude from every other
+// fixture in this file and from the real, pinned Staten Island figures named
+// in the mvcc-data skill (2018 monthly avg ~514.25, annual sums 6,171/3,650).
+// Built with a `for` loop rather than typed out by hand for the same reason
+// statenIslandPilot.ts's own EXPECTED_MONTHS is — 24 literal entries invite a
+// transcription error a loop cannot make.
+const SI_PILOT_SYNTHETIC_ROWS: { month: string; collisions: number }[] = [];
+for (let year = 2018; year <= 2019; year++) {
+  for (let month = 1; month <= 12; month++) {
+    const index = (year - 2018) * 12 + (month - 1);
+    SI_PILOT_SYNTHETIC_ROWS.push({
+      month: `${year}-${String(month).padStart(2, "0")}`,
+      collisions: 5000 + index * 11,
+    });
+  }
+}
+
+const SI_PILOT_SYNTHETIC_RESULT: SIPilotResult = {
+  status: "ok",
+  soql: SI_PILOT_SYNTHETIC_SOQL,
+  rows: SI_PILOT_SYNTHETIC_ROWS,
+  // Arbitrary synthetic values — this file only proves page.tsx passes the
+  // whole resolved `result` object through to the (mocked) panel unmodified;
+  // StatenIslandPilotPanel.test.tsx is where display-formatted stats
+  // rendering is asserted against the real component.
+  stats: { avg2018Monthly: 321.6, avgMayDec2019: 654.3 },
+};
+
 // This-SPEC addition (FR-9) — verbatim per SPEC.md's page.tsx Output section,
 // copied exactly, not paraphrased. Appended (string concatenation, not a
 // rewrite) to the end of both COLLISIONS_NOTE_TEXT and REPAIRED_NOTE_TEXT
@@ -449,6 +539,7 @@ beforeEach(() => {
     rows: ARRESTS_SYNTHETIC_ROWS,
   });
   fetchCoverageData.mockResolvedValue(COVERAGE_SYNTHETIC_RESULT);
+  fetchStatenIslandPilot.mockResolvedValue(SI_PILOT_SYNTHETIC_RESULT);
 });
 
 afterEach(() => {
@@ -458,8 +549,10 @@ afterEach(() => {
   fetchRepairedCollisionsPerYear.mockReset();
   fetchArrestsPerYear.mockReset();
   fetchCoverageData.mockReset();
+  fetchStatenIslandPilot.mockReset();
   YearlyLineChart.mockClear();
   Caveats.mockClear();
+  StatenIslandPilotPanel.mockClear();
 });
 
 describe("/ (Home) — the ok path", () => {
@@ -792,7 +885,7 @@ describe("/ (Home) — injuries block (FR-2, Task 3)", () => {
     // 2, because this-SPEC's default "ok" collisions mock (see beforeEach)
     // also renders its own unconditional disclosure on every test in this
     // file unless overridden.
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
   });
 });
 
@@ -876,7 +969,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     ).toBeInTheDocument();
   });
 
-  it("disambiguates the six <details> disclosures by summary text, all reachable by accessible name (FR-8, FR-7)", async () => {
+  it("disambiguates the seven <details> disclosures by summary text, all reachable by accessible name (FR-8, FR-7)", async () => {
     fetchDeathsPerYear.mockResolvedValueOnce({
       status: "ok",
       soql: SYNTHETIC_SOQL,
@@ -906,7 +999,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     const { container } = await renderHome();
 
     const disclosures = Array.from(container.querySelectorAll("details"));
-    expect(disclosures).toHaveLength(6);
+    expect(disclosures).toHaveLength(7);
 
     const summaries = disclosures.map(
       (d) => d.querySelector("summary")?.textContent ?? "",
@@ -929,7 +1022,12 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(summaries.some((s) => /coverage details by year/i.test(s))).toBe(
       true,
     );
-    expect(new Set(summaries).size).toBe(6);
+    // This-SPEC addition: the Staten Island pilot panel's own unconditional
+    // disclosure, pinned verbatim per SPEC.md's Inputs/Outputs section.
+    expect(
+      summaries.some((s) => s === "SoQL query — staten-island-pilot"),
+    ).toBe(true);
+    expect(new Set(summaries).size).toBe(7);
   });
 
   it("has no axe-core violations across the injuries table and all three SoQL disclosures", async () => {
@@ -958,7 +1056,7 @@ describe("/ (Home) — two independent metrics on one page (new coverage, Task 3
     expect(
       screen.getByRole("table", { name: /injuries/i }),
     ).toBeInTheDocument();
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -1069,7 +1167,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
     // must still be present, proving this assertion actually exercises
     // collisions and isn't a false-positive pass off the other two blocks'
     // unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
     expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
   });
 
@@ -1097,7 +1195,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
     // trivially "pass" against a page that doesn't implement the collisions
     // block at all, which would be exactly the kind of spuriously-passing
     // test the dispatch instructions warn against.
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
     expect(document.body.textContent ?? "").not.toContain(COLLISIONS_NOTE_TEXT);
   });
 
@@ -1127,7 +1225,7 @@ describe("/ (Home) — collisions block (FR-3 data half, FR-8, FR-10, NFR-3, NFR
       screen.getByRole("table", { name: COLLISIONS_TABLE_NAME }),
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -1261,7 +1359,7 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
 
     // All three disclosures still render regardless of each metric's status
     // (FR-8's unconditional-disclosure guarantee, extended to three).
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
   });
 
   it("mixed combination (another): deaths error, injuries empty, collisions ok — each of the three renders its own defined state independently", async () => {
@@ -1300,7 +1398,7 @@ describe("/ (Home) — three independent metrics on one page (new coverage this 
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(COLLISIONS_NOTE_TEXT);
 
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
   });
 });
 
@@ -1555,7 +1653,7 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
     // disclosure must still be present, proving this assertion actually
     // exercises repaired collisions and isn't a false-positive pass off the
     // other three blocks' unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
     expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
   });
 
@@ -1572,7 +1670,7 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
 
     const { container } = await renderHome();
 
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
     expect(document.body.textContent ?? "").not.toContain(REPAIRED_NOTE_TEXT);
   });
 
@@ -1592,7 +1690,7 @@ describe("/ (Home) — repaired collisions block (FR-12, FR-8, FR-10, NFR-3, NFR
       screen.getByRole("table", { name: REPAIRED_TABLE_NAME }),
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").toContain(REPAIRED_NOTE_TEXT);
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -1734,7 +1832,7 @@ describe("/ (Home) — arrests block (FR-5, FR-8, FR-10, NFR-3, NFR-5 label-only
     // must still be present, proving this assertion actually exercises
     // arrests and isn't a false-positive pass off the other four blocks'
     // unrelated content.
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
     expect((document.body.textContent ?? "").trim().length).toBeGreaterThan(10);
   });
 
@@ -1793,7 +1891,7 @@ describe("/ (Home) — arrests block (FR-5, FR-8, FR-10, NFR-3, NFR-5 label-only
     const { container } = await renderHome();
 
     expect(screen.getByRole("table", { name: /arrests/i })).toBeInTheDocument();
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);
@@ -2044,7 +2142,7 @@ describe("/ (Home) — five independent metrics on one page (this SPEC's Edge Ca
 
     // All five disclosures still render regardless of each metric's status
     // (FR-8's unconditional-disclosure guarantee, extended to five).
-    expect(document.querySelectorAll("details")).toHaveLength(6);
+    expect(document.querySelectorAll("details")).toHaveLength(7);
   });
 });
 
@@ -2195,7 +2293,7 @@ describe("/ (Home) — four independent metrics on one page (this SPEC's Edge Ca
 
     // All four disclosures still render regardless of each metric's status
     // (FR-8's unconditional-disclosure guarantee, extended to four).
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
   });
 
   it("mixed combination (another): deaths error, injuries empty, collisions ok, repaired collisions empty — each of the four renders its own defined state independently", async () => {
@@ -2242,7 +2340,7 @@ describe("/ (Home) — four independent metrics on one page (this SPEC's Edge Ca
       screen.queryByRole("table", { name: REPAIRED_TABLE_NAME }),
     ).not.toBeInTheDocument();
 
-    expect(container.querySelectorAll("details")).toHaveLength(6);
+    expect(container.querySelectorAll("details")).toHaveLength(7);
   });
 });
 
@@ -2697,6 +2795,159 @@ describe("/ (Home) — FR-6 / NFR-1: borough filter catch-all route param wiring
     });
 
     const { container } = await renderHome({ borough: ["K", "extra"] });
+
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
+  });
+});
+
+describe("/ (Home) — Staten Island pilot panel, chart/UI half (SPEC.md, FR-3/FR-8/FR-13/NFR-3)", () => {
+  it("fetches via fetchStatenIslandPilot() with zero arguments, as part of the existing Promise.all", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    expect(fetchStatenIslandPilot).toHaveBeenCalledTimes(1);
+    expect(fetchStatenIslandPilot).toHaveBeenCalledWith();
+  });
+
+  it("mounts <StatenIslandPilotPanel> exactly once, receiving the exact object fetchStatenIslandPilot() resolved (never a copy, never re-derived)", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    expect(StatenIslandPilotPanel).toHaveBeenCalledTimes(1);
+    const props = StatenIslandPilotPanel.mock.calls[0][0] as {
+      result: SIPilotResult;
+    };
+    expect(props.result).toBe(SI_PILOT_SYNTHETIC_RESULT);
+    expect(
+      screen.getByTestId("staten-island-pilot-panel-stub"),
+    ).toBeInTheDocument();
+  });
+
+  it("positions the panel in a new section after the Enforcement (arrests) block and before Caveats, per SPEC.md's page.tsx Output", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome();
+
+    const arrestsTable = screen.getByRole("table", { name: /arrests/i });
+    const panelStub = screen.getByTestId("staten-island-pilot-panel-stub");
+    const caveatsStub = screen.getByTestId("caveats-stub");
+
+    const afterArrests = arrestsTable.compareDocumentPosition(panelStub);
+    expect(Boolean(afterArrests & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    const beforeCaveats = panelStub.compareDocumentPosition(caveatsStub);
+    expect(Boolean(beforeCaveats & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
+
+    // The mount point is a real <section>, not a bare fragment sibling.
+    expect(panelStub.closest("section")).toBeInTheDocument();
+  });
+
+  it("Intellectual Control 3: never threads the active borough code into fetchStatenIslandPilot() — called with zero arguments even when a borough filter is active", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    await renderHome({ borough: ["K"] });
+
+    expect(fetchStatenIslandPilot).toHaveBeenCalledTimes(1);
+    expect(fetchStatenIslandPilot).toHaveBeenCalledWith();
+    expect(fetchStatenIslandPilot).not.toHaveBeenCalledWith("K");
+  });
+
+  it("Edge Case 5 analogue: renders the identical result object across all six prerendered variants (citywide + every borough code) — the panel never varies with the page's borough filter", async () => {
+    const variants: (string | undefined)[] = [undefined, ...BOROUGH_CODES];
+
+    for (const code of variants) {
+      fetchDeathsPerYear.mockResolvedValueOnce({
+        status: "ok",
+        soql: SYNTHETIC_SOQL,
+        rows: SYNTHETIC_ROWS,
+      });
+      StatenIslandPilotPanel.mockClear();
+
+      const { unmount } = await renderHome({
+        borough: code ? [code] : [],
+      });
+
+      expect(StatenIslandPilotPanel).toHaveBeenCalledTimes(1);
+      const props = StatenIslandPilotPanel.mock.calls[0][0] as {
+        result: SIPilotResult;
+      };
+      expect(props.result).toBe(SI_PILOT_SYNTHETIC_RESULT);
+
+      unmount();
+    }
+  });
+
+  it("independence: one metric erroring (deaths) never suppresses the panel's mount", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "error",
+      soql: SYNTHETIC_SOQL,
+      kind: "contract",
+      reason: "no aggregate returned for 2024 (SI panel independence test)",
+    });
+
+    await renderHome();
+
+    expect(StatenIslandPilotPanel).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByTestId("staten-island-pilot-panel-stub"),
+    ).toBeInTheDocument();
+  });
+
+  it("independence: the panel's own fetch failing never suppresses the deaths table or the other metrics", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+    fetchStatenIslandPilot.mockResolvedValueOnce({
+      status: "error",
+      soql: SI_PILOT_SYNTHETIC_SOQL,
+      kind: "upstream",
+      reason: "Socrata responded 503 (SI panel independence test)",
+    });
+
+    await renderHome();
+
+    expect(screen.getByRole("table", { name: /deaths/i })).toBeInTheDocument();
+    expect(StatenIslandPilotPanel).toHaveBeenCalledTimes(1);
+    const props = StatenIslandPilotPanel.mock.calls[0][0] as {
+      result: SIPilotResult;
+    };
+    expect(props.result.status).toBe("error");
+  });
+
+  it("has zero axe-core violations with the panel's stub mounted alongside the rest of the page", async () => {
+    fetchDeathsPerYear.mockResolvedValueOnce({
+      status: "ok",
+      soql: SYNTHETIC_SOQL,
+      rows: SYNTHETIC_ROWS,
+    });
+
+    const { container } = await renderHome();
+
+    expect(
+      screen.getByTestId("staten-island-pilot-panel-stub"),
+    ).toBeInTheDocument();
 
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);

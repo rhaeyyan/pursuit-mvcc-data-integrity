@@ -59,6 +59,8 @@ import {
   REPAIRED_COLLISIONS_SOQL,
   fetchRepairedCollisionsPerYear,
 } from "../../lib/repairedCollisions";
+import { fetchStatenIslandPilot } from "../../lib/statenIslandPilot";
+import { StatenIslandPilotPanel } from "../../components/StatenIslandPilotPanel";
 import styles from "../page.module.css";
 
 // FR-9: the one-sentence forward pointer appended to both existing inline
@@ -127,6 +129,7 @@ export default async function Home({
     repairedResult,
     arrestsResult,
     coverageResult,
+    siPilotResult,
   ] = await Promise.all([
     fetchDeathsPerYear(activeCode),
     fetchInjuriesPerYear(activeCode),
@@ -134,6 +137,7 @@ export default async function Home({
     fetchRepairedCollisionsPerYear(activeCode),
     fetchArrestsPerYear(activeCode),
     fetchCoverageData(),
+    fetchStatenIslandPilot(),
   ]);
 
   // PRD §7 risk mitigation: substitute the committed fixture only when the
@@ -301,6 +305,13 @@ export default async function Home({
               soql={ARRESTS_SOQL}
             />
           </div>
+        </div>
+      </section>
+
+      <section className={styles.storySection}>
+        <h2 className={styles.sectionTitle}>Staten Island Pilot</h2>
+        <div className={styles.fullWidthCard}>
+          <StatenIslandPilotPanel result={siPilotResult} />
         </div>
       </section>
 
