@@ -6,6 +6,9 @@ const EXTRA_WHERE_REPAIRED =
 export async function fetchLocalRawSeries(
   zip: string,
 ): Promise<YearlyMetricResult<"collisions">> {
+  if (!/^\d{5}$/.test(zip)) {
+    throw new Error("Invalid ZIP code format");
+  }
   return fetchYearlyMetric(
     "count(collision_id)",
     "collisions",
@@ -16,6 +19,9 @@ export async function fetchLocalRawSeries(
 export async function fetchLocalRepairedSeries(
   zip: string,
 ): Promise<YearlyMetricResult<"collisions">> {
+  if (!/^\d{5}$/.test(zip)) {
+    throw new Error("Invalid ZIP code format");
+  }
   return fetchYearlyMetric(
     "count(collision_id)",
     "collisions",

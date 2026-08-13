@@ -40,6 +40,7 @@
 // src/lib/boroughs.ts's `parseBoroughParam`, unmodified (this task's Query
 // section keeps that file out of scope).
 
+import Link from "next/link";
 import { BoroughPicker } from "../../components/BoroughPicker";
 import { CachedDataBanner } from "../../components/CachedDataBanner";
 import { Caveats } from "../../components/Caveats";
@@ -198,6 +199,82 @@ export default async function Home({
         collisions={collisions2025}
         arrests={arrests2025}
       />
+
+      <section className={styles.storySection}>
+        <h2 className={styles.sectionTitle}>Dashboards & Tools</h2>
+        <div className={styles.dashboard}>
+          <div className={styles.card}>
+            <h3
+              style={{
+                marginBottom: "0.5rem",
+                fontSize: "1.25rem",
+                color: "#f1f5f9",
+              }}
+            >
+              <Link
+                href="/local"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                📍 Local Ledger
+              </Link>
+            </h3>
+            <p style={{ color: "#94a3b8", fontSize: "0.95rem" }}>
+              Analyze granular traffic safety records by ZIP code.
+            </p>
+          </div>
+
+          <div className={styles.card}>
+            <h3
+              style={{
+                marginBottom: "0.5rem",
+                fontSize: "1.25rem",
+                color: "#f1f5f9",
+              }}
+            >
+              <Link
+                href="/tdi"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                🏆 TDI Leaderboard
+              </Link>
+            </h3>
+            <p
+              style={{
+                color: "#94a3b8",
+                fontSize: "0.95rem",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Rank precincts by the Traffic Danger Index.
+            </p>
+            <p style={{ fontSize: "0.8rem", color: "#64748b" }}>
+              *Note: TDI is calculated using a (deaths × 10) + injuries
+              weighting.
+            </p>
+          </div>
+
+          <div className={styles.card}>
+            <h3
+              style={{
+                marginBottom: "0.5rem",
+                fontSize: "1.25rem",
+                color: "#f1f5f9",
+              }}
+            >
+              <Link
+                href="/auditor"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                ⚖️ SIP Auditor
+              </Link>
+            </h3>
+            <p style={{ color: "#94a3b8", fontSize: "0.95rem" }}>
+              Audit reported collision vs. casualty changes for street
+              redesigns.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section className={styles.storySection}>
         <h2 className={styles.sectionTitle}>The Human Toll</h2>

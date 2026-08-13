@@ -150,3 +150,19 @@ describe("FR-11 window completeness / contract failures (trap 1)", () => {
     expect(result.kind).toBe("contract");
   });
 });
+
+describe("Zero-Trust Validation (Phase 5)", () => {
+  it("throws an error when a malicious ZIP string is passed to fetchLocalRawSeries, without calling Socrata", async () => {
+    const maliciousZip = "'10001' OR 1=1";
+
+    await expect(fetchLocalRawSeries(maliciousZip)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("throws an error when a malicious ZIP string is passed to fetchLocalRepairedSeries, without calling Socrata", async () => {
+    const maliciousZip = "'10001' OR 1=1";
+
+    await expect(fetchLocalRepairedSeries(maliciousZip)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
