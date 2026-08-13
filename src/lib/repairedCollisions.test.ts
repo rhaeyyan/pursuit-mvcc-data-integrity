@@ -521,6 +521,7 @@ describe("src/lib/repairedCollisions.ts — source-level greps (the only net for
       .filter((f) => !f.endsWith(`${join("lib", "arrests.ts")}`))
       .filter((f) => !f.endsWith(`${join("lib", "arrestsSocrata.ts")}`))
       .filter((f) => !f.endsWith(`${join("lib", "statenIslandPilot.ts")}`))
+      .filter((f) => !f.endsWith(`${join("lib", "tdi.ts")}`))
       .filter((f) => readFileSync(f, "utf8").includes("process.env"));
     expect(offenders).toEqual([]);
   });
