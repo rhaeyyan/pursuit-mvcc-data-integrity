@@ -22,7 +22,7 @@ describe("KPIRow", () => {
 
   it("passes axe-core accessibility audit with 0 violations", async () => {
     const { container } = render(
-      <KPIRow deaths={20} collisions={2000} arrests={15000} />
+      <KPIRow deaths={20} collisions={2000} arrests={15000} />,
     );
     const results = await axe.run(container);
     expect(results.violations).toEqual([]);

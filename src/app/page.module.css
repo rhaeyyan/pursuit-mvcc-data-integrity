@@ -65,10 +65,15 @@
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.75rem;
-  box-shadow: 0 4px 6px -1px var(--glow), 0 2px 4px -2px var(--glow);
+  box-shadow:
+    0 4px 6px -1px var(--glow),
+    0 2px 4px -2px var(--glow);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -76,7 +81,9 @@
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px var(--glow-strong), 0 4px 6px -4px var(--glow-strong);
+  box-shadow:
+    0 10px 15px -3px var(--glow-strong),
+    0 4px 6px -4px var(--glow-strong);
   border-color: var(--card-hover-border);
 }
 

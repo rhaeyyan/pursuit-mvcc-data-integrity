@@ -72,9 +72,7 @@ export function CoverageWarning({ coverageResult }: CoverageWarningProps) {
         )}
         {arrests && (
           <table>
-            <caption>
-              Arrest borough field coverage per year, 2018–2025
-            </caption>
+            <caption>Arrest borough field coverage per year, 2018–2025</caption>
             <thead>
               <tr>
                 <th scope="col">Year</th>

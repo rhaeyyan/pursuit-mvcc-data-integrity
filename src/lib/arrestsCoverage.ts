@@ -1,4 +1,7 @@
-import { fetchArrestsQuery, BASE_URL as ARRESTS_BASE_URL } from "./arrestsSocrata";
+import {
+  fetchArrestsQuery,
+  BASE_URL as ARRESTS_BASE_URL,
+} from "./arrestsSocrata";
 import { ARRESTS_OFFENSE_WHERE } from "./arrests";
 import { fetchYearlyMetric } from "./socrata";
 
@@ -65,9 +68,7 @@ function deriveDatasetMetrics(
   }
 
   const windowUnpopulatedSharePercent =
-    totalWindow > 0
-      ? ((totalWindow - populatedWindow) / totalWindow) * 100
-      : 0;
+    totalWindow > 0 ? ((totalWindow - populatedWindow) / totalWindow) * 100 : 0;
 
   return {
     yearly,
@@ -114,10 +115,7 @@ export async function fetchCoverageData(): Promise<CoverageResult> {
     "date_extract_y(arrest_date) AS year, count(*) AS populated",
   );
   arrestsPopulatedUrl.searchParams.set("$where", arrestsPopulatedWhere);
-  arrestsPopulatedUrl.searchParams.set(
-    "$group",
-    "date_extract_y(arrest_date)",
-  );
+  arrestsPopulatedUrl.searchParams.set("$group", "date_extract_y(arrest_date)");
   arrestsPopulatedUrl.searchParams.set("$order", "year");
 
   const arrestsPopulatedSoql = [
@@ -147,8 +145,7 @@ export async function fetchCoverageData(): Promise<CoverageResult> {
 
   let collisionsMetrics: DatasetCoverageMetrics | undefined;
   let collisionsError:
-    | { kind: "upstream" | "contract"; reason: string }
-    | undefined;
+    { kind: "upstream" | "contract"; reason: string } | undefined;
 
   if (
     collisionsTotalRes.status === "ok" &&
@@ -181,22 +178,16 @@ export async function fetchCoverageData(): Promise<CoverageResult> {
 
   let arrestsMetrics: DatasetCoverageMetrics | undefined;
   let arrestsError:
-    | { kind: "upstream" | "contract"; reason: string }
-    | undefined;
+    { kind: "upstream" | "contract"; reason: string } | undefined;
 
-  if (
-    arrestsTotalRes.status === "ok" &&
-    arrestsPopulatedRes.status === "ok"
-  ) {
+  if (arrestsTotalRes.status === "ok" && arrestsPopulatedRes.status === "ok") {
     arrestsMetrics = deriveDatasetMetrics(
       arrestsTotalRes.rows,
       arrestsPopulatedRes.rows,
     );
   } else {
     const failed =
-      arrestsTotalRes.status !== "ok"
-        ? arrestsTotalRes
-        : arrestsPopulatedRes;
+      arrestsTotalRes.status !== "ok" ? arrestsTotalRes : arrestsPopulatedRes;
     let kind: "upstream" | "contract" = "upstream";
     if (
       (arrestsTotalRes.status === "error" &&
@@ -250,7 +241,6 @@ export async function fetchCoverageData(): Promise<CoverageResult> {
   return {
     status: "error",
     kind: combinedKind,
-    reason:
-      combinedReason || "Failed to fetch coverage data for both datasets",
+    reason: combinedReason || "Failed to fetch coverage data for both datasets",
   };
 }

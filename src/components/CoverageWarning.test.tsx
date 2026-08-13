@@ -21,11 +21,36 @@ const OK_COVERAGE_RESULT: CoverageResult = {
   status: "ok",
   collisions: {
     yearly: [
-      { year: 2018, total: 231564, populated: 160000, coverageRatePercent: 69.1 },
-      { year: 2019, total: 211486, populated: 145000, coverageRatePercent: 68.6 },
-      { year: 2020, total: 112918, populated: 78000, coverageRatePercent: 69.1 },
-      { year: 2021, total: 110558, populated: 76000, coverageRatePercent: 68.7 },
-      { year: 2022, total: 103887, populated: 72000, coverageRatePercent: 69.3 },
+      {
+        year: 2018,
+        total: 231564,
+        populated: 160000,
+        coverageRatePercent: 69.1,
+      },
+      {
+        year: 2019,
+        total: 211486,
+        populated: 145000,
+        coverageRatePercent: 68.6,
+      },
+      {
+        year: 2020,
+        total: 112918,
+        populated: 78000,
+        coverageRatePercent: 69.1,
+      },
+      {
+        year: 2021,
+        total: 110558,
+        populated: 76000,
+        coverageRatePercent: 68.7,
+      },
+      {
+        year: 2022,
+        total: 103887,
+        populated: 72000,
+        coverageRatePercent: 69.3,
+      },
       { year: 2023, total: 96607, populated: 66000, coverageRatePercent: 68.3 },
       { year: 2024, total: 91316, populated: 63000, coverageRatePercent: 69.0 },
       { year: 2025, total: 85546, populated: 59000, coverageRatePercent: 69.0 },
@@ -70,7 +95,7 @@ const SEE_CAVEATS_SENTENCE =
   "See Caveats below for additional reporting policy context.";
 
 describe("<CoverageWarning> — status: 'ok' path (FR-7 Phase 6)", () => {
-  it("renders an <aside aria-label=\"Dataset coverage warning\"> landmark container", () => {
+  it('renders an <aside aria-label="Dataset coverage warning"> landmark container', () => {
     render(<CoverageWarning coverageResult={OK_COVERAGE_RESULT} />);
 
     const aside = screen.getByRole("complementary", {
@@ -179,7 +204,7 @@ describe("<CoverageWarning> — status: 'partial' path (FR-7 Phase 6)", () => {
 });
 
 describe("<CoverageWarning> — status: 'error' path (FR-7 Phase 6)", () => {
-  it("renders fallback paragraph with role=\"status\" when coverage metadata fails entirely", () => {
+  it('renders fallback paragraph with role="status" when coverage metadata fails entirely', () => {
     render(<CoverageWarning coverageResult={ERROR_COVERAGE_RESULT} />);
 
     const status = screen.getByRole("status");
@@ -218,7 +243,9 @@ describe("<CoverageWarning> — source-level greps (honesty rules & constraints)
   it("contains no hardcoded dataset figure literals in component source (NFR-4)", () => {
     const source = readComponentSourceOrFail();
 
-    const pinnedNumbers = [231564, 211486, 112918, 29007, 8330, 1043882, 148460];
+    const pinnedNumbers = [
+      231564, 211486, 112918, 29007, 8330, 1043882, 148460,
+    ];
     for (const num of pinnedNumbers) {
       const pattern = new RegExp(`(^|[^0-9.])(${num})([^0-9]|$)`);
       expect(source).not.toMatch(pattern);

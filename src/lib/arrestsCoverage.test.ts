@@ -90,12 +90,14 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function mockSocrataFetch(options: {
-  collisionsFail?: boolean;
-  collisionsMalformed?: boolean;
-  arrestsFail?: boolean;
-  arrestsMalformed?: boolean;
-} = {}) {
+function mockSocrataFetch(
+  options: {
+    collisionsFail?: boolean;
+    collisionsMalformed?: boolean;
+    arrestsFail?: boolean;
+    arrestsMalformed?: boolean;
+  } = {},
+) {
   fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
     const urlStr = input.toString();
     const url = new URL(urlStr);
@@ -202,9 +204,9 @@ describe("fetchCoverageData() — Happy Path (status: ok)", () => {
     expect(result.collisions.yearly).toHaveLength(8);
     expect(result.arrests.yearly).toHaveLength(8);
 
-    expect(result.collisions.yearly.map((r: YearlyCoverageRow) => r.year)).toEqual(
-      [...SYNTHETIC_YEARS],
-    );
+    expect(
+      result.collisions.yearly.map((r: YearlyCoverageRow) => r.year),
+    ).toEqual([...SYNTHETIC_YEARS]);
     expect(result.arrests.yearly.map((r: YearlyCoverageRow) => r.year)).toEqual(
       [...SYNTHETIC_YEARS],
     );
@@ -219,7 +221,8 @@ describe("fetchCoverageData() — Happy Path (status: ok)", () => {
     for (let i = 0; i < 8; i++) {
       const colRow = result.collisions.yearly[i];
       const expectedColRate =
-        (SYNTHETIC_COLLISIONS_POPULATED[i] / SYNTHETIC_COLLISIONS_TOTAL[i]) * 100;
+        (SYNTHETIC_COLLISIONS_POPULATED[i] / SYNTHETIC_COLLISIONS_TOTAL[i]) *
+        100;
       expect(colRow.coverageRatePercent).toBeCloseTo(expectedColRate, 4);
 
       const arrRow = result.arrests.yearly[i];
@@ -235,13 +238,22 @@ describe("fetchCoverageData() — Happy Path (status: ok)", () => {
     const result = await fetchCoverageData();
 
     assertOk(result);
-    const expectedColTotal = SYNTHETIC_COLLISIONS_TOTAL.reduce((a, b) => a + b, 0);
-    const expectedColPop = SYNTHETIC_COLLISIONS_POPULATED.reduce((a, b) => a + b, 0);
+    const expectedColTotal = SYNTHETIC_COLLISIONS_TOTAL.reduce(
+      (a, b) => a + b,
+      0,
+    );
+    const expectedColPop = SYNTHETIC_COLLISIONS_POPULATED.reduce(
+      (a, b) => a + b,
+      0,
+    );
     expect(result.collisions.totalWindow).toBe(expectedColTotal);
     expect(result.collisions.populatedWindow).toBe(expectedColPop);
 
     const expectedArrTotal = SYNTHETIC_ARRESTS_TOTAL.reduce((a, b) => a + b, 0);
-    const expectedArrPop = SYNTHETIC_ARRESTS_POPULATED.reduce((a, b) => a + b, 0);
+    const expectedArrPop = SYNTHETIC_ARRESTS_POPULATED.reduce(
+      (a, b) => a + b,
+      0,
+    );
     expect(result.arrests.totalWindow).toBe(expectedArrTotal);
     expect(result.arrests.populatedWindow).toBe(expectedArrPop);
   });
@@ -268,7 +280,8 @@ describe("fetchCoverageData() — Happy Path (status: ok)", () => {
       (r: YearlyCoverageRow) => 100 - r.coverageRatePercent,
     );
     const colSimpleMean =
-      colYearlyUnpopShares.reduce((a: number, b: number) => a + b, 0) / colYearlyUnpopShares.length;
+      colYearlyUnpopShares.reduce((a: number, b: number) => a + b, 0) /
+      colYearlyUnpopShares.length;
     expect(result.collisions.windowUnpopulatedSharePercent).not.toBeCloseTo(
       colSimpleMean,
       2,
@@ -289,7 +302,8 @@ describe("fetchCoverageData() — Happy Path (status: ok)", () => {
       (r: YearlyCoverageRow) => 100 - r.coverageRatePercent,
     );
     const arrSimpleMean =
-      arrYearlyUnpopShares.reduce((a: number, b: number) => a + b, 0) / arrYearlyUnpopShares.length;
+      arrYearlyUnpopShares.reduce((a: number, b: number) => a + b, 0) /
+      arrYearlyUnpopShares.length;
     expect(result.arrests.windowUnpopulatedSharePercent).not.toBeCloseTo(
       arrSimpleMean,
       2,
@@ -330,7 +344,9 @@ describe("fetchCoverageData() — Happy Path (status: ok)", () => {
       expect(row.coverageRatePercent).toBe(0);
       expect(Number.isNaN(row.coverageRatePercent)).toBe(false);
     }
-    expect(Number.isNaN(result.collisions.windowUnpopulatedSharePercent)).toBe(false);
+    expect(Number.isNaN(result.collisions.windowUnpopulatedSharePercent)).toBe(
+      false,
+    );
   });
 });
 
