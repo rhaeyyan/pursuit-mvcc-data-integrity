@@ -6,15 +6,15 @@
   --card-bg: #ffffff;
   --card-hover-border: #cbd5e1;
   --focus-ring: #3b82f6;
-  
+
   --warning-bg: #fffbeb;
   --warning-border: #f59e0b;
   --warning-text: #92400e;
-  
+
   --table-header-bg: #f1f5f9;
   --table-border: #e2e8f0;
   --table-hover: #f8fafc;
-  
+
   --glow: rgba(0, 0, 0, 0.05);
   --glow-strong: rgba(0, 0, 0, 0.1);
 }
@@ -28,15 +28,15 @@
     --card-bg: rgba(23, 25, 31, 0.7);
     --card-hover-border: rgba(255, 255, 255, 0.2);
     --focus-ring: #60a5fa;
-    
+
     --warning-bg: rgba(245, 158, 11, 0.15);
     --warning-border: #fbbf24;
     --warning-text: #fef3c7;
-    
+
     --table-header-bg: rgba(255, 255, 255, 0.03);
     --table-border: rgba(255, 255, 255, 0.1);
     --table-hover: rgba(255, 255, 255, 0.02);
-    
+
     --glow: rgba(255, 255, 255, 0.02);
     --glow-strong: rgba(255, 255, 255, 0.05);
   }
@@ -92,7 +92,9 @@ table {
   margin: 1.5rem 0;
   font-size: 0.95rem;
   background-color: var(--card-bg);
-  box-shadow: 0 4px 6px -1px var(--glow), 0 2px 4px -2px var(--glow);
+  box-shadow:
+    0 4px 6px -1px var(--glow),
+    0 2px 4px -2px var(--glow);
 }
 
 caption {
@@ -103,7 +105,8 @@ caption {
   font-size: 1.05rem;
 }
 
-th, td {
+th,
+td {
   padding: 0.875rem 1.25rem;
   text-align: left;
   border-bottom: 1px solid var(--table-border);
@@ -158,4 +161,29 @@ details pre {
   border: 1px solid var(--border);
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.875rem;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .print-button {
+    display: none !important;
+  }
+
+  details > *:not(summary) {
+    display: block !important;
+  }
+
+  details::details-content {
+    display: block !important;
+  }
+
+  figure,
+  table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
