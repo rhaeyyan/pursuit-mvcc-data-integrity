@@ -107,7 +107,12 @@ Manhattan is the outlier: enforcement −62% (6,775 → 2,548) while Manhattan i
 
 NYPD ceased dispatching officers to property-damage-only collisions: **Staten Island pilot
 2019-03-18**, **permanent citywide 2020-04-06**. Drivers self-file an MV-104 with the state DMV
-above a $1,000 damage threshold; those filings never enter the NYPD database behind `h9gi-nx95`.
+above a **USD 1,000** damage threshold; those filings never enter the NYPD database behind
+`h9gi-nx95`. (Written `USD 1,000`, not with a currency symbol, on purpose: a `$` followed by a
+digit is an argument placeholder and the Skill tool substitutes the caller's argument into it at
+load time. Verified 2026-08-14 — invoking this skill with arguments turned the figure into
+`<argument>,000` in the text the agent actually read. Never write `$` + digit anywhere in this
+file; a silently rewritten figure in the dataset contract is the exact failure Rule 1 forbids.)
 The Staten Island pilot is the pre-COVID natural experiment — monthly collisions ~514 (2018 avg) →
 370 (Mar 2019) → 217 (Apr 2019, first full month); annual 6,171 → 3,650, with `borough` coverage
 flat across the boundary (64.4% → 64.8%), so a ~47% drop cannot be a coverage artifact.
