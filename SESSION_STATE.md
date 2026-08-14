@@ -6,37 +6,39 @@ correctness. Seven tasks in three waves, all specced and human-approved in `SPEC
 ## Active
 
 - **🟡 IN FLIGHT — the `SPEC.md` seven-task plan (2026-08-14).** Origin: the map shipped last
-  session was **unreachable**, and the borough dropdown on The chart had exactly one outcome — a
-  refusal — for all five options.
-  - **What was broken:** `GlobalNav.tsx` was the only file linking to the four orphan routes and
-    **nothing imported it**; all four also sat outside `(workspace)`, so they rendered with no nav
-    and no way back — each with a passing test suite. `UnifiedTimeline.tsx:150`'s
-    `boroughBlocked = Boolean(boroughLabel)` is unconditional, so every borough choice hit the
-    refusal panel. Full diagnosis, the four human decisions, and the wave table are in `SPEC.md` —
-    read that, not a second copy here.
+  session was **unreachable** (`GlobalNav.tsx` was the only file linking the four orphan routes and
+  **nothing imported it**; all four also sat outside `(workspace)`, so they had no nav and no way
+  back — each with a passing test suite), and the borough dropdown produced a refusal for all five
+  options (`UnifiedTimeline.tsx:150`'s `boroughBlocked` is unconditional). Full diagnosis, the four
+  human decisions, and the wave table are in `SPEC.md` — read that, not a second copy here.
   - **The one thing not to lose:** **T6 adds the `/danger-index` link and T5 must land first.** The
     map being unreachable is what currently protects users from a wrong ranking.
 
-- **✅ WAVE 1 COMPLETE — T1 · T3 · T5 all done, ALL UNCOMMITTED.** Independently re-verified by the
-  main session: **609/609 in 38 files**, `tsc` clean, `eslint` clean, Node v22.23.2. T1 = 11
-  `git mv` renames into `(workspace)` + 18 module-path rewrites, `next build` clean with six
-  borough paths still static. T5 = both defects fixed, verified live by curling the URL
-  reconstructed from the module's own exported `DANGER_INDEX_SOQL` (200, 1,000 rows, 589/478/476).
-  T3 = picker + trio deleted, −12 lines / 0 added. **Count moved 618 → 609 in 38, and that is
-  correct:** deleting `BoroughPicker.test.tsx` retired 13 tests (621 green + 1 fixed − 13 = 609).
-  Redwood measured that file in isolation rather than accepting my impossible 622/39 target.
-  **Next: commit wave 1 (branch first — we are on `main`), then wave 2 sequentially.**
+- **✅ WAVE 1 COMMITTED** on branch **`fix/nav-reachability-and-danger-index`** (NOT `main`, NOT
+  pushed). Six commits, one per concern: `7650465` hook · `514af77` skill-substitution ·
+  `e31d875` danger-index SoQL · `bf37f3d` route-group move · `4e2ec7e` borough picker · `162350e`
+  docs. Verified at `HEAD`: **609/609 in 38 files**, `tsc` + `eslint` clean; renames survived.
+  618 → 609 is correct — deleting `BoroughPicker.test.tsx` retired 13 tests.
+- **🟡 WAVE 2 — T4 DONE + COMMITTED, T2b and T2a NOT STARTED. Paused here 2026-08-14.**
+  **Order is T4 → T2b → T2a and that order is load-bearing:** T2a adds `/tdi` to the nav, T2b puts
+  FR-7's warning on `/tdi`, so T2a goes **last** and no commit ever links the borough leaderboard
+  without its caveat — the condition the human attached to that decision. Do not reorder.
+  - T4 = `/integrity` standing statement, commit `988a987`. **614/614 in 38 files**, tsc +
+    eslint + prettier clean. Magnolia hit a session limit before writing anything, so the main
+    session implemented it against Cypress's red tests; Magnolia's agent context is gone.
+  - **NEXT STEP, exactly:** Cypress writes T2b's red tests → Redwood implements → commit; then
+    Cypress T2a → implement → commit; then wave 3 (T6). Specs are verbatim in `SPEC.md`.
+  - **Watch at T2b** — it is the *third* consumer of the coverage-warning copy (refusal panel ·
+    `/integrity` · `/tdi`), the threshold T4's Tipping Point set for extracting a shared component
+    rather than writing a third divergent copy. T2b must **not** touch `tdi.ts`'s broken filter.
   - **Process error, do not repeat:** T1 and T5 were dispatched in parallel into the *same* tree
-    instead of isolated worktrees (Rule 5), which contaminated T1's test count. Banyan caught it,
-    remeasured in a detached worktree at pristine `HEAD`, and reconciled. Parallel builder tasks
-    need worktrees or they need to be sequential — wave 2 has real overlap (`LeftNav.tsx` is
-    touched by both T2a and T6), so sequence it.
+    instead of isolated worktrees (Rule 5), contaminating T1's test count. Parallel builder tasks
+    need worktrees or must be sequential — `LeftNav.tsx` is touched by both T2a and T6.
 
-- **Danger-index data defects — FIXED by T5, uncommitted.** Diagnosis and the three rules it
+- **Danger-index data defects — FIXED and committed (`e31d875`).** Diagnosis and the three rules it
   yielded (a pinned SoQL is a hypothesis until curled; "mounts without throwing" is not a
-  behavioural test; `z.coerce.number()` is trap 1 in Zod syntax) archived in
-  `ARCHIVED_SESSIONS.md`, "2026-08-14 — The two danger-index data defects". **Correct ranking is
-  589 / 478 / 476** — the ledger's old "887" and "1,299" were wrong and are gone.
+  behavioural test; `z.coerce.number()` is trap 1 in Zod syntax) archived in `ARCHIVED_SESSIONS.md`,
+  "2026-08-14 — The two danger-index data defects". **Correct ranking is 589 / 478 / 476.**
 
 - **Seven out-of-scope follow-ups are enumerated in `SPEC.md`'s closing section** — read there, not
   a second copy here. The one with teeth: **`src/lib/tdi.ts` filters `borough IS NOT NULL`**, wrong
@@ -54,9 +56,10 @@ correctness. Seven tasks in three waves, all specced and human-approved in `SPEC
   rotate the Context7 key, then move both to a `chmod 600` file sourced conditionally. Neither is
   in the repo; nothing consumes them now. Violates the repo's own Rule 3.
 
-- **Deployed and live-verified:** <https://pursuit-mvcc-data-integrity.vercel.app/> — root dir
-  `./`, Vercel defaults, `SOCRATA_APP_TOKEN` server-side only. NFR-2 confirmed clean (no token
-  identifier in any client chunk) as of the 2026-08-11 redeploy.
+- **Deployed:** <https://pursuit-mvcc-data-integrity.vercel.app/> — root dir `./`, Vercel defaults,
+  `SOCRATA_APP_TOKEN` server-side only. NFR-2 clean (no token identifier in any client chunk) as of
+  the 2026-08-11 redeploy. **Note this deploy predates the branch — it still serves the wrong
+  danger-index ranking and the dead borough dropdown.**
 
 - **Machine changes outside the repo, needing re-doing elsewhere:** `nvm install 22` (2026-08-07);
   **removed three stale `~/.local/bin/{node,npm,npx}` symlinks → v24.13.0** (2026-08-08 — they
@@ -87,24 +90,25 @@ correctness. Seven tasks in three waves, all specced and human-approved in `SPEC
   the lint hook exits 0 with an honest environment message when Node is genuinely absent rather
   than blocking. **Strictness is unchanged, proved by negative test:** with `.nvmrc` set to an
   uninstalled `18` the gate still exits 2 rather than falling back to the v22 sitting right there.
-- **Verified baseline: vitest 618/618 in 39 files, `tsc --noEmit` clean, `eslint .` clean**
-  (2026-08-14, Node v22.23.2, working tree with T1+T5 applied). Was 601/601 in 39 at `HEAD`
-  (`f260705`); T5 traded a 2-test root file for a 19-test sibling.
-- **`node_modules/` wiping is a recurring pattern (2 occurrences), not a one-off.** Recovery:
-  `nvm use` → `npm ci` → `npx next typegen` → gates. Typegen is non-optional (`layout.tsx` uses
-  Next 16's generated `LayoutProps<"/">`; a wiped `.next/` fails `tsc` with a misleading
-  `TS2304`). Verify `.git/hooks/commit-msg` is still byte-identical to `.githooks/commit-msg`
-  afterwards — that's what distinguishes "wiped" from "fresh clone" (the latter needs the guard
-  reinstalled). `node_modules/next/dist/docs/` only exists post-`npm ci`; **context7 is not a
-  fallback — its API key is invalid in this environment.**
+- **Verified baseline: vitest 614/614 in 38 files, `tsc --noEmit` + `eslint .` clean** (2026-08-14,
+  Node v22.23.2, branch `HEAD` after T4). Counts move legitimately as tasks delete test files —
+  reconcile, don't assume drift.
+- **`node_modules/` wiping recurs (2×), not a one-off.** Recovery: `nvm use` → `npm ci` →
+  `npx next typegen` → gates. Typegen is non-optional (`layout.tsx` uses Next 16's generated
+  `LayoutProps<"/">`; a wiped `.next/` fails `tsc` with a misleading `TS2304`). Then verify
+  `.git/hooks/commit-msg` still matches `.githooks/commit-msg` — that distinguishes "wiped" from
+  "fresh clone", which needs the guard reinstalled. `node_modules/next/dist/docs/` only exists
+  post-`npm ci`; **context7 is not a fallback — its API key is invalid here.**
+- **A stale `.next/dev/types/validator.ts` survives `next build` and breaks it after any route
+  rename** — `tsconfig` includes `.next/dev/types/**/*.ts`, but only `next dev` regenerates it, so
+  `tsc` fails with `TS2307`s that point at no real source error. Delete `.next/dev` and rebuild.
 - **Live Socrata findings, verified 2026-08-07/08, still load-bearing.** Full probe output in
-  `ARCHIVED_SPECS.md` (Phase 1 entry). (a) **Unpopulated rows arrive as an absent `borough` key** —
-  not `null`, not `""` — trap 1 in a new place, and why FR-7's numerator enumerates the five values
-  via `IN (...)` rather than `IS NOT NULL`. (b) **`borough IN (...)` works**, so the pre-authorised
-  five-way `OR` fallback is dead. (c) **Window unpopulated share is 32.9% row-weighted**, *not* the
-  ~31.8% mean-of-yearly-rates — they differ ~1.1pp, so the choice is pinned in code and test, and
-  FR-7's "~30%" prose is rounding, **not drift** (`/verify-figures` must not flag it).
-  (d) **`B`=Bronx re-confirmed by live row count** (Q1 2019 `arrest_boro`: `K` 15,809 > `B` 13,410).
+  `ARCHIVED_SPECS.md` (Phase 1). (a) **Unpopulated rows arrive as an absent `borough` key** — not
+  `null`, not `""` — trap 1 in a new place, and why FR-7 enumerates the five values via `IN (...)`
+  not `IS NOT NULL`. (b) **`borough IN (...)` works**; the five-way `OR` fallback is dead.
+  (c) **Window unpopulated share is 32.9% row-weighted**, not the ~31.8% mean-of-yearly-rates —
+  pinned in code and test, so FR-7's "~30%" prose is rounding, **not drift**. (d) **`B`=Bronx
+  re-confirmed by live row count** (Q1 2019 `arrest_boro`: `K` 15,809 > `B` 13,410).
 - **Handoff schemas live only in the `handoff-schemas` skill** — load before any dispatch; no agent
   file defines those fields. **`github`'s MCP is off on a fault, not disuse** (run `/mcp`).
 - **🔴 Never write `$` + a digit in a skill file.** The Skill tool substitutes the caller's
@@ -131,20 +135,16 @@ correctness. Seven tasks in three waves, all specced and human-approved in `SPEC
   `JSON.stringify(...)` in the dep array. All three call sites (`UnifiedTimeline`,
   `IntegrityAudit`, `SeriesRegistry`) do this correctly; copy the pattern.
 - **Terminology is settled — don't re-import a mockup's vocabulary over it.** "All reported
-  crashes" / "Injury & fatal crashes" / "Minor crashes, no injuries" / "Change since 2018", and the
-  three page names "The chart" / "Data quality" / "Where numbers come from". Simplified once in
-  `d3f60f2`, regressed once by the redesign importing the Design Composer mockup's jargon
-  wholesale, restored by the 2026-08-13 copy pass. Check existing terminology first.
+  crashes" / "Injury & fatal crashes" / "Minor crashes, no injuries" / "Change since 2018", plus
+  page names "The chart" / "Data quality" / "Where numbers come from". Simplified in `d3f60f2`,
+  regressed once by the redesign importing mockup jargon wholesale, restored 2026-08-13.
 - **Live visual QA: `mcp__playwright__browser_*` does not work here** (no Chromium; installer needs
-  an unavailable `sudo` password — don't retry). `mcp__Claude_Browser__*` worked on 2026-08-13 but
-  **was not available in the 2026-08-14 session** — don't assume it's there. Fallback that does
-  work: run `next dev` on a spare port and `curl` the page, then grep the SSR HTML and fetch the
-  emitted CSS chunks directly. That is how the danger-index height bug was proved.
+  an unavailable `sudo` — don't retry). `mcp__Claude_Browser__*` worked 2026-08-13 but not
+  2026-08-14 — don't assume it. **Fallback that works:** `next dev` on a spare port, `curl` the
+  page, grep the SSR HTML, fetch the emitted CSS chunks. That proved the danger-index height bug.
 
 ## History
 
-_(Empty — closed work is archived directly to `ARCHIVED_SESSIONS.md` as it closes.)_
-
-Nineteen entries in `ARCHIVED_SESSIONS.md`, newest **2026-08-14 — FR-6/FR-7 and the deploy thread
-archived; three ledger claims falsified**. Note the **2026-08-13 workspace redesign entry is filed
-at the end of that file, not the top** — position does not imply date there.
+_(Empty — closed work is archived to `ARCHIVED_SESSIONS.md` as it closes.)_ Twenty-two entries
+there, newest **2026-08-14 — the two danger-index data defects**. The **2026-08-13 workspace
+redesign entry sits at the end of that file, not the top** — position does not imply date.
