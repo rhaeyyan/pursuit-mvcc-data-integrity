@@ -30,6 +30,11 @@ export default function GlobalNav() {
               Auditor
             </Link>
           </li>
+          <li>
+            <Link href="/danger-index" className={styles.navLink}>
+              Danger Map
+            </Link>
+          </li>
         </ul>
       </div>
     </nav>
