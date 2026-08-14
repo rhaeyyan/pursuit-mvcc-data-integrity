@@ -278,3 +278,7 @@ export async function fetchYearlyMetric<K extends string>(
 
   return { status: "ok", soql, rows };
 }
+
+export function getSocrataAppToken(): string | undefined {
+  return process.env.SOCRATA_APP_TOKEN;
+}

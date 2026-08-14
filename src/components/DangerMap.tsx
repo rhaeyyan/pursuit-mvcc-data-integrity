@@ -7,19 +7,19 @@ import "leaflet/dist/leaflet.css";
 // Dynamic import with ssr: false to prevent Next.js hydration and window-is-not-defined errors
 const DynamicMapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false, loading: () => <MapSkeleton /> }
+  { ssr: false, loading: () => <MapSkeleton /> },
 );
 const DynamicTileLayer = dynamic(
   () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
+  { ssr: false },
 );
 const DynamicCircleMarker = dynamic(
   () => import("react-leaflet").then((mod) => mod.CircleMarker),
-  { ssr: false }
+  { ssr: false },
 );
 const DynamicPopup = dynamic(
   () => import("react-leaflet").then((mod) => mod.Popup),
-  { ssr: false }
+  { ssr: false },
 );
 
 function MapSkeleton() {
@@ -38,9 +38,13 @@ export default function DangerMap({ data }: DangerMapProps) {
   const maxTotal = Math.max(...data.map((d) => d.total), 1);
 
   return (
-    <div className="w-full h-[600px] rounded-xl overflow-hidden shadow-sm border border-slate-200 relative z-0">
+    <div
+      role="region"
+      aria-label="New York City Danger Index Interactive Map"
+      className="w-full h-[600px] rounded-xl overflow-hidden shadow-sm border border-slate-200 relative z-0"
+    >
       <DynamicMapContainer
-        center={[40.7128, -74.0060]}
+        center={[40.7128, -74.006]}
         zoom={11}
         scrollWheelZoom={false}
         className="w-full h-full"
@@ -66,9 +70,12 @@ export default function DangerMap({ data }: DangerMapProps) {
             >
               <DynamicPopup>
                 <div className="font-sans text-sm p-1">
-                  <p className="font-semibold text-slate-900 mb-1">Intersection Data</p>
+                  <p className="font-semibold text-slate-900 mb-1">
+                    Intersection Data
+                  </p>
                   <p className="text-slate-600 mb-0">
-                    Total Collisions: <span className="font-bold text-rose-600">{row.total}</span>
+                    Total Collisions:{" "}
+                    <span className="font-bold text-rose-600">{row.total}</span>
                   </p>
                   <p className="text-slate-500 text-xs mt-1">
                     Lat: {row.latitude.toFixed(4)} <br />
