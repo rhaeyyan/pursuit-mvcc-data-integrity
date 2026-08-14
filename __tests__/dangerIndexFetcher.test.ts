@@ -18,6 +18,7 @@ describe("dangerIndexFetcher", () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
     
     // Check if the URL contains the expected query params
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fetchCall = (global.fetch as any).mock.calls[0][0];
     expect(fetchCall).toContain("%24limit=1000");
     expect(fetchCall).toContain("%24order=total+DESC");
