@@ -310,6 +310,48 @@ export function IntegrityAudit({ data, coverage, siPilot }: Props) {
 
       <section>
         <h2>How often the borough is missing</h2>
+
+        {/*
+         * SPEC.md [SPEC] — T4. The standing statement of why this product has
+         * no borough view. It sits directly above the table that justifies it,
+         * so the claim and its evidence are read together.
+         *
+         * Every figure comes from the `coverage` prop — never a literal, and
+         * never recomputed here. Re-deriving the window share from `yearly`
+         * would give the mean-of-yearly-rates, which differs from the
+         * row-weighted share by ~1.1pp; computing a displayed figure in a
+         * component is the same NFR-4 violation as hardcoding one.
+         *
+         * The `unavailable` branch is numeral-free on purpose. The claim that
+         * there is no borough view is always true; only the numbers are
+         * conditional. A fallback that dropped the explanation along with the
+         * figures would leave the page silent about its own limits — the exact
+         * silence this product exists to criticise.
+         */}
+        {coverage.status === "ok" && firstCoverage && lastCoverage ? (
+          <p className={styles.warningNote}>
+            This is why there is no borough view anywhere on the site.{" "}
+            {coverage.windowUnpopulatedSharePercent.toFixed(1)}% of crash
+            records never say which borough they happened in, and the gap
+            narrows over time — {firstCoverage.coverageRatePercent.toFixed(1)}%
+            of records carried a borough in {firstCoverage.year}, against{" "}
+            {lastCoverage.coverageRatePercent.toFixed(1)}% in{" "}
+            {lastCoverage.year}. A chart built on that would show record-keeping
+            getting better and read as crashes going up. Rather than publish a
+            trend we can&apos;t stand behind, we publish the citywide numbers
+            and this table.
+          </p>
+        ) : (
+          <p className={styles.warningNote}>
+            This is why there is no borough view anywhere on the site. Many
+            crash records never say which borough they happened in, and the size
+            of that gap changes from year to year. A chart built on it would
+            show record-keeping changing and read as crashes changing. Rather
+            than publish a trend we can&apos;t stand behind, we publish the
+            citywide numbers and this table.
+          </p>
+        )}
+
         <div className={styles.tableWrapper}>
           <table className={workspace.table}>
             <thead>

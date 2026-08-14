@@ -205,6 +205,182 @@ describe("<IntegrityAudit> — coverage-by-year table renders every row from pro
   });
 });
 
+// ---------------------------------------------------------------------------
+// T4 — the standing statement on why the product has no borough view.
+//
+// The borough dropdown was deleted in wave 1 (commit 4e2ec7e), so /integrity is
+// now the only place the reason gets stated. These tests lock three behaviours
+// and nothing else: the figures come from the `coverage` prop, the claim
+// survives the unavailable branch figure-free, and neither state regresses
+// accessibility. The prose itself is Magnolia's — no test here asserts a
+// sentence.
+// ---------------------------------------------------------------------------
+
+type OkCoverage = Extract<CoverageProp, { status: "ok" }>;
+
+// Deliberately synthetic and deliberately unlike the real series: the live
+// coverage figures are ~30% unpopulated, 64.4% in 2018 rising to 80.1% in 2025.
+// None of those appear below, so a statement that hardcodes a real figure —
+// or copies one out of the design mockup — fails these tests instead of
+// passing them (NFR-4, CLAUDE.md Rule 1).
+//
+// `windowUnpopulatedSharePercent` is deliberately NOT the figure you get by
+// summing the `yearly` rows below (that would be ~33.5%). The component must
+// render the share the prop handed it, not one it recomputed — recomputing a
+// figure in a component is the same violation as hardcoding one.
+const T4_COVERAGE: OkCoverage = {
+  status: "ok",
+  windowUnpopulatedSharePercent: 41.3,
+  yearly: [
+    { year: 2018, total: 8000, populated: 4208, coverageRatePercent: 52.6 },
+    { year: 2019, total: 7800, populated: 4438, coverageRatePercent: 56.9 },
+    { year: 2020, total: 4000, populated: 2448, coverageRatePercent: 61.2 },
+    { year: 2021, total: 3900, populated: 2628, coverageRatePercent: 67.4 },
+    { year: 2022, total: 3850, populated: 2764, coverageRatePercent: 71.8 },
+    { year: 2023, total: 3800, populated: 3005, coverageRatePercent: 79.1 },
+    { year: 2024, total: 3750, populated: 3138, coverageRatePercent: 83.7 },
+    { year: 2025, total: 3200, populated: 2829, coverageRatePercent: 88.4 },
+  ],
+};
+
+const BOROUGH_SECTION_HEADING = "How often the borough is missing";
+
+function boroughSection(): HTMLElement {
+  const heading = screen.getByRole("heading", {
+    name: BOROUGH_SECTION_HEADING,
+  });
+  const section = heading.closest("section");
+  if (!section) {
+    throw new Error(
+      `The "${BOROUGH_SECTION_HEADING}" heading is not inside a <section>.`,
+    );
+  }
+  return section as HTMLElement;
+}
+
+// The statement is located structurally — the paragraphs of the section headed
+// "How often the borough is missing", excluding anything inside the coverage
+// table — so the claim sits adjacent to the evidence that justifies it (SPEC
+// T4, Inputs/Outputs). No className, sibling index, or wrapper element is
+// pinned: Magnolia owns the markup. `<p>` is the element the SPEC itself names
+// ("One paragraph in an existing section").
+function statementParagraphs(): HTMLElement[] {
+  return Array.from(boroughSection().querySelectorAll("p")).filter(
+    (p) => !p.closest("table"),
+  );
+}
+
+function statementText(): string {
+  return statementParagraphs()
+    .map((p) => p.textContent ?? "")
+    .join(" ")
+    .replace(/\s+/g, " ");
+}
+
+function percentagesIn(text: string): string[] {
+  return (text.match(/\d+(?:\.\d+)?\s*%/g) ?? []).map((m) =>
+    m.replace(/\s+/g, ""),
+  );
+}
+
+describe("<IntegrityAudit> — states why there is no borough view", () => {
+  it("renders the statement using only figures the coverage prop supplied", () => {
+    withProvider(
+      <IntegrityAudit
+        data={BASE_DATA}
+        coverage={T4_COVERAGE}
+        siPilot={OK_SI_PILOT}
+      />,
+    );
+
+    const paragraphs = statementParagraphs();
+    expect(
+      paragraphs.length,
+      `Expected at least one paragraph in the "${BOROUGH_SECTION_HEADING}" section stating why the product has no borough view.`,
+    ).toBeGreaterThan(0);
+
+    const text = statementText();
+
+    // The three values SPEC T4 constraint 1 names: the window-wide unpopulated
+    // share, and the first/last coverage rates with the years they belong to.
+    expect(text).toMatch(/41\.3%/);
+    expect(text).toMatch(/52\.6%/);
+    expect(text).toMatch(/88\.4%/);
+    expect(text).toMatch(/2018/);
+    expect(text).toMatch(/2025/);
+
+    // NFR-4, mechanically: every percentage in the statement must be a value
+    // this render was handed. A literal survives the three assertions above
+    // only by also appearing here, and a figure that is not in the prop —
+    // pinned, mockup, or invented — lands in this diff.
+    const fromProp = new Set([
+      `${T4_COVERAGE.windowUnpopulatedSharePercent.toFixed(1)}%`,
+      ...T4_COVERAGE.yearly.map((y) => `${y.coverageRatePercent.toFixed(1)}%`),
+    ]);
+    const rendered = percentagesIn(text);
+    expect(rendered.length).toBeGreaterThan(0);
+    expect(rendered.filter((p) => !fromProp.has(p))).toEqual([]);
+  });
+
+  it("still states there is no borough view when coverage is unavailable, with no digits at all", () => {
+    withProvider(
+      <IntegrityAudit
+        data={BASE_DATA}
+        coverage={{ status: "unavailable" }}
+        siPilot={OK_SI_PILOT}
+      />,
+    );
+
+    const paragraphs = statementParagraphs();
+    expect(
+      paragraphs.length,
+      "The claim that there is no borough view is always true — only the numbers are conditional, so the statement must survive the unavailable branch.",
+    ).toBeGreaterThan(0);
+
+    // Figure-free means numeral-free: no percentage, and no year either, since
+    // an unlabelled or unloaded figure is exactly what this product criticises.
+    expect(statementText()).not.toMatch(/\d/);
+  });
+
+  it("introduces no new heading, so the heading order stays valid", () => {
+    withProvider(
+      <IntegrityAudit
+        data={BASE_DATA}
+        coverage={T4_COVERAGE}
+        siPilot={OK_SI_PILOT}
+      />,
+    );
+
+    const headings = within(boroughSection()).getAllByRole("heading");
+    expect(headings).toHaveLength(1);
+    expect(headings[0].textContent).toBe(BOROUGH_SECTION_HEADING);
+  });
+
+  it("has zero axe-core violations with the statement's figures rendered", async () => {
+    const { container } = withProvider(
+      <IntegrityAudit
+        data={BASE_DATA}
+        coverage={T4_COVERAGE}
+        siPilot={OK_SI_PILOT}
+      />,
+    );
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
+  });
+
+  it("has zero axe-core violations with the figure-free variant rendered", async () => {
+    const { container } = withProvider(
+      <IntegrityAudit
+        data={BASE_DATA}
+        coverage={{ status: "unavailable" }}
+        siPilot={OK_SI_PILOT}
+      />,
+    );
+    const results = await axe.run(container);
+    expect(results.violations).toEqual([]);
+  });
+});
+
 describe("<IntegrityAudit> — accessibility", () => {
   it("has zero axe-core violations", async () => {
     const { container } = withProvider(
