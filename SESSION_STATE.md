@@ -1,119 +1,81 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** MVCC Workspace redesign implemented and committed, plus a plain-English copy pass on top (uncommitted) — Vision Zero Shadow Ledger, Phase 1 (spec approved 2026-08-12) is queued behind it, not started.
+**Current objective:** Danger-index map — height bug fixed and shipped (`bf930b1`). The two data
+defects underneath it are open and need Cedar; until they land, the map renders a ranking that is
+wrong.
 
 ## Active
 
+- **Danger-index height fix — DONE, committed `bf930b1`, pushed to `origin/main` (2026-08-14).**
+  New `src/components/DangerMap.module.css`; `DangerMap.tsx` rewired to it at three elements (the
+  frame, the `MapContainer` className, the loading skeleton). CSS Modules, not the Tailwind the
+  file was written in — repo convention.
+  - **Root cause: the map container was 0 px tall.** `DangerMap.tsx`, `danger-index/page.tsx`, and
+    `danger-index/error.tsx` are the *only* three files in `src/` written in Tailwind utility
+    classes — **and Tailwind is not installed** (no dep, no config, no PostCSS, no `@tailwind` in
+    `globals.css`). Proven, not inferred: the two stylesheets actually served contained **zero**
+    matches for `.w-full` / `.h-full` / `.h-[600px]`, and `leaflet.css` sets no height on
+    `.leaflet-container` — Leaflet requires the author to size it. Outer div → `height: auto`; its
+    only child was `ssr:false` dynamic (0 `leaflet-container` in the SSR HTML). Leaflet initialised
+    into a 0×0 viewport and painted neither tiles nor markers.
+  - **Verified end-to-end against a live dev server, not assumed:** the served chunk now carries
+    `.mapFrame { height: 600px }` and `.map { height: 100% }`; SSR HTML shows
+    `class="DangerMap-module__…__mapFrame"` with zero remaining `h-[600px]`; and
+    `react-leaflet@5`'s `MapContainer.js` was read to confirm it forwards `className` onto the
+    `.leaflet-container` div, which is what makes the 100% resolve. Gate: **tsc clean, eslint
+    clean, vitest 601/601 in 39 files, Node v22.23.2.**
+  - **Trap for whoever touches this next:** `.map`'s `height: 100%` is load-bearing on `.mapFrame`
+    keeping a *definite* height. If that becomes `auto`, Leaflet silently returns to 0×0 — same
+    failure, no error anywhere.
+  - **Left alone deliberately:** `page.tsx` and `error.tsx` are still inert Tailwind. Harmless for
+    rendering now, but unstyled; restyling them is a Magnolia-shaped job, not "fix the height".
 
-- **Plain-English copy pass over the whole workspace — done, gate-clean, UNCOMMITTED
-  (2026-08-13). NEXT STEP: commit it** — self-contained copy/UX change on top of `8651222`,
-  belongs in its own commit. Settled vocabulary and the regression that caused this are recorded
-  in Context Cache below; the rest:
-  - **Two real fixes found while rewriting, not just wording:** (1) every dashed/dotted series
-    shared one inline note, "affected by reporting decline" — **factually wrong for the arrests
-    line**, which is dashed because it's a different dataset. `SeriesDef` gained an optional
-    per-series `dashNote`; FR-3's never-color-alone rule is still met, now accurately. (2) Raw
-    dataset IDs were shown as the "Source" value; now plain name first, ID retained.
-  - **Honesty guardrails re-checked line by line** — plain language is exactly where these get
-    softened by accident. Correlation-only framing on arrests, the explicit no-causal-claim
-    sentence, the "we can't verify SI borough labelling across the switch" limitation, and the
-    one causal claim the product *is* allowed to make (policy change → reported-count drop)
-    all survive intact.
-  - **13 tests updated**, all my own assertions against old copy strings — no behavioral
-    regressions. Two needed re-scoping rather than re-wording: plainer fallback text now
-    repeats on a page (banner + table share a "couldn't load" message), so `getByText` went
-    ambiguous, and the blocked-borough percentages are interpolated mid-sentence and are now
-    asserted against `textContent`.
+- **🔴 Danger-index: two data defects OPEN — needs Cedar, not a quick fix.** Both change what a
+  displayed number *means*, so the CLAUDE.md Rule-2 carve-out applies however small the diff.
+  Fixing the height made a **visibly incorrect ranking visible**, so these are now urgent.
+  - (a) **No analysis-window filter.** `dangerIndexFetcher.ts` filters on coordinates only, so it
+    aggregates the dataset's full **2012-07-01 → 2026-06-11** span (verified live) against a window
+    pinned at 2018–2025. Top location reads **887 unwindowed vs 476 windowed** — every figure on
+    that page is ~1.9× its in-contract value and non-comparable with every other number in the
+    product. A `$where` clause is a contract (Rule 4).
+  - (b) **`$group=latitude, longitude` on raw floats splits single intersections.**
+    `40.696033,-73.98453` (712) and `40.6960346,-73.9845292` (587) are the same point ~18 cm apart.
+    Summed = **1,299**, which outranks the 887 currently ranked #1 — so the "Rank" column and the
+    "pinpoint high-risk locations" copy are both wrong as rendered. Persists inside the window too.
+  - **Why the Cypress audit passed anyway:** `__tests__/dangerIndexFetcher.test.ts` mocks
+    `global.fetch` and asserts only `$limit`/`$order` plus the parse. **Nothing renders `DangerMap`
+    or the page**, so no test covers the height, the window, or the grouping.
+  - The three danger-index commits (`64527f2`/`3292011`/`2a144a8`, 2026-08-13) reached `main` with
+    **no ledger entry at all** — this is the first record of them.
 
-- **MVCC Workspace redesign — DONE, committed `8651222`, pushed to `origin/main`
-  (2026-08-13).** Full reasoning (why a route group + scoped tokens, why Context over parallel
-  routes, why `seriesConfig.ts` exists, the NFR-4 gap it closed, the dropped SI borough-coverage
-  claim, and the commit's hostname-derived git author) archived in `ARCHIVED_SESSIONS.md`,
-  "2026-08-13 — MVCC Workspace 3-column redesign".
+- **Plain-English copy pass — DONE and COMMITTED as `699d998` ("refactor: simplify terminology
+  across components"), 2026-08-13.** *This entry read "UNCOMMITTED, NEXT STEP: commit it" until
+  2026-08-14, when `git status` showed a clean tree and `dashNote` was found present in HEAD —
+  the ledger had simply never been updated after the commit landed. A second reminder that
+  `SESSION_STATE.md` is episodic and the repo is the source of truth.* Reasoning (the two real
+  bugs it caught, and the honesty-guardrail re-check) archived in `ARCHIVED_SESSIONS.md`,
+  "2026-08-14".
 
-- **Vision Zero Shadow Ledger, Phase 1 — Spec approved, ready for TDD drafting (2026-08-12).**
-  The next sprint focus is implementing the hyper-local safety ledger search by ZIP code and Community Board, fetching local aggregates from the Socrata endpoint, and rendering the repaired versus raw trends. Queued behind the workspace redesign above — not started this session.
+- **Vision Zero Shadow Ledger, Phase 1 — spec approved, ready for TDD drafting (2026-08-12).**
+  Hyper-local safety ledger search by ZIP code and Community Board, local aggregates from Socrata,
+  repaired-vs-raw trends. Not started.
+
+- **🔴 ROTATE TWO CREDENTIALS — `~/.bashrc` exports a GitHub PAT and a Context7 API key in
+  plaintext** (found 2026-08-08; both were read into a session transcript, so rotation is the only
+  fix — editing `.bashrc` does not un-leak them). Revoke the PAT at github.com/settings/tokens,
+  rotate the Context7 key, then move both to a `chmod 600` file sourced conditionally. Neither is
+  in the repo; nothing consumes them now. Violates the repo's own Rule 3.
 
 - **Deployed and live-verified:** <https://pursuit-mvcc-data-integrity.vercel.app/> — root dir
-  `./`, Vercel defaults, `SOCRATA_APP_TOKEN` set server-side only. NFR-2 confirmed clean (no token
+  `./`, Vercel defaults, `SOCRATA_APP_TOKEN` server-side only. NFR-2 confirmed clean (no token
   identifier in any client chunk) as of the 2026-08-11 redeploy.
-- **NFR-1 borough-caching gap CLOSED** (`f2611bf`, live-verified 2026-08-11): all six variants
-  prerender via `generateStaticParams`. **Path has since moved** to
-  `src/app/(workspace)/[[...borough]]/page.tsx` by the redesign — `generateStaticParams` /
-  `dynamicParams` / `revalidate` all carried over unchanged. Reasoning (incl. why
-  `cacheComponents` was declined) in `ARCHIVED_SPECS.md` / `ARCHIVED_SESSIONS.md`, "2026-08-11".
-- **The "record First Load JS" deploy obligation is retired, not deferred** — Next 16 removed
-  the metric from `next build` output. Bundle tracking later means Lighthouse CI or Vercel
-  Analytics, a new SPEC, not a retry.
-- `ARCHITECTURE.md` is **deferred by decision, not pending**; rationale in `CLAUDE.md` § Project
-  Layout.
 
-- **FR-6/FR-7 `/grill-me` round complete (2026-08-07) — four decisions settled, all on the
-  recommended option** (URL search param wiring; all five series in scope; one page-level FR-7
-  banner; FR-7 figures computed live). **Moved verbatim to `SPEC.md` § Standing decisions on
-  2026-08-08** — they bind Phases 2–6, so they belong where Cedar reads them, not in episodic
-  memory. That is also where the load-bearing open assumption now lives (the banner must name
-  which series its caveat covers, or NFR-5 is violated).
-- **FR-6/FR-7 planned as six phases; Phase 1 approved and in flight (2026-08-07).** Cedar cut the
-  work along contract boundaries, not file counts: 1 vocabulary + transport → 2 crash-metric
-  propagation → 3 arrests propagation → 4 **FR-6 closed** (UI switch-on) → 5 FR-7 coverage data →
-  6 **FR-7 closed** (banner). *The 3 | 4 cut is the forced one* — Phases 1–3 are each provably
-  invisible (every caller still defaults to no borough), and shipping the picker before arrests
-  propagates would render four panels labelled "Brooklyn" beside a fifth silently still citywide,
-  the mislabelled-figure failure this product exists to criticise. **Cedar declined the
-  `socrata.ts` Strategy/registry escalation it had itself pre-named for FR-6** — with the concrete
-  case in hand, "metric × borough" turns out to be one more AND-ed conjunct on the axis already
-  parameterised, not a second dimension; the real new force is a *trust boundary* (a URL param
-  reaching a SoQL string), which a closed union type solves and a pattern does not. New Tipping
-  Point recorded in its place: a third orthogonal filter axis, or a caller needing to vary
-  `$group`/`$order`/the dataset ID. **HITL: three calls approved, one overridden** — the human
-  ruled that `arrest_boro` coverage **will** be measured, so FR-7's banner speaks to all five
-  filtered series. That trips `arrests.ts`'s Tipping Point (a second `8h9b-rp9u` caller) and
-  widens FR-7 past its literal PRD text; Cedar is revising Phases 5–6 only. Phases 1–4 unaffected.
-- **Live query findings, 2026-08-07/08 — all verified, none recalled.** Full probe output in
-  `ARCHIVED_SPECS.md` (Phase 1 entry). The four still load-bearing: (a) **unpopulated rows arrive
-  as an absent `borough` key** — not `null`, not `""` — trap 1 in a new place, and why FR-7's
-  numerator enumerates the five values via `IN (...)` rather than `IS NOT NULL`; (b) **`borough IN
-  (...)` works**, so the pre-authorised five-way `OR` fallback is dead; (c) **window unpopulated
-  share is 32.9% row-weighted**, *not* the ~31.8% mean-of-yearly-rates — they differ ~1.1pp, so
-  the choice is pinned in code and test, and FR-7's "~30%" prose is rounding, **not drift**
-  (`/verify-figures` must not flag it); (d) Cypress re-confirmed **`B`=Bronx by live row count**
-  at the Phase 1 audit (Q1 2019 `arrest_boro`: `K` 15,809 > `B` 13,410), not by recollection.
-- **FR-6/FR-7 Phase 1 of 6 CLOSED (2026-08-08)** — `boroughs.ts` (new) + `socrata.ts` (+23/−9),
-  Cypress **PASS**; 478/478, tsc/eslint/guard clean on Node 22.23.2. Page provably unchanged:
-  **byte-identity computed, not asserted** (HEAD vs tree extracted to two scratch trees, all four
-  FR-8 contracts diffed). Three open items in `SPEC.md`; load-bearing: `parseBoroughParam([])`.
-- **FR-5 CLOSED (2026-08-07)** — arrests panel; `9d1be76`/`123aada`/`672b16a`. Narrative in
-  `ARCHIVED_SESSIONS.md`, SPEC in `ARCHIVED_SPECS.md`; its two live facts are carried forward above.
-- **Deploy `[SPEC]` obligation — the open question is answered (2026-08-07): no Vercel project is
-  connected yet.** Rayan confirmed directly ("not yet"), settling what three sessions of Cedar
-  planning rounds couldn't resolve by reading the repo alone. This SPEC stays blocked, but on a
-  known, named precondition now rather than an unresolved mystery — **create/connect the Vercel
-  project first**, then this becomes buildable (verify Vercel's Node runtime matches
-  `engines.node`, record `/`'s First Load JS after both charts + FR-13's markers). Not something
-  Cedar can pick next on its own; needs the human to do the Vercel-side setup first.
-- **🔴 ROTATE TWO CREDENTIALS — `~/.bashrc` exports a GitHub PAT and a Context7 API key in
-  plaintext** (found 2026-08-08 while tracing the Node mismatch; both were read into a session
-  transcript, so rotation is the only fix — editing `.bashrc` does not un-leak them). Revoke the
-  PAT at github.com/settings/tokens, rotate the Context7 key, then move both to a `chmod 600` file
-  sourced conditionally. Neither is in the repo; nothing consumes them now (both fed MCP servers
-  the `/doctor` pass disabled). Violates the repo's own Rule 3.
-- **Machine changes outside the repo, needing re-doing on any other machine:** `nvm install 22`
-  (2026-08-07); `permissions.defaultMode: "auto"` in `~/.claude/settings.json` (2026-08-08 —
-  user-scope, applies to *every* project, unlike the `/doctor` skill/MCP disables which are local
-  to this repo); **removed three stale `~/.local/bin/{node,npm,npx}` symlinks → v24.13.0**
-  (2026-08-08 — restore with `ln -s /home/rayan/.nvm/versions/node/v24.13.0/bin/<x> ~/.local/bin/<x>`).
-- **The Node-platform mismatch is solved, and the cause was not what it looked like.** `nvm alias
-  default` was *already* `22`; the block was those three 2026-07-22 symlinks, which `.bashrc`
-  prepends to PATH **after** nvm loads, so they shadowed every nvm selection. That is why
-  `nvm use 22` worked (it prepends ahead of them) while a passive `bash -ic` silently returned v24
-  — the failure mode that made `stop-quality-gate.sh` unverifiable for three sessions. It now
-  self-verifies: "Quality gate clean … (Node v22.23.2)", exit 0. **Do not re-add those symlinks.**
+- **Machine changes outside the repo, needing re-doing elsewhere:** `nvm install 22` (2026-08-07);
+  `permissions.defaultMode: "auto"` in `~/.claude/settings.json` (2026-08-08, user-scope — applies
+  to *every* project); **removed three stale `~/.local/bin/{node,npm,npx}` symlinks → v24.13.0**
+  (2026-08-08 — they shadowed nvm; **do not re-add**).
+
 - `ARCHITECTURE.md` is **deferred by decision, not pending** — see `CLAUDE.md` § Project Layout.
-- **`/doctor` config pass DONE (2026-08-08)** — reasoning in `ARCHIVED_SESSIONS.md`. Load-bearing:
-  **handoff schemas now live only in the `handoff-schemas` skill** (load before any dispatch — no
-  agent file defines those fields); **`github`'s MCP is off on a fault, not disuse** (run `/mcp`).
-
 
 ## Context Cache
 
@@ -121,89 +83,64 @@
   (arrests, severable P1). Full contract in the `mvcc-data` skill — read that, not the PRD, for
   routine schema and figure questions.
 - Every pinned figure in PRD Appendix A was **re-verified live on 2026-08-04** via
-  `.claude/scripts/verify-figures.py`: all 32 values across four series matched exactly. The
-  preliminary-feed revision risk has not materialized as of that date.
-- **Platform target: Node v22.23.2 / npm 10.9.8, via `nvm` (installed through Homebrew, not
-  `~/.nvm`'s default path).** Prefix every gate/build command with:
-  `export NVM_DIR="$HOME/.nvm"; . /usr/local/opt/nvm/nvm.sh; nvm use >/dev/null`
-  A system Node (currently v26.7.0) exists on this machine and is _not_ the target — it passes
-  `engines.node` and jsdom's range, but Vercel's runtime is 22.x and the pin is for dev/prod parity.
-  Two prior toolchain regressions (fnm vanishing 2026-08-07, nvm vanishing 2026-08-11) are recorded
-  with full reasoning in `ARCHIVED_SESSIONS.md`, "2026-08-11" — re-read that before assuming a third
-  is a new problem shape.
-- **`node_modules/` wiping is a recurring pattern (2 occurrences so far), not a one-off.** Recovery:
+  `.claude/scripts/verify-figures.py`: all 32 values across four series matched exactly.
+- **Platform: Node v22.23.2 / npm 10.9.8 via `nvm` at `~/.nvm`. Verify `node -v` at point of use —
+  do not trust a recorded recipe.** This project has now had **three** toolchain regressions of
+  the same shape (fnm vanished 2026-08-07, nvm vanished 2026-08-11, the Homebrew path
+  `/usr/local/opt/nvm/nvm.sh` vanished 2026-08-14 — that last one is why a backgrounded `next dev`
+  died with exit 127 and why `stop-quality-gate.sh` now reports `not found`). **What works:**
+  `bash -ic 'cd <repo> && npm run typecheck && npm run lint'` (interactive shell loads nvm from
+  `.bashrc`; prints two harmless `no job control` / `terminal process group` lines on stderr —
+  filter them). A non-interactive `bash -c` inherits no Node at all. For one-offs,
+  `export PATH="$HOME/.nvm/versions/node/v22.23.2/bin:$PATH"`. `stop-quality-gate.sh` sources no
+  nvm **by design** and refuses to certify an unconfirmable platform — that strictness is the
+  feature; don't "fix" the hook.
+- **Current verified baseline (2026-08-14, Node v22.23.2): vitest 601/601 in 39 files,
+  `tsc --noEmit` clean, `eslint .` clean.** (Was 599/599 in 38 on 2026-08-13; the delta is the
+  pre-existing `dangerIndexFetcher.test.ts`.)
+- **`node_modules/` wiping is a recurring pattern (2 occurrences), not a one-off.** Recovery:
   `nvm use` → `npm ci` → `npx next typegen` → gates. Typegen is non-optional (`layout.tsx` uses
   Next 16's generated `LayoutProps<"/">`; a wiped `.next/` fails `tsc` with a misleading
-  `TS2304`). Verify `.git/hooks/commit-msg` is still byte-identical to `.githooks/commit-msg` after
-  any such recovery — that's what distinguishes "wiped" from "fresh clone" (the latter needs the
-  guard reinstalled). `node_modules/next/dist/docs/` (the mandated Next reference) only exists post-
-  `npm ci`; **context7 is not a fallback here — its API key is invalid in this environment.**
-- **Current verified baseline (2026-08-13, node v22.23.2): vitest 599/599 in 38 files,
-  `tsc --noEmit` clean, `eslint .` clean (0 errors, 0 warnings).** The two long-standing
-  warnings (`percentChange.ts:15` unused type param `K`; a `container`-unused warning in
-  `page.test.tsx`) both cleared during the workspace redesign.
-- **Standing rule — `@types/node`'s major tracks `engines.node`'s major.** Derived, not chosen;
-  moves in the same edit as the floor, no Rule 9 halt required.
-- **Standing acceptance clause (Amendment 3(b)), binds every future SPEC:** acceptance-by-command
-  must record `node -v` beside the results, and it must satisfy `engines.node`. A gate that ran on
-  an unverified platform produced an unverified result; unverified is not PASS. NFR-4 pointed at
-  the toolchain.
-- **`eslint@^9` is required, not merely unbumped.** The discriminator is _not_ `eslint-config-next`
-  (permissive, `>=9.0.0`) — it is **`eslint-plugin-jsx-a11y@6.10.2`, whose peer range excludes
-  eslint 10**, the plugin NFR-3 depends on. Check that package first before evaluating eslint 10.
-- **Styling is CSS Modules**, not Tailwind — chosen on reversibility, not taste. Tailwind is two dev
-  deps and a PostCSS config to add later; removing it means unwinding class attributes across every
-  component Magnolia will have written by then.
+  `TS2304`). Verify `.git/hooks/commit-msg` is still byte-identical to `.githooks/commit-msg`
+  afterwards — that's what distinguishes "wiped" from "fresh clone" (the latter needs the guard
+  reinstalled). `node_modules/next/dist/docs/` only exists post-`npm ci`; **context7 is not a
+  fallback — its API key is invalid in this environment.**
+- **Live Socrata findings, verified 2026-08-07/08, still load-bearing.** Full probe output in
+  `ARCHIVED_SPECS.md` (Phase 1 entry). (a) **Unpopulated rows arrive as an absent `borough` key** —
+  not `null`, not `""` — trap 1 in a new place, and why FR-7's numerator enumerates the five values
+  via `IN (...)` rather than `IS NOT NULL`. (b) **`borough IN (...)` works**, so the pre-authorised
+  five-way `OR` fallback is dead. (c) **Window unpopulated share is 32.9% row-weighted**, *not* the
+  ~31.8% mean-of-yearly-rates — they differ ~1.1pp, so the choice is pinned in code and test, and
+  FR-7's "~30%" prose is rounding, **not drift** (`/verify-figures` must not flag it).
+  (d) **`B`=Bronx re-confirmed by live row count** (Q1 2019 `arrest_boro`: `K` 15,809 > `B` 13,410).
+- **Handoff schemas live only in the `handoff-schemas` skill** — load before any dispatch; no agent
+  file defines those fields. **`github`'s MCP is off on a fault, not disuse** (run `/mcp`).
+- **Styling is CSS Modules**, not Tailwind — chosen on reversibility, not taste. Tailwind is two
+  dev deps and a PostCSS config to add later; removing it means unwinding class attributes across
+  every component. **The danger-index files violated this and rendered nothing** (see Active) —
+  check which styling system a file is in before extending it.
 - **Live trap in the workspace shell — `useInspectorSync` will infinite-loop if you pass it an
-  unmemoized object.** Any component calling `useInspectorSync`/`useWorkspaceInspector` becomes
-  a Context consumer via `useContext` *regardless of which field it destructures*, so pushing a
-  fresh object literal every render re-triggers the very render that pushed it. This hung a
-  `vitest run` (~30s+, needed `pkill`) before it was diagnosed. Wrap the panel object in
-  `useMemo` with primitive/stable deps — never `JSON.stringify(...)` in the dep array, which
-  ESLint `react-hooks` rejects as a non-simple expression anyway. All three current call sites
-  (`UnifiedTimeline`, `IntegrityAudit`, `SeriesRegistry`) do this correctly; copy the pattern
-  for a fourth rather than rediscovering the bug.
+  unmemoized object.** Any component calling `useInspectorSync`/`useWorkspaceInspector` becomes a
+  Context consumer via `useContext` *regardless of which field it destructures*, so pushing a fresh
+  object literal every render re-triggers the very render that pushed it. This hung a `vitest run`
+  (~30s+, needed `pkill`). Wrap the panel object in `useMemo` with primitive/stable deps — never
+  `JSON.stringify(...)` in the dep array. All three call sites (`UnifiedTimeline`,
+  `IntegrityAudit`, `SeriesRegistry`) do this correctly; copy the pattern.
 - **Terminology is settled — don't re-import a mockup's vocabulary over it.** "All reported
-  crashes" / "Injury & fatal crashes" / "Minor crashes, no injuries" / "Change since 2018", and
-  the three page names "The chart" / "Data quality" / "Where numbers come from". This was
-  simplified once in `d3f60f2` and regressed once by the redesign importing the Design Composer
-  mockup's jargon wholesale; the 2026-08-13 copy pass restored it. Check existing terminology
-  before adopting a source document's.
-- **CORRECTED 2026-08-13 — live visual QA IS possible here; the old "no working browser" note
-  was Playwright-specific.** `mcp__playwright__browser_*` still fails (no Chromium binary, and
-  the installer needs a `sudo` password that isn't available — don't retry it). But
-  **`mcp__Claude_Browser__*` works fine**: `preview_start` drives `next dev` via
-  `.claude/launch.json`, and navigate/screenshot/`get_page_text`/`javascript_tool` all work
-  against real Socrata data. Used for the whole redesign's visual QA. Two practical notes: the
-  screenshot tool intermittently returns a blank/misaligned frame right after a scroll — verify
-  with `get_page_text` or a `getBoundingClientRect()` call via `javascript_tool` before
-  believing a layout bug; and restart the dev server after large refactors, since stale HMR
-  state reports compile errors for code that no longer exists.
+  crashes" / "Injury & fatal crashes" / "Minor crashes, no injuries" / "Change since 2018", and the
+  three page names "The chart" / "Data quality" / "Where numbers come from". Simplified once in
+  `d3f60f2`, regressed once by the redesign importing the Design Composer mockup's jargon
+  wholesale, restored by the 2026-08-13 copy pass. Check existing terminology first.
+- **Live visual QA: `mcp__playwright__browser_*` does not work here** (no Chromium; installer needs
+  an unavailable `sudo` password — don't retry). `mcp__Claude_Browser__*` worked on 2026-08-13 but
+  **was not available in the 2026-08-14 session** — don't assume it's there. Fallback that does
+  work: run `next dev` on a spare port and `curl` the page, then grep the SSR HTML and fetch the
+  emitted CSS chunks directly. That is how the danger-index height bug was proved.
 
 ## History
 
-_(Empty — closed work is archived directly to `ARCHIVED_SESSIONS.md` as it closes, rather than
-accumulating here first.)_
+_(Empty — closed work is archived directly to `ARCHIVED_SESSIONS.md` as it closes.)_
 
-Eighteen entries are now in `ARCHIVED_SESSIONS.md`, newest first: **fallback banner wiring**
-(2026-08-12, why the banner is a plain `page.tsx` sibling not threaded through `MetricSection`, why
-the second cross-cutting mock collision resolved as a label fix rather than a judgment call unlike
-the first); **fallback fixture mechanism** (2026-08-11, the citywide/deaths-only scope decision,
-why Redwood's Node-ESM module-resolution shim was accepted); **Staten Island pilot panel, data
-half** (2026-08-11, why the escalation went to Cypress rather than a direct fix, why
-`date_trunc_ym` over `date_extract_m`); **deploy verification, platform
-recovery, and the borough-caching fix** (2026-08-11, why `cacheComponents` was declined in favor of
-enumerated `generateStaticParams`, why a Redwood-flagged test bug was fixed directly rather than
-round-tripped through Cypress, why "record First Load JS" turned out unfulfillable rather than
-merely unmet, and the second toolchain regression this project has hit); **FR-6/FR-7 planned as six
-phases, Phases 1–2 closed** (2026-08-07); **FR-5 closed — the first `/grill-me` round this project
-ran** (2026-08-07); **FR-13 closed — policy-date markers** (2026-08-07); **FR-9 closed — the last
-P0, the caveats section** (2026-08-06); **`stop-quality-gate.sh`'s fake-green fix** (2026-08-06);
-**FR-4 closed — a derived, not fetched, percent-change line** (2026-08-06); **FR-12 closed — the
-"repaired" collisions series** (2026-08-06); **FR-3 closed — small-multiples chart** (2026-08-06);
-**`MetricSection` extraction** (2026-08-06); **FR-3's data half** (2026-08-06); **FR-2 /
-`socrata.ts` extraction** (2026-08-06); **the subgroup-sum fallback correction** (2026-08-06);
-**Task 2 of the walking skeleton** (2026-08-06); **Task 1 of the walking skeleton** (2026-08-06)
-plus the pre-Task-1 platform/scaffold work before it. Read that file directly for the full
-reasoning behind any of these — this pointer is deliberately terse now that fifteen entries live
-there, per the archive threshold.
+Nineteen entries in `ARCHIVED_SESSIONS.md`, newest **2026-08-14 — FR-6/FR-7 and the deploy thread
+archived; three ledger claims falsified**. Note the **2026-08-13 workspace redesign entry is filed
+at the end of that file, not the top** — position does not imply date there.

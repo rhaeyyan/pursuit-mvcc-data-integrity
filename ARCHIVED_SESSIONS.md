@@ -8,6 +8,103 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+> **Filing note (2026-08-14).** This file is *mostly* newest-first, but
+> "2026-08-13 — MVCC Workspace 3-column redesign" was appended at the **end** (~line 1264) rather
+> than the top. Left in place rather than reordering 1,300 lines for cosmetics — but don't assume
+> position implies date when searching.
+
+## 2026-08-14 — FR-6/FR-7 and the deploy thread archived; three ledger claims falsified
+
+Archived because `SESSION_STATE.md` hit 264 lines against a 150-line threshold. `## History` was
+empty — this project archives closed work directly — so the overflow was closed `## Active` items.
+**Three of them turned out to be false, not merely finished**, which is the more valuable half of
+this entry.
+
+**Falsified claims (the ledger contradicted the repo; per CLAUDE.md these are surfaced, not
+silently dropped):**
+
+- _"The Node-platform mismatch is solved … it now self-verifies: 'Quality gate clean … (Node
+  v22.23.2)', exit 0."_ **False as of 2026-08-14** — `stop-quality-gate.sh` reports
+  `actually running: not found` and blocks. The 2026-08-08 diagnosis was correct *for its day*
+  (three stale `~/.local/bin` symlinks that `.bashrc` prepended **after** nvm loaded, shadowing
+  every nvm selection). What broke it since is different: the **Homebrew nvm path
+  `/usr/local/opt/nvm/nvm.sh` no longer exists**. The lesson worth keeping is the count — this is
+  the **third** toolchain regression (fnm vanished 2026-08-07, nvm vanished 2026-08-11, the
+  Homebrew nvm path vanished 2026-08-14). Treat the toolchain as unstable infrastructure:
+  **verify `node -v` at point of use; never trust a recorded invocation recipe.** The hook itself
+  is not at fault and was deliberately left unmodified — it sources no nvm by design, just calls
+  `node -v` and refuses to certify a platform it cannot confirm. That strictness is the feature.
+- _"Deploy `[SPEC]` … no Vercel project is connected yet, this SPEC stays blocked."_ **Superseded**
+  — the app has been live at `pursuit-mvcc-data-integrity.vercel.app` since 2026-08-11, so the
+  blocker cleared without the entry being retired. Reasoning kept: three consecutive Cedar planning
+  rounds could not resolve this by reading the repo, because **it was never a repo-answerable
+  question** — some preconditions live outside the tree and only the human can settle them. Cedar
+  should ask rather than re-plan when a blocker has that shape.
+- _"Record `/`'s First Load JS."_ Retired, not deferred — Next 16 removed the metric from
+  `next build` output. Bundle tracking now means Lighthouse CI or Vercel Analytics, i.e. a new
+  SPEC, not a retry of this one.
+
+**Plain-English copy pass (`699d998`, 2026-08-13) — why a wording pass is worth an archive entry:**
+
+- _It caught two factual bugs, not just wording._ (1) Every dashed/dotted series shared one inline
+  note, "affected by reporting decline" — **factually wrong for the arrests line**, which is dashed
+  because it is a *different dataset*, not because reporting declined. `SeriesDef` gained an
+  optional per-series `dashNote`, so FR-3's never-colour-alone rule is still met and is now also
+  accurate. The general lesson: a shared caveat string silently becomes a false claim the moment a
+  second thing adopts the same visual encoding for a different reason. (2) Raw dataset IDs were
+  being shown as the "Source" value; now plain name first, ID retained.
+- _Why the honesty guardrails were re-checked line by line:_ **plain language is exactly where
+  these get softened by accident.** Correlation-only framing on arrests, the explicit
+  no-causal-claim sentence, the "we can't verify SI borough labelling across the switch"
+  limitation, and the one causal claim the product *is* allowed to make (policy change →
+  reported-count drop) all survived intact — but only because they were audited deliberately
+  rather than trusted to survive a rewrite.
+- 13 tests updated, all assertions against old copy strings; no behavioral regressions. Two needed
+  re-scoping rather than re-wording: plainer fallback text now repeats on a page (banner and table
+  share a "couldn't load" message) so `getByText` went ambiguous, and the blocked-borough
+  percentages are interpolated mid-sentence and are now asserted against `textContent`.
+
+**FR-6/FR-7, closed work — why the design went the way it did:**
+
+- _Why six phases cut where they were:_ Cedar cut along **contract** boundaries, not file counts:
+  1 vocabulary+transport → 2 crash-metric propagation → 3 arrests propagation → 4 FR-6 closed (UI
+  switch-on) → 5 FR-7 coverage data → 6 FR-7 closed (banner). **The 3 | 4 cut is the forced one.**
+  Phases 1–3 are each provably invisible (every caller still defaults to no borough); shipping the
+  picker before arrests propagated would have rendered four panels labelled "Brooklyn" beside a
+  fifth silently still citywide — the mislabelled-figure failure this product exists to criticise.
+- _Why Cedar declined the `socrata.ts` Strategy/registry escalation it had itself pre-named:_ with
+  the concrete case in hand, "metric × borough" is **one more AND-ed conjunct on the axis already
+  parameterised**, not a second dimension. The genuinely new force was a **trust boundary** (a URL
+  param reaching a SoQL string), which a closed union type solves and a pattern does not.
+  Replacement Tipping Point recorded: a third orthogonal filter axis, or a caller needing to vary
+  `$group`/`$order`/the dataset ID.
+- _The HITL override:_ three calls approved, one overridden — the human ruled `arrest_boro`
+  coverage **will** be measured, so FR-7's banner speaks to all five filtered series. That trips
+  `arrests.ts`'s Tipping Point (a second `8h9b-rp9u` caller) and widens FR-7 past its literal PRD
+  text. Phases 1–4 unaffected.
+- _Why the `/grill-me` decisions left this file:_ the four settled decisions (URL search param
+  wiring; all five series in scope; one page-level FR-7 banner; FR-7 figures computed live) were
+  moved verbatim to `SPEC.md` § Standing decisions on 2026-08-08 — they **bind Phases 2–6**, so
+  they belong where Cedar reads them, not in episodic memory. The load-bearing open assumption
+  lives there too (the banner must name which series its caveat covers, or NFR-5 is violated).
+- _Phase 1 closed (2026-08-08):_ `boroughs.ts` (new) + `socrata.ts` (+23/−9), Cypress PASS,
+  478/478. The page was proved unchanged by **computing byte-identity, not asserting it** — HEAD
+  and tree extracted to two scratch trees and all four FR-8 contracts diffed. Worth copying as a
+  technique whenever a refactor claims "no visible change".
+- _FR-5 closed (2026-08-07):_ arrests panel; `9d1be76`/`123aada`/`672b16a`. Narrative already in
+  this file, SPEC in `ARCHIVED_SPECS.md`.
+- _NFR-1 borough-caching gap closed_ (`f2611bf`, live-verified 2026-08-11): all six variants
+  prerender via `generateStaticParams`; the redesign moved the path to
+  `src/app/(workspace)/[[...borough]]/page.tsx` with `generateStaticParams`/`dynamicParams`/
+  `revalidate` carried over unchanged. Why `cacheComponents` was declined is in the 2026-08-11
+  entry.
+- _`/doctor` config pass (2026-08-08):_ full reasoning in the 2026-08-08 entry. The two
+  load-bearing residues are promoted to Context Cache rather than archived, since they still bind
+  every session: handoff schemas exist **only** in the `handoff-schemas` skill, and `github`'s MCP
+  is off on a **fault**, not disuse.
+
+---
+
 
 ## 2026-08-12 — Staten Island pilot panel, chart/UI half
 
