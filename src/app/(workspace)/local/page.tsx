@@ -1,10 +1,10 @@
-import LocalSearch from "../../components/LocalSearch";
-import { MetricSection } from "../../components/MetricSection";
-import { YearlyLineChart } from "../../components/YearlyLineChart";
+import LocalSearch from "@/components/LocalSearch";
+import { MetricSection } from "@/components/MetricSection";
+import { YearlyLineChart } from "@/components/YearlyLineChart";
 import {
   fetchLocalRawSeries,
   fetchLocalRepairedSeries,
-} from "../../lib/localLedger";
+} from "@/lib/localLedger";
 import styles from "./page.module.css";
 
 // Dynamic route due to searchParams

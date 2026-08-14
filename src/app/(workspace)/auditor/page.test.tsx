@@ -5,11 +5,11 @@ import { render, screen } from "@testing-library/react";
 import { expect, test, describe, vi, beforeEach } from "vitest";
 import axe from "axe-core";
 
-import SIPAuditor from "../../components/SIPAuditor";
+import SIPAuditor from "@/components/SIPAuditor";
 import AuditorPage from "./page";
-import * as auditorLib from "../../lib/auditor";
+import * as auditorLib from "@/lib/auditor";
 
-vi.mock("../../lib/auditor", () => ({
+vi.mock("@/lib/auditor", () => ({
   fetchSIPAwardStats: vi.fn(),
 }));
 

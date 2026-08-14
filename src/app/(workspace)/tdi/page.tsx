@@ -1,5 +1,5 @@
-import TDILeaderboard from "../../components/TDILeaderboard";
-import { fetchTDILeaderboard } from "../../lib/tdi";
+import TDILeaderboard from "@/components/TDILeaderboard";
+import { fetchTDILeaderboard } from "@/lib/tdi";
 import styles from "./page.module.css";
 
 // Prevent static generation since this hits the Socrata API dynamically

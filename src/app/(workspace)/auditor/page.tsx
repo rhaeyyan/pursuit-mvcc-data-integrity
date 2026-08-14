@@ -1,6 +1,6 @@
 import React from "react";
-import SIPAuditor from "../../components/SIPAuditor";
-import { fetchSIPAwardStats, SIPStats } from "../../lib/auditor";
+import SIPAuditor from "@/components/SIPAuditor";
+import { fetchSIPAwardStats, SIPStats } from "@/lib/auditor";
 import styles from "./page.module.css";
 
 export default async function AuditorPage({
