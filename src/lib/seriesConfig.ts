@@ -47,6 +47,13 @@ export type SeriesDef = {
   badgeText: string;
   badgeTone: InspectorBadgeTone;
   note: string;
+  // Why this line is dashed/dotted rather than solid — shown inline next to
+  // the label, so the distinction never rests on line style or color alone
+  // (FR-3, WCAG). Per-series rather than one shared string: the arrests line
+  // is dashed because it comes from a different dataset, NOT because it's
+  // affected by the crash-reporting change, and saying otherwise would be
+  // wrong.
+  dashNote?: string;
   dataset: string;
   aggregate: string;
 };
@@ -59,10 +66,10 @@ export const SERIES_CONFIG: SeriesDef[] = [
     ink: "var(--color-text)",
     dash: "solid",
     strokeWidth: 2.5,
-    badgeText: "Mandatory record",
+    badgeText: "Always recorded",
     badgeTone: "neutral",
-    note: "Medical examiner's count. The least discretionary figure on the page and the one the reporting change does not touch.",
-    dataset: "h9gi-nx95",
+    note: "Counted by the medical examiner. This is the hardest number to leave out of the record, and the 2020 reporting change doesn't affect it.",
+    dataset: "Motor Vehicle Collisions – Crashes (h9gi-nx95)",
     aggregate: "sum(number_of_persons_killed)",
   },
   {
@@ -72,63 +79,66 @@ export const SERIES_CONFIG: SeriesDef[] = [
     ink: "var(--color-neutral-700)",
     dash: "solid",
     strokeWidth: 1.5,
-    badgeText: "Hospital record",
+    badgeText: "Backed by hospital records",
     badgeTone: "neutral",
-    note: "Typically involves an ambulance or hospital record, so an officer's filing decision rarely removes it from the count.",
-    dataset: "h9gi-nx95",
+    note: "Usually involves an ambulance or a hospital, so these rarely go unrecorded — even when an officer doesn't file a report.",
+    dataset: "Motor Vehicle Collisions – Crashes (h9gi-nx95)",
     aggregate: "sum(number_of_persons_injured)",
   },
   {
     key: "collisions",
-    label: "Collisions, raw",
-    short: "Raw",
+    label: "All reported crashes",
+    short: "All crashes",
     ink: "var(--color-accent-2)",
     dash: "dashed",
     strokeWidth: 1.5,
-    badgeText: "Discretionary · policy break",
+    badgeText: "Undercounted after 2020",
     badgeTone: "accent2",
-    note: "Affected by a documented NYPD dispatch policy change (Staten Island 2019-03-18, citywide 2020-04-06). Not evidence of a comparable drop in real collisions.",
-    dataset: "h9gi-nx95",
+    dashNote: "undercounted after 2020",
+    note: "NYPD stopped sending officers to minor crashes — Staten Island in March 2019, citywide in April 2020. Most of the drop after that is a change in what gets written down, not a drop in crashes.",
+    dataset: "Motor Vehicle Collisions – Crashes (h9gi-nx95)",
     aggregate: "count(collision_id)",
   },
   {
     key: "repaired",
-    label: "Collisions, casualty-filtered",
-    short: "Repaired",
+    label: "Injury & fatal crashes",
+    short: "Injury/fatal",
     ink: "var(--color-accent)",
     dash: "solid",
     strokeWidth: 2.5,
-    badgeText: "Repaired · defensible",
+    badgeText: "The number to trust",
     badgeTone: "accent",
-    note: "The same aggregate with one added where clause: only collisions with a recorded injury or death, which still required an officer response after 2020. The figure to quote.",
-    dataset: "h9gi-nx95",
-    aggregate: "count(collision_id) + casualty filter",
+    note: "The same count, limited to crashes where someone was hurt or killed. Police still respond to these, so the count stayed consistent across the 2020 change. This is the number to quote.",
+    dataset: "Motor Vehicle Collisions – Crashes (h9gi-nx95)",
+    aggregate: "count(collision_id), injury or death only",
   },
   {
     key: "pdo",
-    label: "Property-damage-only, derived",
-    short: "PDO",
+    label: "Minor crashes, no injuries",
+    short: "Minor",
     ink: "var(--color-accent-2-400)",
     dash: "dotted",
     strokeWidth: 1.5,
-    badgeText: "Derived residual",
+    badgeText: "Worked out by subtraction",
     badgeTone: "outline",
-    note: "Raw minus casualty-filtered. Not a query of its own — the tier the dispatch policy stopped recording, and where the entire artifact lives.",
-    dataset: "derived",
-    aggregate: "collisions − repaired",
+    dashNote: "not measured directly; undercounted after 2020",
+    note: "All reported crashes minus the injury and fatal ones. We work this out by subtraction rather than asking for it directly. This is the group that largely stopped being recorded.",
+    dataset: "worked out, not queried",
+    aggregate: "all reported crashes − injury & fatal crashes",
   },
   {
     key: "arrests",
-    label: "Traffic-enforcement arrests",
+    label: "Traffic enforcement arrests",
     short: "Arrests",
     ink: "var(--color-accent-800)",
     dash: "dashed",
     strokeWidth: 1.5,
-    badgeText: "Co-moving only",
+    badgeText: "Shown for comparison only",
     badgeTone: "outline",
-    note: "Five offense categories, both spellings of the impaired-driving offense. Shown as co-moving data: no causal claim about enforcement and safety is supported here.",
-    dataset: "8h9b-rp9u",
-    aggregate: "count(*) over five ofns_desc values",
+    dashNote: "a different dataset, shown alongside",
+    note: "Five traffic offence categories, including both spellings of the impaired-driving charge. Shown next to the crash numbers so you can see how they move together — this page does not claim enforcement caused any change in deaths or injuries.",
+    dataset: "NYPD Arrests, historic (8h9b-rp9u)",
+    aggregate: "count(*) across five offence categories",
   },
 ];
 
@@ -176,10 +186,10 @@ export function deltaLabel(
   targetYear: number,
   data: SeriesData,
 ): string {
-  if (baseYear === targetYear) return `base year (${baseYear})`;
+  if (baseYear === targetYear) return `starting year (${baseYear})`;
   const baseVal = rawValueForYear(key, baseYear, data);
   const targetVal = rawValueForYear(key, targetYear, data);
-  if (baseVal === null || targetVal === null) return "no verified base";
+  if (baseVal === null || targetVal === null) return "no data to compare";
   const change = computeChange(
     [
       { year: baseYear, value: baseVal },
@@ -187,17 +197,17 @@ export function deltaLabel(
     ],
     "value",
   );
-  if (!change) return "no verified base";
-  return `${formatPercentChange(change.percentChange)} vs ${baseYear}`;
+  if (!change) return "no data to compare";
+  return `${formatPercentChange(change.percentChange)} since ${baseYear}`;
 }
 
 export const fmt = (n: number | null) =>
   n === null ? "—" : n.toLocaleString();
 
-// The one-line headline claim ("the figure to defend"), shared verbatim by
-// the Timeline and Integrity audit inspector panels — computed from the
-// full citywide repaired/deaths rows arrays (rows[0]/rows[last], via
-// computeChange), never a copy of the mockup's fixed "-18.2%" wording.
+// The one-line takeaway, shared by the Timeline and Integrity audit
+// inspector panels — computed from the full citywide injury/fatal and deaths
+// rows arrays (rows[0]/rows[last], via computeChange), never a copy of the
+// mockup's fixed "-18.2%" wording.
 export function defensibleLine(data: SeriesData): string {
   const repairedChange =
     data.repaired.status === "ok" && data.repaired.rows
@@ -209,10 +219,10 @@ export function defensibleLine(data: SeriesData): string {
       : null;
 
   if (!repairedChange || !deathsChange) {
-    return "Casualty-filtered collisions and deaths are both live queries — see the table for the exact per-year values.";
+    return "Injury and fatal crashes and deaths are both loaded live — see the table below for the year-by-year numbers.";
   }
 
-  return `Casualty-filtered collisions moved ${formatPercentChange(repairedChange.percentChange)} from ${repairedChange.startYear} to ${repairedChange.endYear} while deaths moved ${formatPercentChange(deathsChange.percentChange)}. See the Integrity audit for why the raw count can't carry this claim.`;
+  return `Injury and fatal crashes changed ${formatPercentChange(repairedChange.percentChange)} between ${repairedChange.startYear} and ${repairedChange.endYear}, while deaths changed ${formatPercentChange(deathsChange.percentChange)}. The much larger drop in total reported crashes reflects the reporting change — see the data quality notes.`;
 }
 
 // All 6 series' "2018 vs LAST_YEAR" summary — the static inspector content
@@ -230,7 +240,7 @@ export function allSeriesInspectorItems(data: SeriesData): InspectorItem[] {
     value: fmt(rawValueForYear(s.key, lastYear, data)),
     badgeText:
       s.key === "arrests"
-        ? `${s.badgeText} · ${verifiedYearCount(s.key, data)} of ${YEARS.length} years verified`
+        ? `${s.badgeText} · ${verifiedYearCount(s.key, data)} of ${YEARS.length} years of data`
         : s.badgeText,
     badgeTone: s.badgeTone,
     delta: deltaLabel(s.key, firstYear, lastYear, data),

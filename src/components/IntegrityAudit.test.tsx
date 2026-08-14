@@ -110,7 +110,12 @@ describe("<IntegrityAudit> — coverage warning reads real numbers from props", 
         siPilot={OK_SI_PILOT}
       />,
     );
-    expect(screen.getByText(/could not be fetched live/i)).toBeInTheDocument();
+    // Scoped to the banner: the coverage-by-year table shows its own
+    // "couldn't load" fallback too, so an unscoped query is ambiguous.
+    const banner = screen.getByRole("status");
+    expect(
+      within(banner).getByText(/couldn't load these figures/i),
+    ).toBeInTheDocument();
   });
 });
 
@@ -125,7 +130,7 @@ describe("<IntegrityAudit> — ladder of discretion computes real percent change
     );
 
     const ladderHeading = screen.getByRole("heading", {
-      name: "The gradient of discretion",
+      name: "Which numbers can you trust?",
     });
     const ladderSection = ladderHeading.closest("section") as HTMLElement;
     expect(ladderSection).not.toBeNull();
@@ -150,7 +155,7 @@ describe("<IntegrityAudit> — tier table includes a derived PDO row, not a fabr
 
     const table = screen.getAllByRole("table")[0];
     const pdoRow = within(table).getByRole("row", {
-      name: /Property-damage-only/,
+      name: /Minor crashes/,
     });
     // 2018: 8000-2000=6000; 2025: 3200-1900=1300.
     expect(within(pdoRow).getByText("6,000")).toBeInTheDocument();

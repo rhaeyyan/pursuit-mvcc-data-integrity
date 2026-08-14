@@ -24,7 +24,7 @@ import {
 } from "@/lib/seriesConfig";
 
 export const metadata = {
-  title: "Series Registry - MVCC Data",
+  title: "Where every number comes from - MVCC Data",
 };
 
 const SOQL_BY_KEY: Record<string, string> = {
@@ -33,7 +33,7 @@ const SOQL_BY_KEY: Record<string, string> = {
   collisions: COLLISIONS_SOQL,
   repaired: REPAIRED_COLLISIONS_SOQL,
   arrests: ARRESTS_SOQL,
-  pdo: "Derived client-side: collisions − repaired, per year. No query of its own.",
+  pdo: "No query of its own. For each year we take all reported crashes and subtract the injury and fatal ones — the difference is what's left.",
 };
 
 function buildRegistry(data: SeriesData): RegistryEntry[] {
@@ -45,8 +45,8 @@ function buildRegistry(data: SeriesData): RegistryEntry[] {
     const end = rawValueForYear(s.key, lastYear, data);
     const coverage =
       s.key === "pdo"
-        ? "Derived from two verified series"
-        : `${verifiedYearCount(s.key, data)} of ${YEARS.length} years verified`;
+        ? "Worked out from two other lines"
+        : `${verifiedYearCount(s.key, data)} of ${YEARS.length} years`;
 
     return {
       id: s.key,
@@ -91,10 +91,10 @@ export default async function RegistryPage() {
   return (
     <>
       <WorkspaceHeader
-        dateline="Citywide · window 2018–2025 · live aggregate"
-        caveat="Every query is a frozen contract"
-        headline="Six series, one contract"
-        standfirst="Each series with its aggregate, its trust grade and the frozen query behind it, so any figure on the timeline can be traced back to the clause that produced it."
+        dateline="Citywide · 2018–2025 · loaded live"
+        caveat="Every query shown in full"
+        headline="Where every number comes from"
+        standfirst="Six lines on one chart, and the exact query behind each. Nothing here is typed in by hand — if you want to check a number, the request we send to NYC Open Data is right there to copy."
       />
       <SeriesRegistry
         registry={buildRegistry(data)}

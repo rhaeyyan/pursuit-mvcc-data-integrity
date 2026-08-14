@@ -66,33 +66,33 @@ type Props = {
 const LADDER_KEYS: { key: SeriesKey; note: string }[] = [
   {
     key: "collisions",
-    note: "An officer decides whether to file. Broken by policy in 2019–20.",
+    note: "An officer decides whether to write it up — and after 2020, often didn't have to.",
   },
   {
     key: "injuries",
-    note: "Ambulance or hospital record. Largely intact across the break.",
+    note: "An ambulance or hospital usually creates a record, so these kept being counted.",
   },
   {
     key: "deaths",
-    note: "Medical examiner, mandatory. The floor to measure against.",
+    note: "Investigated by the medical examiner every time. The most reliable number here.",
   },
 ];
 
 const TIER_KEYS: { key: SeriesKey; label: string; reading: string }[] = [
   {
     key: "collisions",
-    label: "Raw collisions",
-    reading: "Not quotable as a safety trend.",
+    label: "All reported crashes",
+    reading: "Don't quote this as a safety trend.",
   },
   {
     key: "repaired",
-    label: "Casualty-filtered",
-    reading: "Tracks injuries. The defensible figure.",
+    label: "Injury & fatal crashes",
+    reading: "Moves with injuries. Quote this one.",
   },
   {
     key: "pdo",
-    label: "Property-damage-only",
-    reading: "The tier NYPD stopped dispatching to.",
+    label: "Minor crashes, no injuries",
+    reading: "The ones police stopped being sent to.",
   },
 ];
 
@@ -129,9 +129,9 @@ export function IntegrityAudit({ data, coverage, siPilot }: Props) {
   // — an infinite loop (the exact bug fixed in UnifiedTimeline.tsx).
   const panelData = useMemo(
     () => ({
-      kicker: "Window",
+      kicker: "Years covered",
       title: `${FIRST_YEAR}–${String(LAST_YEAR).slice(2)}`,
-      sub: "Citywide figures, all six series, each traceable to the query or derivation behind it.",
+      sub: "Citywide totals for all six lines, each one traceable back to the query behind it.",
       items: allSeriesInspectorItems(data),
       defensible: defensibleLine(data),
     }),
@@ -170,38 +170,39 @@ export function IntegrityAudit({ data, coverage, siPilot }: Props) {
     <div className={styles.container}>
       <div role="status" className={styles.warning}>
         <div className={styles.warningKicker}>
-          Coverage warning · qualifies every borough figure
+          Read this before trusting any borough number
         </div>
         {coverage.status === "ok" && firstCoverage && lastCoverage ? (
           <>
             <p className={styles.warningLead}>
-              Recorded collisions data does not identify a NYC borough for{" "}
-              {coverage.windowUnpopulatedSharePercent.toFixed(1)}% of rows
-              across {FIRST_YEAR}–{LAST_YEAR}, and coverage is not constant:{" "}
-              {firstCoverage.coverageRatePercent.toFixed(1)}% in{" "}
-              {firstCoverage.year} against{" "}
+              {coverage.windowUnpopulatedSharePercent.toFixed(1)}% of crash
+              records between {FIRST_YEAR} and {LAST_YEAR} don&apos;t say which
+              borough they happened in. And the gap keeps shrinking:{" "}
+              {firstCoverage.coverageRatePercent.toFixed(1)}% of records had a
+              borough in {firstCoverage.year}, against{" "}
               {lastCoverage.coverageRatePercent.toFixed(1)}% in{" "}
               {lastCoverage.year}.
             </p>
             <p className={styles.warningNote}>
-              These coverage rates describe dataset record-keeping completeness,
-              not enforcement activity, and cannot be compared between datasets.
+              That&apos;s a change in how carefully records are filled in, not a
+              change in how much policing is happening — and it can&apos;t be
+              compared across the two datasets on this page.
             </p>
           </>
         ) : (
           <p className={styles.warningLead}>
-            Coverage figures could not be fetched live for this render — see the
-            Series registry for the query and try again.
+            We couldn&apos;t load these figures just now — see the series
+            registry for the query behind them, and try again.
           </p>
         )}
       </div>
 
       <section>
-        <h2>The gradient of discretion</h2>
+        <h2>Which numbers can you trust?</h2>
         <p className={styles.sectionIntro}>
-          Ordered by how much room an officer has not to file. The further left,
-          the further the recorded series can drift from the event it claims to
-          count.
+          It comes down to how much choice someone has about whether to write
+          the incident down. The more choice, the further the official count can
+          drift from what actually happened on the street.
         </p>
         <div className={styles.ladder}>
           {LADDER_KEYS.map(({ key, note }) => {
@@ -221,21 +222,22 @@ export function IntegrityAudit({ data, coverage, siPilot }: Props) {
       </section>
 
       <section>
-        <h2>Where the artifact lives</h2>
+        <h2>Which crashes stopped being counted</h2>
         <p className={styles.sectionIntro}>
-          Splitting the raw count into its casualty and property-damage-only
-          tiers puts the entire drop in the tier that stopped being dispatched
-          to. The casualty-filtered repair is the figure to defend.
+          Split the total into crashes where someone was hurt and crashes where
+          nobody was, and almost the whole drop sits in the second group — the
+          one police stopped being sent to. The injury and fatal count is the
+          one that holds up.
         </p>
         <div className={styles.tableWrapper}>
           <table className={workspace.table}>
             <thead>
               <tr>
-                <th scope="col">Tier</th>
+                <th scope="col">Group</th>
                 <th scope="col">{FIRST_YEAR}</th>
                 <th scope="col">{LAST_YEAR}</th>
                 <th scope="col">Change</th>
-                <th scope="col">Reading</th>
+                <th scope="col">What to make of it</th>
               </tr>
             </thead>
             <tbody>
@@ -263,55 +265,59 @@ export function IntegrityAudit({ data, coverage, siPilot }: Props) {
         </div>
         <p className={styles.impliedNote}>
           {implied !== null
-            ? `Implied lethality rises ${implied.toFixed(2)}× across the window on the raw denominator alone.`
-            : "Implied lethality (deaths ÷ raw collisions) could not be computed for this render."}{" "}
-          The denominator collapsed; the numerator barely moved.
+            ? `Do the naive thing — divide deaths by all reported crashes — and NYC streets look ${implied.toFixed(2)}× deadlier per crash than in ${FIRST_YEAR}.`
+            : "Dividing deaths by all reported crashes would give a misleading 'deadliness' rate, but we couldn't load the figures to show it."}{" "}
+          Nothing got deadlier. The bottom number shrank because fewer crashes
+          were written down, while the top number barely moved.
         </p>
       </section>
 
       <section>
-        <h2>The Staten Island natural experiment</h2>
+        <h2>Staten Island tried it first</h2>
         {siPilot.status === "ok" ? (
           <>
             <p className={styles.sectionIntro}>
-              The pilot began 2019-03-18, before any pandemic effect. Monthly
-              recorded collisions ran about {Math.round(siPilot.avg2018Monthly)}{" "}
-              on the {FIRST_YEAR} average
+              Staten Island got the new policy a year before everywhere else, on
+              18 March 2019 — well before the pandemic, so nothing else muddies
+              the picture. Through {FIRST_YEAR} the borough recorded about{" "}
+              {Math.round(siPilot.avg2018Monthly)} crashes a month (
+              {siPilot.year2018Total.toLocaleString()} for the year)
               {siPilot.april2019 !== null
-                ? `, and ${siPilot.april2019.toLocaleString()} in the first full month after (April 2019)`
+                ? `. In April 2019, the first full month under the new policy, that dropped to ${siPilot.april2019.toLocaleString()}`
                 : ""}
-              . Annual {FIRST_YEAR}: {siPilot.year2018Total.toLocaleString()}.
-              Post-pilot monthly average (May–Dec 2019):{" "}
-              {Math.round(siPilot.avgMayDec2019)}.
+              . Across the rest of 2019 it averaged{" "}
+              {Math.round(siPilot.avgMayDec2019)} a month.
             </p>
             <p className={styles.sectionIntro}>
-              Citywide, the same policy took effect 2020-04-06. That is the
-              documented cause of the raw collision decline, stated as cause.
-              Nothing here attributes any change in deaths or injuries to
-              enforcement activity. This workspace does not verify borough-level
-              coverage at the Staten Island boundary — that specific claim
-              isn&apos;t made here.
+              The rest of the city followed on 6 April 2020. This policy change
+              is the documented reason the reported crash count fell — that much
+              we can say caused it. What this page does not claim is any link
+              between enforcement and deaths or injuries; those are shown side
+              by side so you can see how they move together, nothing more. We
+              also can&apos;t check whether Staten Island recorded boroughs any
+              more carefully after the switch than before, so we don&apos;t
+              claim it either way.
             </p>
           </>
         ) : (
           <p className={styles.sectionIntro}>
-            The Staten Island pilot data could not be fetched live for this
-            render ({siPilot.reason}) — see the Series registry for the query
-            and try again.
+            We couldn&apos;t load the Staten Island figures just now (
+            {siPilot.reason}) — see where every number comes from for the query
+            behind them, and try again.
           </p>
         )}
       </section>
 
       <section>
-        <h2>Coverage by year</h2>
+        <h2>How often the borough is missing</h2>
         <div className={styles.tableWrapper}>
           <table className={workspace.table}>
             <thead>
               <tr>
                 <th scope="col">Year</th>
-                <th scope="col">Total rows</th>
-                <th scope="col">Borough populated</th>
-                <th scope="col">Coverage</th>
+                <th scope="col">Crash records</th>
+                <th scope="col">With a borough</th>
+                <th scope="col">Share</th>
               </tr>
             </thead>
             <tbody>
@@ -335,7 +341,7 @@ export function IntegrityAudit({ data, coverage, siPilot }: Props) {
               ) : (
                 <tr>
                   <td colSpan={4}>
-                    Coverage data unavailable for this render.
+                    We couldn&apos;t load these figures just now.
                   </td>
                 </tr>
               )}

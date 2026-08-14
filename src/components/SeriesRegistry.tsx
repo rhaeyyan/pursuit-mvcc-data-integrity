@@ -61,9 +61,9 @@ export function SeriesRegistry({
   // (both stable prop references from a single server render) is enough.
   const panelData = useMemo(
     () => ({
-      kicker: "Window",
+      kicker: "Years covered",
       title: "2018–25",
-      sub: "Every series that appears on the Timeline, with the exact query or derivation behind it.",
+      sub: "Every line on the timeline, with the exact query or calculation behind it.",
       items: inspectorItems,
       defensible,
     }),
@@ -75,10 +75,8 @@ export function SeriesRegistry({
   return (
     <div className={styles.container}>
       <p className={styles.intro}>
-        Every series on the timeline, with the aggregate that produces it and
-        the grade that governs how it may be read. Queries are a frozen
-        contract: a Socrata rejection is a halt and a revised spec, never a
-        local repair.
+        These queries are fixed. If one ever stops working, we stop and rewrite
+        it deliberately rather than quietly patching the numbers at our end.
       </p>
 
       {registry.map((entry) => (
@@ -104,28 +102,29 @@ export function SeriesRegistry({
             <p className={styles.entryNote}>{entry.note}</p>
             <details className={styles.details}>
               <summary className={styles.summary}>
-                SoQL query — {entry.id}
+                See the exact query for {entry.label.toLowerCase()}
               </summary>
               <pre className={styles.soql}>{entry.soql}</pre>
             </details>
           </div>
           <dl className={styles.meta}>
-            <dt className={styles.metaLabel}>Dataset</dt>
+            <dt className={styles.metaLabel}>Source</dt>
             <dd className={styles.metaValue}>{entry.dataset}</dd>
-            <dt className={styles.metaLabel}>Aggregate</dt>
+            <dt className={styles.metaLabel}>What it counts</dt>
             <dd className={styles.metaValue}>{entry.aggregate}</dd>
             <dt className={styles.metaLabel}>2018 → 2025</dt>
             <dd className={styles.metaValue}>{entry.span}</dd>
-            <dt className={styles.metaLabel}>Coverage</dt>
+            <dt className={styles.metaLabel}>Data available</dt>
             <dd className={styles.metaValue}>{entry.coverage}</dd>
           </dl>
         </article>
       ))}
 
       <p className={styles.footnote}>
-        Permanently excluded from ingestion: perp_race, perp_sex, age_group.
-        Arrest density reflects patrol patterns, not offending; charting it
-        against a safety metric would present policing bias as neutral fact.
+        We never load the race, sex, or age fields attached to arrest records.
+        Where arrests happen reflects where police patrol, not where offences
+        happen — charting that against a safety number would dress up a policing
+        pattern as a neutral fact.
       </p>
     </div>
   );

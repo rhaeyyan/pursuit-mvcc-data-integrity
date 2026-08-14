@@ -74,18 +74,18 @@ type WindowKey = "full" | "pre" | "post";
 type WindowDef = { key: WindowKey; label: string; years: number[] };
 
 const WINDOWS: WindowDef[] = [
-  { key: "full", label: "2018–2025", years: YEARS },
-  { key: "pre", label: "Pre-policy 2018–19", years: [2018, 2019] },
+  { key: "full", label: "All years", years: YEARS },
+  { key: "pre", label: "Before the change", years: [2018, 2019] },
   {
     key: "post",
-    label: "Post-policy 2020–25",
+    label: "After the change",
     years: [2020, 2021, 2022, 2023, 2024, 2025],
   },
 ];
 
 const MARKERS = [
-  { year: 2019, label: "SI pilot 2019-03-18" },
-  { year: 2020, label: "Citywide 2020-04-06" },
+  { year: 2019, label: "Staten Island, Mar 2019" },
+  { year: 2020, label: "Citywide, Apr 2020" },
 ] as const;
 
 export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
@@ -166,7 +166,7 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
           value: fmt(rawValueForYear(s.key, activeYearInWindow, data)),
           badgeText:
             s.key === "arrests"
-              ? `${s.badgeText} · ${verifiedYearCount(s.key, data)} of ${YEARS.length} years verified`
+              ? `${s.badgeText} · ${verifiedYearCount(s.key, data)} of ${YEARS.length} years of data`
               : s.badgeText,
           badgeTone: s.badgeTone,
           delta: deltaLabel(s.key, baseYear, activeYearInWindow, data),
@@ -174,11 +174,11 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
         }));
 
     return {
-      kicker: boroughBlocked ? "Borough view" : "Selected year",
+      kicker: boroughBlocked ? "Borough" : "Selected year",
       title: boroughBlocked ? (boroughLabel ?? "") : String(activeYearInWindow),
       sub: boroughBlocked
-        ? "Not pinned in this workspace — see the explainer."
-        : "Figures as recorded, with the grade that governs how each may be read.",
+        ? "We can't chart this borough reliably — see the explanation."
+        : "The numbers as recorded, with a note on how much each one can be trusted.",
       items,
       defensible,
     };
@@ -202,35 +202,35 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
         className={styles.blocked}
       >
         <h2 id="timeline-blocked-heading">
-          {boroughLabel} is not pinned in this workspace
+          We can&apos;t chart {boroughLabel} reliably
         </h2>
         <p className={styles.blockedText}>
           {coverage.status === "ok" ? (
             <>
-              No borough series is pinned in this workspace: the borough field
-              is unpopulated on roughly{" "}
-              {Math.round(coverage.unpopulatedSharePercent)}% of collision rows
-              across {YEARS[0]}–{YEARS[YEARS.length - 1]}, and coverage drifts
-              from {coverage.firstYear.ratePercent.toFixed(1)}% (
-              {coverage.firstYear.year}) to{" "}
-              {coverage.lastYear.ratePercent.toFixed(1)}% (
-              {coverage.lastYear.year}).
+              Many crash records don&apos;t say which borough they happened in —
+              about {Math.round(coverage.unpopulatedSharePercent)}% of them
+              between {YEARS[0]} and {YEARS[YEARS.length - 1]}. Worse, that gap
+              shrinks over time: {coverage.firstYear.ratePercent.toFixed(1)}% of
+              records had a borough in {coverage.firstYear.year}, against{" "}
+              {coverage.lastYear.ratePercent.toFixed(1)}% in{" "}
+              {coverage.lastYear.year}. A borough chart would show
+              record-keeping improving and look like crashes increasing.
             </>
           ) : (
             <>
-              No borough series is pinned in this workspace: the borough field
-              is not reliably populated on every collision row, and its coverage
-              is not constant across the analysis window.
+              Many crash records don&apos;t say which borough they happened in,
+              and that gap isn&apos;t steady from year to year. A borough chart
+              would show record-keeping changing and look like crashes changing.
             </>
           )}{" "}
-          Switch back to citywide, or open the integrity audit to see the
-          coverage that qualifies every borough figure.
+          Switch back to citywide, or read the data quality notes for the full
+          picture.
         </p>
         <Link
           href="/integrity"
           className={`${workspace.btn} ${workspace.btnSecondary}`}
         >
-          Open integrity audit
+          Read the data quality notes
         </Link>
       </section>
     );
@@ -244,8 +244,8 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
 
       <div className={styles.controlsRow}>
         <div className={workspace.field}>
-          <span className={workspace.fieldLabel}>Window</span>
-          <div className={workspace.seg} role="radiogroup" aria-label="Window">
+          <span className={workspace.fieldLabel}>Years</span>
+          <div className={workspace.seg} role="radiogroup" aria-label="Years">
             {WINDOWS.map((w) => (
               <label key={w.key} className={workspace.segOpt}>
                 <input
@@ -261,8 +261,8 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
         </div>
 
         <div className={workspace.field}>
-          <span className={workspace.fieldLabel}>Scale</span>
-          <div className={workspace.seg} role="radiogroup" aria-label="Scale">
+          <span className={workspace.fieldLabel}>Show as</span>
+          <div className={workspace.seg} role="radiogroup" aria-label="Show as">
             <label className={workspace.segOpt}>
               <input
                 type="radio"
@@ -270,7 +270,7 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
                 checked={scale === "indexed"}
                 onChange={() => setScale("indexed")}
               />
-              <span>Indexed to {baseYear} = 100</span>
+              <span>Change since {baseYear}</span>
             </label>
             <label className={workspace.segOpt}>
               <input
@@ -279,21 +279,21 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
                 checked={scale === "absolute"}
                 onChange={() => setScale("absolute")}
               />
-              <span>Absolute counts</span>
+              <span>Actual counts</span>
             </label>
           </div>
         </div>
 
         <div className={styles.readout}>
-          {activeYearInWindow} selected · {activeSeries.length} of{" "}
-          {SERIES_CONFIG.length} series
+          Showing {activeYearInWindow} · {activeSeries.length} of{" "}
+          {SERIES_CONFIG.length} lines
         </div>
       </div>
 
       <div
         className={styles.toggles}
         role="group"
-        aria-label="Toggle series visibility"
+        aria-label="Choose which lines to show"
       >
         {SERIES_CONFIG.map((s) => (
           <label key={s.key} className={styles.toggleLabel}>
@@ -320,10 +320,10 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
               }}
             >
               {s.label}
-              {s.dash !== "solid" && (
+              {s.dashNote && (
                 <span className={styles.dashNote}>
                   {" "}
-                  ({s.dash} — affected by reporting decline)
+                  ({s.dash} — {s.dashNote})
                 </span>
               )}
             </span>
@@ -429,19 +429,21 @@ export function UnifiedTimeline({ data, boroughLabel, coverage }: Props) {
         </ResponsiveContainer>
         <figcaption className={styles.caption}>
           {scale === "indexed"
-            ? `Indexed to ${baseYear} = 100. Dashed lines are series affected by the NYPD dispatch policy change; the dotted line is derived. Magenta rules mark the two documented policy dates.`
-            : "Absolute counts on one linear axis. Magenta rules mark the two documented policy dates."}
+            ? `Every line starts at 100 in ${baseYear}, so you can compare how far each one moved rather than how big it is. Dashed and dotted lines aren't measured the same way all the way through — see the note next to each one. The two pink lines mark when NYPD changed its policy.`
+            : "The actual counts, all on one scale. The two pink lines mark when NYPD changed its policy."}
         </figcaption>
       </figure>
 
       <div className={styles.tableWrapper}>
         <table className={workspace.table}>
           <caption className={styles.tableCaption}>
-            {(scale === "indexed" ? "Indexed values, " : "Absolute counts, ") +
+            {(scale === "indexed"
+              ? `Change since ${baseYear}, `
+              : "Actual counts, ") +
               windowYears[0] +
               "–" +
               windowYears[windowYears.length - 1] +
-              " · select a row to move the crosshair"}
+              " · pick a year to highlight it on the chart"}
           </caption>
           <thead>
             <tr>

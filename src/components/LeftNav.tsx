@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import styles from "./LeftNav.module.css";
 
 const NAV_ITEMS = [
-  { label: "Timeline", href: "/" },
-  { label: "Integrity audit", href: "/integrity" },
-  { label: "Series registry", href: "/registry" },
+  { label: "The chart", href: "/" },
+  { label: "Data quality", href: "/integrity" },
+  { label: "Where numbers come from", href: "/registry" },
 ];
 
 export function LeftNav() {
@@ -22,7 +22,7 @@ export function LeftNav() {
           <br />
           Integrity
         </div>
-        <div className={styles.kicker}>Reporting audit desk</div>
+        <div className={styles.kicker}>Checking NYC crash data</div>
       </div>
 
       <ul className={styles.list}>
@@ -44,21 +44,21 @@ export function LeftNav() {
 
       <div className={styles.footer}>
         <div>
-          <div className={styles.footerHeading}>Sources</div>
-          <div>h9gi-nx95 · Motor Vehicle Collisions – Crashes</div>
-          <div>8h9b-rp9u · NYPD Arrests Data (historic)</div>
+          <div className={styles.footerHeading}>Data from</div>
+          <div>NYC Open Data · Motor Vehicle Collisions</div>
+          <div>NYC Open Data · NYPD Arrests (historic)</div>
         </div>
         <div>
-          <div className={styles.footerHeading}>Window</div>
-          <div>2018–2025, fixed</div>
+          <div className={styles.footerHeading}>Years covered</div>
+          <div>2018–2025</div>
         </div>
         <div>
-          <div className={styles.footerHeading}>Provenance</div>
+          <div className={styles.footerHeading}>Where numbers come from</div>
           <div>
-            Every figure is a live SoQL result or a documented derivation
-            &mdash; see the{" "}
+            Every figure on this site is loaded live or worked out from figures
+            that are &mdash; see{" "}
             <Link href="/registry" className={styles.footerLink}>
-              series registry
+              where every number comes from
             </Link>
             .
           </div>

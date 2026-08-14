@@ -153,10 +153,10 @@ export default async function Home({
   return (
     <>
       <WorkspaceHeader
-        dateline={`${boroughLabel ?? "Citywide"} · window 2018–2025 · ${cached ? "cached snapshot" : "live aggregate"}`}
-        caveat="Casualty-filtered repair applied · no causal claims"
-        headline="One timeline, five series, one honest scale"
-        standfirst="Collisions, injuries, deaths, the casualty-filtered repair, and enforcement on the same axis. Indexed to the first year in the window, so a large fall in a discretionary count cannot pass for a comparable improvement in safety — see the exact figures in the inspector and table below."
+        dateline={`${boroughLabel ?? "Citywide"} · 2018–2025 · ${cached ? "saved copy" : "loaded live"}`}
+        caveat="Showing what moves together, not what causes what"
+        headline="The crash count fell. The crashes didn't."
+        standfirst="Reported crashes, injuries and deaths on one chart. Each line starts at the same point in the first year, so you can see how differently they move — because a steep drop in a number that depends on paperwork is not the same thing as safer streets."
       >
         <div
           className={workspaceStyles.field}
@@ -166,8 +166,8 @@ export default async function Home({
         </div>
         {boroughParam.status === "invalid" && (
           <p role="alert">
-            Invalid borough parameter: &quot;{boroughParam.received}&quot;.
-            Displaying citywide data.
+            &quot;{boroughParam.received}&quot; isn&apos;t a borough we
+            recognise, so we&apos;re showing citywide numbers instead.
           </p>
         )}
       </WorkspaceHeader>

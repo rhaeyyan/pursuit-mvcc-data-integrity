@@ -74,7 +74,7 @@ describe("/registry (RegistryPage)", () => {
   it("renders successfully with the registry headline", async () => {
     await renderPage();
     expect(
-      screen.getByRole("heading", { name: "Six series, one contract" }),
+      screen.getByRole("heading", { name: "Where every number comes from" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("series-registry")).toBeInTheDocument();
   });

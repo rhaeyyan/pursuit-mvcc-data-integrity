@@ -85,7 +85,7 @@ describe("/integrity (IntegrityPage)", () => {
     await renderPage();
     expect(
       screen.getByRole("heading", {
-        name: "What the record can and cannot support",
+        name: "What this data can and can't tell you",
       }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("integrity-audit")).toBeInTheDocument();

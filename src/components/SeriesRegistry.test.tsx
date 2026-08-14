@@ -31,17 +31,17 @@ const REGISTRY: RegistryEntry[] = [
   },
   {
     id: "pdo",
-    label: "Property-damage-only, derived",
+    label: "Minor crashes, no injuries",
     ink: "var(--color-accent-2-400)",
     dash: "dotted",
-    badgeText: "Derived residual",
+    badgeText: "Worked out by subtraction",
     badgeTone: "outline",
-    note: "Raw minus casualty-filtered.",
-    dataset: "derived",
-    aggregate: "collisions − repaired",
+    note: "All reported crashes minus the injury and fatal ones.",
+    dataset: "worked out, not queried",
+    aggregate: "all reported crashes − injury & fatal crashes",
     span: "6,000 → 1,300",
-    coverage: "Derived from two verified series",
-    soql: "Derived client-side: collisions − repaired, per year. No query of its own.",
+    coverage: "Worked out from two other lines",
+    soql: "No query of its own. For each year we take all reported crashes and subtract the injury and fatal ones.",
   },
 ];
 
@@ -63,7 +63,7 @@ describe("<SeriesRegistry> — renders every entry from props", () => {
 
     expect(screen.getByRole("heading", { name: "Deaths" })).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Property-damage-only, derived" }),
+      screen.getByRole("heading", { name: "Minor crashes, no injuries" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Mandatory record")).toBeInTheDocument();
     expect(screen.getByText("80 → 79")).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe("<SeriesRegistry> — renders every entry from props", () => {
     );
 
     const pdoHeading = screen.getByRole("heading", {
-      name: "Property-damage-only, derived",
+      name: "Minor crashes, no injuries",
     });
     const pdoArticle = pdoHeading.closest("article") as HTMLElement;
     expect(
@@ -111,7 +111,7 @@ describe("<SeriesRegistry> — renders every entry from props", () => {
       />,
     );
     expect(
-      screen.getByText(/permanently excluded from ingestion/i),
+      screen.getByText(/never load the race, sex, or age fields/i),
     ).toBeInTheDocument();
   });
 

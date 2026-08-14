@@ -48,8 +48,8 @@ export function CachedDataBanner({ asOf }: CachedDataBannerProps): JSX.Element {
   // "status" is not among the ARIA-in-HTML roles permitted on <aside>.
   return (
     <p role="status">
-      Showing a cached snapshot from {formatAsOfUTC(asOf)} — Socrata could not
-      be reached, so these figures are not live.
+      Showing a saved snapshot from {formatAsOfUTC(asOf)} — we couldn&apos;t
+      reach NYC Open Data, so these numbers aren&apos;t live.
     </p>
   );
 }

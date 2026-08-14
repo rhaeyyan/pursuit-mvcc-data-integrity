@@ -1,58 +1,34 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** MVCC Workspace redesign implemented (2026-08-13) — Vision Zero Shadow Ledger, Phase 1 (spec approved 2026-08-12) is queued behind it, not started.
+**Current objective:** MVCC Workspace redesign implemented and committed, plus a plain-English copy pass on top (uncommitted) — Vision Zero Shadow Ledger, Phase 1 (spec approved 2026-08-12) is queued behind it, not started.
 
 ## Active
 
-- **MVCC Workspace redesign — implemented and gate-clean, uncommitted (2026-08-13).** User
-  imported a Design Composer mockup ("MVCC Workspace.dc.html", project "Enterprise
-  visualization redesign") via the Design MCP and asked for it built as the real UI/UX layer.
-  Plan approved and executed in 6 phases; full plan (architecture decisions, exact
-  number-sourcing per view) archived at the end of this entry rather than re-derived — see
-  `ARCHIVED_SESSIONS.md` once this entry rolls off, or the session transcript in the meantime.
-  - Route group `src/app/(workspace)/` now wraps `/`, `/integrity`, `/registry` in a persistent
-    3-column shell (`LeftNav` / routed content / `RightInspector`), all Broadsheet-editorial
-    tokens scoped to `(workspace)/workspace.module.css` — `globals.css`'s existing tokens are
-    untouched (still load-bearing for `/local`, `/tdi`, `/auditor`, `KPIRow`, `MetricSection`,
-    etc.). `src/context/WorkspaceInspectorContext.tsx` bridges the shared right-inspector panel
-    to whichever routed page is active (Observer pattern — genuine variance per Rule 8).
-  - **The old `[[...borough]]/`, `integrity/`, `registry/` route folders moved into the group**
-    (`git mv`, not delete+recreate — history preserved). Imports in moved files switched to the
-    `@/*` alias; `vitest.config.mts` gained a matching `resolve.alias` (Vitest doesn't honor
-    `tsconfig.json` paths on its own — Next's bundler does, Vite doesn't).
-  - `src/lib/derived.ts` (new pure helpers: `pdo()`, `valueAtYear()`) and
-    `src/lib/seriesConfig.ts` (new: the single shared definition of all 6 series' metadata —
-    label/ink/dash/badge/note — plus `rawValueForYear`/`deltaLabel`/`defensibleLine`/
-    `allSeriesInspectorItems`, reused verbatim by `UnifiedTimeline`, `IntegrityAudit`, and
-    `SeriesRegistry` so the three views can't drift). `IntegrityAudit`/`SeriesRegistry` now
-    receive real fetched data as props from async server `page.tsx` files (previously both were
-    fully static/hardcoded — an undetected NFR-4 gap the guard hook's literal-list check
-    couldn't catch; fixed as a side effect of wiring real data through, confirmed live: the
-    borough-blocked coverage message showed 33%/64.4%/80.1% on a live requery, not the mockup's
-    illustrative ~30%, and the SI-pilot section's live numbers (514/217/6,171/2.68×) matched the
-    mockup's placeholder prose almost exactly — real data, not a copy).
-  - **Recurring gotcha, worth flagging for next session:** any component calling
-    `useInspectorSync`/`useWorkspaceInspector` becomes a Context consumer via `useContext`
-    *regardless of which field it destructures* — pushing an unmemoized plain object on every
-    render causes an infinite re-render loop (hung a `vitest run` once, ~30s+, had to `pkill`).
-    Fix is `useMemo` with a dependency array of primitives/stable references, never
-    `JSON.stringify(...)` in the deps (ESLint `react-hooks` rejects non-simple-expression deps
-    anyway). All four call sites (`UnifiedTimeline`, `IntegrityAudit`, `SeriesRegistry`) now do
-    this correctly — if a fifth caller is added, copy the pattern, don't rediscover the bug.
-  - **Verified via `mcp__Claude_Browser__*` against a local `next dev`** (this sandbox's earlier
-    "no working browser" limitation was Playwright/Chromium-specific — the Browser pane tool
-    works fine): all three routes, the borough-blocked state, live SoQL disclosure expansion,
-    and hover/table-row → inspector sync all confirmed working with real Socrata data. One
-    Browser-pane screenshot-capture glitch encountered (blank gap after scroll) — confirmed via
-    direct `getBoundingClientRect()` that the actual DOM/CSS was pixel-correct; a tool rendering
-    artifact, not a product bug.
-  - **Baseline after this work: 599/599 vitest passing (up from 570), `tsc --noEmit` clean,
-    `eslint .` clean.** `.claude/launch.json` added (was missing) so `mcp__Claude_Browser__preview_start`
-    can drive `next dev` — `{"name":"mvcc-dev","runtimeExecutable":"npm","runtimeArgs":["run","dev"],"port":3000}`.
-  - **Not committed.** Working tree also still carries the pre-existing, unrelated
-    `globals.css`/`layout.tsx` light-theme-revert diff noted at the top of this session — left
-    untouched throughout (out of scope, doesn't conflict with the new work since the new tokens
-    are scoped to `(workspace)/workspace.module.css`, not `globals.css`).
+- **Plain-English copy pass over the whole workspace — done, gate-clean, UNCOMMITTED
+  (2026-08-13). NEXT STEP: commit it** — self-contained copy/UX change on top of `8651222`,
+  belongs in its own commit. Settled vocabulary and the regression that caused this are recorded
+  in Context Cache below; the rest:
+  - **Two real fixes found while rewriting, not just wording:** (1) every dashed/dotted series
+    shared one inline note, "affected by reporting decline" — **factually wrong for the arrests
+    line**, which is dashed because it's a different dataset. `SeriesDef` gained an optional
+    per-series `dashNote`; FR-3's never-color-alone rule is still met, now accurately. (2) Raw
+    dataset IDs were shown as the "Source" value; now plain name first, ID retained.
+  - **Honesty guardrails re-checked line by line** — plain language is exactly where these get
+    softened by accident. Correlation-only framing on arrests, the explicit no-causal-claim
+    sentence, the "we can't verify SI borough labelling across the switch" limitation, and the
+    one causal claim the product *is* allowed to make (policy change → reported-count drop)
+    all survive intact.
+  - **13 tests updated**, all my own assertions against old copy strings — no behavioral
+    regressions. Two needed re-scoping rather than re-wording: plainer fallback text now
+    repeats on a page (banner + table share a "couldn't load" message), so `getByText` went
+    ambiguous, and the blocked-borough percentages are interpolated mid-sentence and are now
+    asserted against `textContent`.
+
+- **MVCC Workspace redesign — DONE, committed `8651222`, pushed to `origin/main`
+  (2026-08-13).** Full reasoning (why a route group + scoped tokens, why Context over parallel
+  routes, why `seriesConfig.ts` exists, the NFR-4 gap it closed, the dropped SI borough-coverage
+  claim, and the commit's hostname-derived git author) archived in `ARCHIVED_SESSIONS.md`,
+  "2026-08-13 — MVCC Workspace 3-column redesign".
 
 - **Vision Zero Shadow Ledger, Phase 1 — Spec approved, ready for TDD drafting (2026-08-12).**
   The next sprint focus is implementing the hyper-local safety ledger search by ZIP code and Community Board, fetching local aggregates from the Socrata endpoint, and rendering the repaired versus raw trends. Queued behind the workspace redesign above — not started this session.
@@ -60,16 +36,14 @@
 - **Deployed and live-verified:** <https://pursuit-mvcc-data-integrity.vercel.app/> — root dir
   `./`, Vercel defaults, `SOCRATA_APP_TOKEN` set server-side only. NFR-2 confirmed clean (no token
   identifier in any client chunk) as of the 2026-08-11 redeploy.
-- **NFR-1 borough-caching gap CLOSED, committed `f2611bf`, pushed, redeployed, live-verified
-  2026-08-11.** `/` is now `src/app/[[...borough]]/page.tsx`, prerendering all six variants
-  (citywide + 5 boroughs) via `generateStaticParams`. All 5 SPEC acceptance criteria confirmed
-  against the live URL (cache HIT on repeat, cold latency <0.3s vs. a 2.5s budget, `/X`/`/k` 404,
-  NFR-2 clean). Full outcome + reasoning (why `cacheComponents` was declined) archived in
-  `ARCHIVED_SPECS.md` / `ARCHIVED_SESSIONS.md`, "2026-08-11."
-- **The "record First Load JS" deploy obligation is retired, not deferred.** Next.js 16 removed
-  that metric from `next build` output entirely (confirmed in the vendored docs). If bundle-size
-  tracking is wanted later, target Lighthouse CI or Vercel Analytics instead — a new SPEC, not a
-  retry of the old ask.
+- **NFR-1 borough-caching gap CLOSED** (`f2611bf`, live-verified 2026-08-11): all six variants
+  prerender via `generateStaticParams`. **Path has since moved** to
+  `src/app/(workspace)/[[...borough]]/page.tsx` by the redesign — `generateStaticParams` /
+  `dynamicParams` / `revalidate` all carried over unchanged. Reasoning (incl. why
+  `cacheComponents` was declined) in `ARCHIVED_SPECS.md` / `ARCHIVED_SESSIONS.md`, "2026-08-11".
+- **The "record First Load JS" deploy obligation is retired, not deferred** — Next 16 removed
+  the metric from `next build` output. Bundle tracking later means Lighthouse CI or Vercel
+  Analytics, a new SPEC, not a retry.
 - `ARCHITECTURE.md` is **deferred by decision, not pending**; rationale in `CLAUDE.md` § Project
   Layout.
 
@@ -96,9 +70,10 @@
   any such recovery — that's what distinguishes "wiped" from "fresh clone" (the latter needs the
   guard reinstalled). `node_modules/next/dist/docs/` (the mandated Next reference) only exists post-
   `npm ci`; **context7 is not a fallback here — its API key is invalid in this environment.**
-- **Current verified baseline (2026-08-11, node v22.23.2): vitest 570/570 in 22 files,
-  `tsc --noEmit` clean, `eslint .` 0 errors / 2 known warnings** (`percentChange.ts:15` unused type
-  param `K`; a `container`-unused warning in the moved `page.test.tsx`).
+- **Current verified baseline (2026-08-13, node v22.23.2): vitest 599/599 in 38 files,
+  `tsc --noEmit` clean, `eslint .` clean (0 errors, 0 warnings).** The two long-standing
+  warnings (`percentChange.ts:15` unused type param `K`; a `container`-unused warning in
+  `page.test.tsx`) both cleared during the workspace redesign.
 - **Standing rule — `@types/node`'s major tracks `engines.node`'s major.** Derived, not chosen;
   moves in the same edit as the floor, no Rule 9 halt required.
 - **Standing acceptance clause (Amendment 3(b)), binds every future SPEC:** acceptance-by-command
@@ -111,10 +86,31 @@
 - **Styling is CSS Modules**, not Tailwind — chosen on reversibility, not taste. Tailwind is two dev
   deps and a PostCSS config to add later; removing it means unwinding class attributes across every
   component Magnolia will have written by then.
-- **No working browser in this sandbox, and it's not fixable here.** `mcp__playwright__browser_*`
-  fails outright (no Chromium binary); the installer needs `sudo` with no password available.
-  Confirmed 2026-08-06/07; don't retry installing it in this environment. Live-browser visual QA
-  genuinely needs a human with a browser, or a different sandbox.
+- **Live trap in the workspace shell — `useInspectorSync` will infinite-loop if you pass it an
+  unmemoized object.** Any component calling `useInspectorSync`/`useWorkspaceInspector` becomes
+  a Context consumer via `useContext` *regardless of which field it destructures*, so pushing a
+  fresh object literal every render re-triggers the very render that pushed it. This hung a
+  `vitest run` (~30s+, needed `pkill`) before it was diagnosed. Wrap the panel object in
+  `useMemo` with primitive/stable deps — never `JSON.stringify(...)` in the dep array, which
+  ESLint `react-hooks` rejects as a non-simple expression anyway. All three current call sites
+  (`UnifiedTimeline`, `IntegrityAudit`, `SeriesRegistry`) do this correctly; copy the pattern
+  for a fourth rather than rediscovering the bug.
+- **Terminology is settled — don't re-import a mockup's vocabulary over it.** "All reported
+  crashes" / "Injury & fatal crashes" / "Minor crashes, no injuries" / "Change since 2018", and
+  the three page names "The chart" / "Data quality" / "Where numbers come from". This was
+  simplified once in `d3f60f2` and regressed once by the redesign importing the Design Composer
+  mockup's jargon wholesale; the 2026-08-13 copy pass restored it. Check existing terminology
+  before adopting a source document's.
+- **CORRECTED 2026-08-13 — live visual QA IS possible here; the old "no working browser" note
+  was Playwright-specific.** `mcp__playwright__browser_*` still fails (no Chromium binary, and
+  the installer needs a `sudo` password that isn't available — don't retry it). But
+  **`mcp__Claude_Browser__*` works fine**: `preview_start` drives `next dev` via
+  `.claude/launch.json`, and navigate/screenshot/`get_page_text`/`javascript_tool` all work
+  against real Socrata data. Used for the whole redesign's visual QA. Two practical notes: the
+  screenshot tool intermittently returns a blank/misaligned frame right after a scroll — verify
+  with `get_page_text` or a `getBoundingClientRect()` call via `javascript_tool` before
+  believing a layout bug; and restart the dev server after large refactors, since stale HMR
+  state reports compile errors for code that no longer exists.
 
 ## History
 

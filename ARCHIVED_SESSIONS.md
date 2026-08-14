@@ -1212,3 +1212,45 @@ excludes file, so any fresh clone or second machine would have tracked it; and i
 write-leftovers were accumulating as untracked noise an `add -A` would eventually sweep in.
 `.env.example` is negated back in so variable _names_ can be documented without values — the
 mechanism that later let the scaffold ship a token-name placeholder safely.
+
+---
+
+## 2026-08-13 — MVCC Workspace 3-column redesign (commit `8651222`)
+
+Built the imported Design Composer mockup ("MVCC Workspace.dc.html") as the real UI layer for
+`/`, `/integrity`, `/registry`. Outcome is in the tree; the reasoning that isn't re-derivable:
+
+- _Why a route group + scoped tokens rather than editing `globals.css`:_ the existing `:root`
+  tokens are load-bearing for `/local`, `/tdi`, `/auditor`, `KPIRow`, `MetricSection` and more.
+  Retheming globally would have silently broken every out-of-scope page. The Broadsheet palette
+  is therefore scoped to a wrapper class in `(workspace)/workspace.module.css` — CSS Modules
+  hashes class names but never custom-property names, so the tokens still cascade normally to
+  descendants written in other stylesheets.
+- _Why Context, not Next.js parallel routes, for the right inspector:_ the inspector lives in
+  the shared layout, a sibling of the routed page, so props can't reach it. A parallel-route
+  slot re-renders per navigation, not per client hover — it structurally cannot drive the
+  Timeline's live crosshair. Mixing parallel routes for two pages and Context for the third was
+  judged worse than one uniform mechanism.
+- _Why `git mv` mattered:_ delete+recreate would have lost per-file history on three page files
+  that carry substantial prior reasoning in their headers.
+- _Why `vitest.config.mts` needed its own `resolve.alias`:_ Vitest does not read `tsconfig.json`
+  `paths` (Next's bundler does, Vite doesn't). Switching moved pages to `@/*` therefore required
+  the alias in two places, not one.
+- _Why `seriesConfig.ts`/`derived.ts` exist:_ three views need identical series metadata and
+  identical value/delta lookups. Three copies would drift, and the drift would be invisible
+  (each page would still look internally consistent). One definition, imported everywhere.
+- _An NFR-4 gap this closed by accident:_ `IntegrityAudit` and `SeriesRegistry` were previously
+  fully hardcoded. The guard hook never caught it because it matches a fixed literal list and
+  these were percentages/prose. Wiring real data through fixed it; confirmed live when the
+  borough-coverage message rendered 33% from a fresh query rather than the mockup's
+  illustrative ~30%.
+- _Why the Staten Island prose was rebuilt from `fetchStatenIslandPilot()` rather than copied:_
+  the mockup's numbers were design-tool placeholders. Recomputing produced almost the same
+  figures (514/217/6,171/2.68×) — which is the point: they're now real, and will move if the
+  data does. The mockup's "borough coverage held flat across the SI boundary" claim was
+  **dropped entirely**, because no lib function computes per-borough per-month coverage and
+  asserting it would have been inventing a number.
+- _Git author identity:_ commit `8651222` is authored
+  `Rayan Khan <rayan@macbookpro.mynetworksettings.com>` (hostname-derived) because no global
+  git identity is set on this machine. User was offered an amend + force-push and chose to
+  leave it. Set the identity before the next commit rather than rewriting published history.

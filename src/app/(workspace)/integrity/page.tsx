@@ -11,7 +11,7 @@ import { fetchRepairedCollisionsPerYear } from "@/lib/repairedCollisions";
 import { fetchStatenIslandPilot } from "@/lib/statenIslandPilot";
 
 export const metadata = {
-  title: "Integrity Audit - MVCC Data",
+  title: "What this data can and can't tell you - MVCC Data",
 };
 
 function toCoverageProp(
@@ -77,10 +77,10 @@ export default async function IntegrityPage() {
   return (
     <>
       <WorkspaceHeader
-        dateline="Citywide · window 2018–2025 · live aggregate"
-        caveat="Correlation language only · no causal claims"
-        headline="What the record can and cannot support"
-        standfirst="The reporting break, the tier it lives in, and the coverage that qualifies every borough figure — assembled so an analyst can hand it across a table."
+        dateline="Citywide · 2018–2025 · loaded live"
+        caveat="Showing what moves together, not what causes what"
+        headline="What this data can and can't tell you"
+        standfirst="What changed in 2020, which crashes it affected, and how often a record doesn't say where it happened — laid out so you can check the reasoning rather than take our word for it."
       />
       <IntegrityAudit
         data={{

@@ -87,14 +87,16 @@ describe("/[[...borough]] (Home)", () => {
     await renderHome();
 
     expect(
-      screen.getByText("One timeline, five series, one honest scale"),
+      screen.getByText("The crash count fell. The crashes didn't."),
     ).toBeInTheDocument();
     expect(screen.getByTestId("unified-timeline")).toBeInTheDocument();
   });
 
   it("displays an error message for invalid borough parameters", async () => {
     await renderHome({ borough: ["invalid-borough"] });
-    expect(screen.getByText(/Invalid borough parameter/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/isn't a borough we recognise/i),
+    ).toBeInTheDocument();
   });
 
   it("has no axe-core violations on the rendered page", async () => {

@@ -78,8 +78,14 @@ describe("<UnifiedTimeline> — citywide chart + accessible table", () => {
       .getAllByRole("columnheader")
       .map((h) => h.textContent);
 
-    expect(headers).toEqual(["Year", "Deaths", "Injuries", "Raw", "Repaired"]);
-    expect(headers).not.toContain("PDO");
+    expect(headers).toEqual([
+      "Year",
+      "Deaths",
+      "Injuries",
+      "All crashes",
+      "Injury/fatal",
+    ]);
+    expect(headers).not.toContain("Minor");
     expect(headers).not.toContain("Arrests");
   });
 
@@ -96,7 +102,7 @@ describe("<UnifiedTimeline> — citywide chart + accessible table", () => {
     withProvider(<UnifiedTimeline data={BASE_DATA} coverage={OK_COVERAGE} />);
 
     const pdoToggle = screen.getByRole("checkbox", {
-      name: /Property-damage-only, derived/,
+      name: /Minor crashes, no injuries/,
     });
     pdoToggle.click();
 
@@ -104,13 +110,13 @@ describe("<UnifiedTimeline> — citywide chart + accessible table", () => {
     const headers = within(table)
       .getAllByRole("columnheader")
       .map((h) => h.textContent);
-    expect(headers).toContain("PDO");
+    expect(headers).toContain("Minor");
   });
 
   it("selecting the pre-policy window narrows the table to 2018-2019 only", () => {
     withProvider(<UnifiedTimeline data={BASE_DATA} coverage={OK_COVERAGE} />);
 
-    screen.getByRole("radio", { name: "Pre-policy 2018–19" }).click();
+    screen.getByRole("radio", { name: "Before the change" }).click();
 
     const table = screen.getByRole("table");
     const rowGroup = within(table).getAllByRole("rowgroup")[1];
@@ -167,19 +173,24 @@ describe("<UnifiedTimeline> — borough-blocked state reads coverage from props,
 
     expect(
       screen.getByRole("heading", {
-        name: "Test Borough is not pinned in this workspace",
+        name: "We can't chart Test Borough reliably",
       }),
     ).toBeInTheDocument();
 
     // Values sourced from OK_COVERAGE (22.2 / 55.5 / 72.2) — deliberately
     // not the real 30% / 64.4% / 80.1% figures, proving these render from
-    // the prop rather than a hardcoded copy of the design mockup.
-    expect(screen.getByText(/22%/)).toBeInTheDocument();
-    expect(screen.getByText(/55\.5%/)).toBeInTheDocument();
-    expect(screen.getByText(/72\.2%/)).toBeInTheDocument();
+    // the prop rather than a hardcoded copy of the design mockup. Asserted
+    // against the whole paragraph's text, since the numbers are interpolated
+    // mid-sentence and each lands in its own text node.
+    const explainer = screen.getByRole("heading", {
+      name: "We can't chart Test Borough reliably",
+    }).nextElementSibling as HTMLElement;
+    expect(explainer.textContent).toMatch(/22%/);
+    expect(explainer.textContent).toMatch(/55\.5%/);
+    expect(explainer.textContent).toMatch(/72\.2%/);
   });
 
-  it("links to the integrity audit and renders no chart/table while blocked", () => {
+  it("links to the data quality notes and renders no chart/table while blocked", () => {
     withProvider(
       <UnifiedTimeline
         data={BASE_DATA}
@@ -188,7 +199,7 @@ describe("<UnifiedTimeline> — borough-blocked state reads coverage from props,
       />,
     );
 
-    const link = screen.getByRole("link", { name: /integrity audit/i });
+    const link = screen.getByRole("link", { name: /data quality/i });
     expect(link).toHaveAttribute("href", "/integrity");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
@@ -202,7 +213,7 @@ describe("<UnifiedTimeline> — borough-blocked state reads coverage from props,
       />,
     );
 
-    expect(screen.getByText(/not reliably populated/i)).toBeInTheDocument();
+    expect(screen.getByText(/say which borough/i)).toBeInTheDocument();
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 

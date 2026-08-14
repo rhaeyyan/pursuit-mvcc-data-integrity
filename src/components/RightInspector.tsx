@@ -19,10 +19,11 @@ export function RightInspector() {
   return (
     <aside aria-label="Inspector" className={styles.inspector}>
       <div>
-        <div className={styles.kicker}>{data?.kicker ?? "Workspace"}</div>
+        <div className={styles.kicker}>{data?.kicker ?? "Details"}</div>
         <div className={styles.title}>{data?.title ?? "—"}</div>
         <div className={styles.sub}>
-          {data?.sub ?? "Select a section to inspect its series."}
+          {data?.sub ??
+            "Pick a year or a section to see the numbers behind it."}
         </div>
       </div>
 
@@ -51,17 +52,17 @@ export function RightInspector() {
       )}
 
       <div className={styles.footer}>
-        <div className={styles.footerHeading}>Defensible line</div>
+        <div className={styles.footerHeading}>The bottom line</div>
         <p className={styles.footerText}>
           {data?.defensible ??
-            "Casualty-filtered collisions are the figure to defend — see the Integrity audit for why."}
+            "Injury and fatal crashes are the number to quote — the data quality notes explain why."}
         </p>
         <div className={styles.footerActions}>
           <Link
             href="/registry"
             className={`${workspace.btn} ${workspace.btnPrimary}`}
           >
-            Series registry
+            Where numbers come from
           </Link>
         </div>
       </div>
