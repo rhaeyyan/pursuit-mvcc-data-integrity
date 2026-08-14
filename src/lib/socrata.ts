@@ -22,7 +22,10 @@ import { z } from "zod";
 
 const BASE_URL = "https://data.cityofnewyork.us/resource/h9gi-nx95.json";
 
-const WHERE_CLAUSE =
+// The pinned 2018-2025 analysis window (mvcc-data). Exported because
+// dangerIndexFetcher.ts needs the same window: one definition, so a second
+// copy cannot silently drift out of the contract.
+export const CRASH_WINDOW_WHERE =
   "crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'";
 const GROUP_CLAUSE = "date_extract_y(crash_date)";
 const ORDER_CLAUSE = "year";
@@ -52,11 +55,11 @@ function selectClause(aggregateExpr: string, fieldAlias: string): string {
 // $where, and only by AND-ing further fragments onto the fixed window, in a
 // pinned order — window AND extraWhere AND borough. Joining rather than
 // concatenating keeps the single-space separator structural: with both
-// omitted the result is WHERE_CLAUSE itself, byte-identical to what the four
-// already-displayed FR-8 contracts render today. $group/$order stay fixed
+// omitted the result is CRASH_WINDOW_WHERE itself, byte-identical to what the
+// four already-displayed FR-8 contracts render today. $group/$order stay fixed
 // constants, untouched by either parameter.
 function whereClause(extraWhere?: string, borough?: BoroughCode): string {
-  const fragments = [WHERE_CLAUSE];
+  const fragments = [CRASH_WINDOW_WHERE];
   if (extraWhere) fragments.push(extraWhere);
   if (borough) fragments.push(crashesBoroughWhere(borough));
   return fragments.join(" AND ");
