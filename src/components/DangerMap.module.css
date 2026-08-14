@@ -1,0 +1,67 @@
+/* Leaflet sizes itself from its container: leaflet.css sets no height on
+   .leaflet-container, so an unsized parent yields a 0x0 viewport that paints
+   neither tiles nor markers. This file exists because that is exactly what
+   shipped — DangerMap.tsx was written in Tailwind utility classes (h-[600px],
+   h-full) and this project has no Tailwind, so every one of those strings
+   resolved to no rule at all. Sizing therefore has to be real CSS, and it has
+   to reach BOTH boxes: the frame below and the .leaflet-container inside it. */
+
+.mapFrame {
+  /* Leaflet's panes and controls carry z-index values in the 400-1000 range.
+     Without a local stacking context they escape this box and paint over
+     page chrome (the original code expressed this intent as `relative z-0`,
+     which did nothing). position + z-index here confines them. */
+  position: relative;
+  z-index: 0;
+
+  width: 100%;
+  height: 600px;
+
+  /* overflow: hidden is what makes the radius actually clip Leaflet's
+     square tile grid, not decoration on its own. */
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* 600px is over half the viewport on a phone and pushes the methodology and
+   the NFR-3 tabular fallback entirely below the fold. */
+@media (max-width: 640px) {
+  .mapFrame {
+    height: 420px;
+  }
+}
+
+/* react-leaflet forwards className onto the .leaflet-container div. The
+   percentage resolves against .mapFrame's definite height above — if that
+   height ever becomes auto, this silently returns to zero. */
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+.skeleton {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: skeletonPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes skeletonPulse {
+  50% {
+    opacity: 0.5;
+  }
+}

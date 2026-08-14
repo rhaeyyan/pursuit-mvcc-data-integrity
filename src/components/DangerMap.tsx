@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import type { DangerIndexRow } from "@/lib/dangerIndexFetcher";
 import "leaflet/dist/leaflet.css";
+import styles from "./DangerMap.module.css";
 
 // Dynamic import with ssr: false to prevent Next.js hydration and window-is-not-defined errors
 const DynamicMapContainer = dynamic(
@@ -24,8 +25,8 @@ const DynamicPopup = dynamic(
 
 function MapSkeleton() {
   return (
-    <div className="w-full h-full bg-slate-100 flex items-center justify-center animate-pulse">
-      <span className="text-slate-500 font-medium">Loading Map...</span>
+    <div className={styles.skeleton}>
+      <span>Loading map…</span>
     </div>
   );
 }
@@ -41,13 +42,13 @@ export default function DangerMap({ data }: DangerMapProps) {
     <div
       role="region"
       aria-label="New York City Danger Index Interactive Map"
-      className="w-full h-[600px] rounded-xl overflow-hidden shadow-sm border border-slate-200 relative z-0"
+      className={styles.mapFrame}
     >
       <DynamicMapContainer
         center={[40.7128, -74.006]}
         zoom={11}
         scrollWheelZoom={false}
-        className="w-full h-full"
+        className={styles.map}
       >
         <DynamicTileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
