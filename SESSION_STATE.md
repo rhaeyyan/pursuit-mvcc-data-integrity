@@ -56,9 +56,8 @@ wrong.
   bugs it caught, and the honesty-guardrail re-check) archived in `ARCHIVED_SESSIONS.md`,
   "2026-08-14".
 
-- **Vision Zero Shadow Ledger, Phase 1 — spec approved, ready for TDD drafting (2026-08-12).**
-  Hyper-local safety ledger search by ZIP code and Community Board, local aggregates from Socrata,
-  repaired-vs-raw trends. Not started.
+- **Vision Zero Shadow Ledger, Phase 1 — spec approved, ready for TDD drafting (2026-08-12).** Not
+  started. Local ledger search by ZIP/Community Board, Socrata aggregates, repaired-vs-raw trends.
 
 - **🔴 ROTATE TWO CREDENTIALS — `~/.bashrc` exports a GitHub PAT and a Context7 API key in
   plaintext** (found 2026-08-08; both were read into a session transcript, so rotation is the only
@@ -75,7 +74,7 @@ wrong.
   to *every* project); **removed three stale `~/.local/bin/{node,npm,npx}` symlinks → v24.13.0**
   (2026-08-08 — they shadowed nvm; **do not re-add**).
 
-- `ARCHITECTURE.md` is **deferred by decision, not pending** — see `CLAUDE.md` § Project Layout.
+- `ARCHITECTURE.md` is **deferred by decision, not pending** — `CLAUDE.md` § Project Layout.
 
 ## Context Cache
 
@@ -87,14 +86,19 @@ wrong.
 - **Platform: Node v22.23.2 / npm 10.9.8 via `nvm` at `~/.nvm`. Verify `node -v` at point of use —
   do not trust a recorded recipe.** This project has now had **three** toolchain regressions of
   the same shape (fnm vanished 2026-08-07, nvm vanished 2026-08-11, the Homebrew path
-  `/usr/local/opt/nvm/nvm.sh` vanished 2026-08-14 — that last one is why a backgrounded `next dev`
-  died with exit 127 and why `stop-quality-gate.sh` now reports `not found`). **What works:**
-  `bash -ic 'cd <repo> && npm run typecheck && npm run lint'` (interactive shell loads nvm from
-  `.bashrc`; prints two harmless `no job control` / `terminal process group` lines on stderr —
-  filter them). A non-interactive `bash -c` inherits no Node at all. For one-offs,
-  `export PATH="$HOME/.nvm/versions/node/v22.23.2/bin:$PATH"`. `stop-quality-gate.sh` sources no
-  nvm **by design** and refuses to certify an unconfirmable platform — that strictness is the
-  feature; don't "fix" the hook.
+  `/usr/local/opt/nvm/nvm.sh` vanished 2026-08-14, killing a backgrounded `next dev` with exit
+  127). **What works:** `bash -ic '<cmd>'` — an interactive shell loads nvm from `.bashrc`; it
+  emits two harmless `no job control` / `terminal process group` lines on stderr, filter them. A
+  non-interactive `bash -c` inherits no Node at all; for one-offs prepend
+  `$HOME/.nvm/versions/node/v22.23.2/bin` to PATH.
+- **`stop-quality-gate.sh` now sources nvm itself (2026-08-14) — it used to have no Node at all.**
+  Hook shells are non-interactive, inherit a bare PATH and never read `.bashrc`, so the gate was
+  reporting UNVERIFIED on *every* turn regardless of workspace state. It now asks nvm to resolve
+  `.nvmrc` before checking. **Its strictness is unchanged and that is the point** — proved by
+  negative test, not assumed: with `.nvmrc` set to an uninstalled `18` it still exits 2 rather than
+  falling back to the v22 sitting right there. Resolving via `.nvmrc` (not a pinned bin path in
+  `settings.json`) is deliberate — a hardcoded path would rot on the next `nvm install`, which is
+  the exact shape of all three regressions above.
 - **Current verified baseline (2026-08-14, Node v22.23.2): vitest 601/601 in 39 files,
   `tsc --noEmit` clean, `eslint .` clean.** (Was 599/599 in 38 on 2026-08-13; the delta is the
   pre-existing `dangerIndexFetcher.test.ts`.)

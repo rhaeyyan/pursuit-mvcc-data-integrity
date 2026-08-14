@@ -31,6 +31,34 @@ fi
 proj="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "$proj" || exit 0
 
+# Hook shells are not interactive: they inherit a bare PATH
+# (/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin), never read
+# ~/.bashrc, and therefore have no nvm and no node at all. Without this block
+# `node -v` below is unconditionally "not found", so the platform check reports
+# UNVERIFIED on every single turn even when the workspace is spotless -- and a
+# gate that always blocks is a gate nobody can read a signal from.
+#
+# This deliberately does NOT relax the check below. nvm is asked for the version
+# .nvmrc names; if nvm is absent, or that exact version is not installed, PATH is
+# left untouched, `node -v` still comes back "not found", and the mismatch branch
+# fires exactly as before. Making a version manager reachable is not the same as
+# trusting whatever it hands back -- the comparison against .nvmrc still decides.
+#
+# Asking nvm to resolve .nvmrc (rather than hardcoding a bin path in settings)
+# is what keeps this from rotting on the next `nvm install`: this project has
+# already had three toolchain regressions of exactly that shape.
+#
+# `set +u` around the source is required -- nvm.sh dereferences unset variables
+# and would abort this hook under `set -u`.
+export NVM_DIR="${NVM_DIR:-${HOME:-/nonexistent}/.nvm}"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  set +u
+  # shellcheck disable=SC1091
+  . "$NVM_DIR/nvm.sh" --no-use >/dev/null 2>&1
+  [ -f .nvmrc ] && nvm use >/dev/null 2>&1
+  set -u
+fi
+
 # Locate the app root: repo root, or a single obvious subdirectory.
 appdir=""
 for candidate in . app web frontend; do
@@ -65,9 +93,13 @@ if [ -f .nvmrc ]; then
 Platform mismatch — the quality gate result is UNVERIFIED, not clean.
   .nvmrc expects: Node v${want}.x
   actually running: ${have_full}
-This shell inherited the system Node rather than the version manager's, so the
-checks would report on a platform this project does not target.
-Re-enter through a fresh interactive shell and retry, e.g.:
+This hook already tried to load nvm and select .nvmrc's version, so this is not
+merely an unsourced shell. Either nvm is not installed where NVM_DIR points
+(${NVM_DIR}), or Node v${want}.x is not installed under it, or something ahead
+of it on PATH is shadowing the selection. Running the checks anyway would report
+on a platform this project does not target.
+  installed versions: $(nvm ls --no-colors 2>/dev/null | tr -d ' ' | tr '\n' ' ' || echo "nvm unavailable")
+Fix the platform, or re-enter through a fresh interactive shell and retry, e.g.:
   fish -i -c 'cd ${proj}; and npm run typecheck; and npm run lint'
   bash -ic 'cd ${proj} && npm run typecheck && npm run lint'
 EOF
