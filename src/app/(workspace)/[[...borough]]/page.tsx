@@ -40,20 +40,48 @@
 // src/lib/boroughs.ts's `parseBoroughParam`, unmodified (this task's Query
 // section keeps that file out of scope).
 
-import { BoroughPicker } from "../../components/BoroughPicker";
-import { CachedDataBanner } from "../../components/CachedDataBanner";
+import { BoroughPicker } from "@/components/BoroughPicker";
+import { CachedDataBanner } from "@/components/CachedDataBanner";
+import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 
-import { UnifiedTimeline } from "../../components/UnifiedTimeline";
-import { fetchArrestsPerYear } from "../../lib/arrests";
-import { BOROUGH_CODES, BOROUGHS, parseBoroughParam } from "../../lib/boroughs";
-import { fetchCollisionsPerYear } from "../../lib/collisions";
-import { fetchDeathsPerYear } from "../../lib/deaths";
-import { withFallback } from "../../lib/fallback";
-import deathsFixtureData from "../../lib/fixtures/deaths-fallback.json";
-import { fetchInjuriesPerYear } from "../../lib/injuries";
-import { fetchRepairedCollisionsPerYear } from "../../lib/repairedCollisions";
+import {
+  UnifiedTimeline,
+  type CoverageInfo,
+} from "@/components/UnifiedTimeline";
+import { fetchArrestsPerYear } from "@/lib/arrests";
+import { fetchCoverageData } from "@/lib/arrestsCoverage";
+import { BOROUGH_CODES, BOROUGHS, parseBoroughParam } from "@/lib/boroughs";
+import { fetchCollisionsPerYear } from "@/lib/collisions";
+import { fetchDeathsPerYear } from "@/lib/deaths";
+import { withFallback } from "@/lib/fallback";
+import deathsFixtureData from "@/lib/fixtures/deaths-fallback.json";
+import { fetchInjuriesPerYear } from "@/lib/injuries";
+import { fetchRepairedCollisionsPerYear } from "@/lib/repairedCollisions";
 
-import styles from "../page.module.css";
+import workspaceStyles from "@/app/(workspace)/workspace.module.css";
+
+// Citywide dataset-coverage rates (used for the borough-blocked explainer)
+// aren't borough-specific, so this fetch runs alongside the per-borough
+// series fetches rather than depending on them.
+function toCoverageInfo(
+  result: Awaited<ReturnType<typeof fetchCoverageData>>,
+): CoverageInfo {
+  const collisions =
+    result.status === "ok" || result.status === "partial"
+      ? result.collisions
+      : undefined;
+  if (!collisions || collisions.yearly.length === 0) {
+    return { status: "unavailable" };
+  }
+  const first = collisions.yearly[0];
+  const last = collisions.yearly[collisions.yearly.length - 1];
+  return {
+    status: "ok",
+    unpopulatedSharePercent: collisions.windowUnpopulatedSharePercent,
+    firstYear: { year: first.year, ratePercent: first.coverageRatePercent },
+    lastYear: { year: last.year, ratePercent: last.coverageRatePercent },
+  };
+}
 
 // NFR-1: the closed, six-member set (citywide + five boroughs) enumerated at
 // build time so every variant is prerendered and CDN-cacheable. Mirrors
@@ -95,12 +123,14 @@ export default async function Home({
     collisionsResult,
     repairedResult,
     arrestsResult,
+    coverageResult,
   ] = await Promise.all([
     fetchDeathsPerYear(activeCode),
     fetchInjuriesPerYear(activeCode),
     fetchCollisionsPerYear(activeCode),
     fetchRepairedCollisionsPerYear(activeCode),
     fetchArrestsPerYear(activeCode),
+    fetchCoverageData(),
   ]);
 
   // PRD §7 risk mitigation: substitute the committed fixture only when the
@@ -114,35 +144,36 @@ export default async function Home({
     activeCode === undefined ? deathsFixtureData : undefined,
   );
 
-  return (
-    <main className={styles.main}>
-      <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>
-            One timeline, five series, one honest scale
-          </h1>
-          <p className={styles.intro}>
-            {boroughParam.status === "ok"
-              ? ` (${BOROUGHS[boroughParam.code].label}) `
-              : ""}
-            Reported collisions, injuries, and deaths move very differently over
-            this period. By indexing them to 2018 baselines, we can see how they
-            diverge across the policy changes of 2019-2020.
-          </p>
-        </div>
-        <div className={styles.controls}>
-          <BoroughPicker currentBorough={activeCode ?? ""} />
-          {boroughParam.status === "invalid" && (
-            <p role="alert" className={styles.error}>
-              Invalid borough parameter: &quot;{boroughParam.received}&quot;.
-              Displaying citywide data.
-            </p>
-          )}
-        </div>
-      </header>
+  const boroughLabel =
+    boroughParam.status === "ok"
+      ? BOROUGHS[boroughParam.code].label
+      : undefined;
+  const cached = result.status === "ok" && result.source === "cache";
 
-      {result.status === "ok" && result.source === "cache" && (
-        <div style={{ marginBottom: "1rem" }}>
+  return (
+    <>
+      <WorkspaceHeader
+        dateline={`${boroughLabel ?? "Citywide"} · window 2018–2025 · ${cached ? "cached snapshot" : "live aggregate"}`}
+        caveat="Casualty-filtered repair applied · no causal claims"
+        headline="One timeline, five series, one honest scale"
+        standfirst="Collisions, injuries, deaths, the casualty-filtered repair, and enforcement on the same axis. Indexed to the first year in the window, so a large fall in a discretionary count cannot pass for a comparable improvement in safety — see the exact figures in the inspector and table below."
+      >
+        <div
+          className={workspaceStyles.field}
+          style={{ marginTop: "var(--space-3)" }}
+        >
+          <BoroughPicker currentBorough={activeCode ?? ""} />
+        </div>
+        {boroughParam.status === "invalid" && (
+          <p role="alert">
+            Invalid borough parameter: &quot;{boroughParam.received}&quot;.
+            Displaying citywide data.
+          </p>
+        )}
+      </WorkspaceHeader>
+
+      {cached && result.status === "ok" && (
+        <div style={{ marginTop: "calc(-1 * var(--space-3))" }}>
           <CachedDataBanner asOf={result.asOf} />
         </div>
       )}
@@ -155,7 +186,9 @@ export default async function Home({
           repaired: repairedResult,
           arrests: arrestsResult,
         }}
+        boroughLabel={boroughLabel}
+        coverage={toCoverageInfo(coverageResult)}
       />
-    </main>
+    </>
   );
 }

@@ -29,16 +29,14 @@ export function BoroughPicker({ currentBorough }: BoroughPickerProps) {
   };
 
   return (
-    <nav aria-label="Borough filter" className={styles.nav}>
-      <label htmlFor="borough-select" className={styles.label}>
-        Borough:
-      </label>
+    <nav aria-label="Borough filter" className={styles.field}>
+      <label htmlFor="borough-select">Borough</label>
       <select
         id="borough-select"
         aria-label="Select NYC Borough"
         value={currentBorough ?? ""}
         onChange={handleChange}
-        className={styles.select}
+        className={styles.input}
       >
         <option value="">All NYC Boroughs (Citywide)</option>
         {BOROUGH_CODES.map((code) => (

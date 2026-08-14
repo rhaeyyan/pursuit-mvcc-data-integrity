@@ -1,0 +1,46 @@
+.header {
+  display: flex;
+  flex-direction: column;
+}
+
+.ruleThick {
+  height: 3px;
+  background: var(--color-text);
+}
+
+.ruleThin {
+  height: 1px;
+  background: var(--color-text);
+}
+
+.metaRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
+
+.dateline,
+.caveat {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.caveat {
+  color: var(--color-neutral-600);
+}
+
+.headline {
+  font-size: 38px;
+  margin: var(--space-4) 0 var(--space-2);
+  max-width: 22ch;
+}
+
+.standfirst {
+  max-width: 74ch;
+  font-size: 16px;
+  margin: 0;
+  color: var(--color-neutral-700);
+}

@@ -1,11 +1,61 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Vision Zero Shadow Ledger, Phase 1 (Local ZIP & CB Search Engine) — specification approved 2026-08-12.
+**Current objective:** MVCC Workspace redesign implemented (2026-08-13) — Vision Zero Shadow Ledger, Phase 1 (spec approved 2026-08-12) is queued behind it, not started.
 
 ## Active
 
+- **MVCC Workspace redesign — implemented and gate-clean, uncommitted (2026-08-13).** User
+  imported a Design Composer mockup ("MVCC Workspace.dc.html", project "Enterprise
+  visualization redesign") via the Design MCP and asked for it built as the real UI/UX layer.
+  Plan approved and executed in 6 phases; full plan (architecture decisions, exact
+  number-sourcing per view) archived at the end of this entry rather than re-derived — see
+  `ARCHIVED_SESSIONS.md` once this entry rolls off, or the session transcript in the meantime.
+  - Route group `src/app/(workspace)/` now wraps `/`, `/integrity`, `/registry` in a persistent
+    3-column shell (`LeftNav` / routed content / `RightInspector`), all Broadsheet-editorial
+    tokens scoped to `(workspace)/workspace.module.css` — `globals.css`'s existing tokens are
+    untouched (still load-bearing for `/local`, `/tdi`, `/auditor`, `KPIRow`, `MetricSection`,
+    etc.). `src/context/WorkspaceInspectorContext.tsx` bridges the shared right-inspector panel
+    to whichever routed page is active (Observer pattern — genuine variance per Rule 8).
+  - **The old `[[...borough]]/`, `integrity/`, `registry/` route folders moved into the group**
+    (`git mv`, not delete+recreate — history preserved). Imports in moved files switched to the
+    `@/*` alias; `vitest.config.mts` gained a matching `resolve.alias` (Vitest doesn't honor
+    `tsconfig.json` paths on its own — Next's bundler does, Vite doesn't).
+  - `src/lib/derived.ts` (new pure helpers: `pdo()`, `valueAtYear()`) and
+    `src/lib/seriesConfig.ts` (new: the single shared definition of all 6 series' metadata —
+    label/ink/dash/badge/note — plus `rawValueForYear`/`deltaLabel`/`defensibleLine`/
+    `allSeriesInspectorItems`, reused verbatim by `UnifiedTimeline`, `IntegrityAudit`, and
+    `SeriesRegistry` so the three views can't drift). `IntegrityAudit`/`SeriesRegistry` now
+    receive real fetched data as props from async server `page.tsx` files (previously both were
+    fully static/hardcoded — an undetected NFR-4 gap the guard hook's literal-list check
+    couldn't catch; fixed as a side effect of wiring real data through, confirmed live: the
+    borough-blocked coverage message showed 33%/64.4%/80.1% on a live requery, not the mockup's
+    illustrative ~30%, and the SI-pilot section's live numbers (514/217/6,171/2.68×) matched the
+    mockup's placeholder prose almost exactly — real data, not a copy).
+  - **Recurring gotcha, worth flagging for next session:** any component calling
+    `useInspectorSync`/`useWorkspaceInspector` becomes a Context consumer via `useContext`
+    *regardless of which field it destructures* — pushing an unmemoized plain object on every
+    render causes an infinite re-render loop (hung a `vitest run` once, ~30s+, had to `pkill`).
+    Fix is `useMemo` with a dependency array of primitives/stable references, never
+    `JSON.stringify(...)` in the deps (ESLint `react-hooks` rejects non-simple-expression deps
+    anyway). All four call sites (`UnifiedTimeline`, `IntegrityAudit`, `SeriesRegistry`) now do
+    this correctly — if a fifth caller is added, copy the pattern, don't rediscover the bug.
+  - **Verified via `mcp__Claude_Browser__*` against a local `next dev`** (this sandbox's earlier
+    "no working browser" limitation was Playwright/Chromium-specific — the Browser pane tool
+    works fine): all three routes, the borough-blocked state, live SoQL disclosure expansion,
+    and hover/table-row → inspector sync all confirmed working with real Socrata data. One
+    Browser-pane screenshot-capture glitch encountered (blank gap after scroll) — confirmed via
+    direct `getBoundingClientRect()` that the actual DOM/CSS was pixel-correct; a tool rendering
+    artifact, not a product bug.
+  - **Baseline after this work: 599/599 vitest passing (up from 570), `tsc --noEmit` clean,
+    `eslint .` clean.** `.claude/launch.json` added (was missing) so `mcp__Claude_Browser__preview_start`
+    can drive `next dev` — `{"name":"mvcc-dev","runtimeExecutable":"npm","runtimeArgs":["run","dev"],"port":3000}`.
+  - **Not committed.** Working tree also still carries the pre-existing, unrelated
+    `globals.css`/`layout.tsx` light-theme-revert diff noted at the top of this session — left
+    untouched throughout (out of scope, doesn't conflict with the new work since the new tokens
+    are scoped to `(workspace)/workspace.module.css`, not `globals.css`).
+
 - **Vision Zero Shadow Ledger, Phase 1 — Spec approved, ready for TDD drafting (2026-08-12).**
-  The next sprint focus is implementing the hyper-local safety ledger search by ZIP code and Community Board, fetching local aggregates from the Socrata endpoint, and rendering the repaired versus raw trends.
+  The next sprint focus is implementing the hyper-local safety ledger search by ZIP code and Community Board, fetching local aggregates from the Socrata endpoint, and rendering the repaired versus raw trends. Queued behind the workspace redesign above — not started this session.
 
 - **Deployed and live-verified:** <https://pursuit-mvcc-data-integrity.vercel.app/> — root dir
   `./`, Vercel defaults, `SOCRATA_APP_TOKEN` set server-side only. NFR-2 confirmed clean (no token

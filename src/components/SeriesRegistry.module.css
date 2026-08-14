@@ -1,54 +1,101 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-6);
+  max-width: 90ch;
 }
 
-.tableWrapper {
-  overflow-x: auto;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.table th,
-.table td {
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  vertical-align: top;
-}
-
-.table th {
-  background: rgba(0, 0, 0, 0.2);
-  color: var(--color-text-heading);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.table tr:last-child td {
-  border-bottom: none;
-}
-
-.codeBlock {
-  background: rgba(0, 0, 0, 0.3);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  color: var(--color-text);
+.intro {
+  font-size: 15px;
+  color: var(--color-neutral-700);
+  max-width: 70ch;
   margin: 0;
+}
+
+.entry {
+  border-top: 1px solid var(--color-divider);
+  padding-top: var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: var(--space-4);
+}
+
+.entryHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 22px;
+  height: 0;
+  border-top-width: 2px;
+  display: inline-block;
+}
+
+.entryLabel {
+  font-size: 21px;
+  margin: 0;
+}
+
+.entryNote {
+  font-size: 14px;
+  color: var(--color-neutral-700);
+  margin: var(--space-2) 0 0;
+  max-width: 62ch;
+}
+
+.details {
+  margin-top: var(--space-2);
+}
+
+.summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-heading);
+  color: var(--color-accent-700);
+}
+
+.soql {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-word;
-  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.metricName {
-  font-weight: 600;
-  color: var(--color-text-heading);
-  font-size: 1rem;
+.meta {
+  margin: 0;
+  font-size: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px var(--space-2);
+  align-content: start;
+  color: var(--color-neutral-700);
+}
+
+.metaLabel {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.metaValue {
+  margin: 0;
+}
+
+.footnote {
+  font-size: 12px;
+  color: var(--color-neutral-600);
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .entry {
+    grid-template-columns: 1fr;
+  }
 }
