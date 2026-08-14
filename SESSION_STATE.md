@@ -1,60 +1,49 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Danger-index map — height bug fixed and shipped (`bf930b1`). The two data
-defects underneath it are open and need Cedar; until they land, the map renders a ranking that is
-wrong.
+**Current objective:** Navigation reachability + borough-control removal + danger-index
+correctness. Seven tasks in three waves, all specced and human-approved in `SPEC.md` (2026-08-14).
 
 ## Active
 
-- **Danger-index height fix — DONE, committed `bf930b1`, pushed to `origin/main` (2026-08-14).**
-  New `src/components/DangerMap.module.css`; `DangerMap.tsx` rewired to it at three elements (the
-  frame, the `MapContainer` className, the loading skeleton). CSS Modules, not the Tailwind the
-  file was written in — repo convention.
-  - **Root cause: the map container was 0 px tall.** `DangerMap.tsx`, `danger-index/page.tsx`, and
-    `danger-index/error.tsx` are the *only* three files in `src/` written in Tailwind utility
-    classes — **and Tailwind is not installed** (no dep, no config, no PostCSS, no `@tailwind` in
-    `globals.css`). Proven, not inferred: the two stylesheets actually served contained **zero**
-    matches for `.w-full` / `.h-full` / `.h-[600px]`, and `leaflet.css` sets no height on
-    `.leaflet-container` — Leaflet requires the author to size it. Outer div → `height: auto`; its
-    only child was `ssr:false` dynamic (0 `leaflet-container` in the SSR HTML). Leaflet initialised
-    into a 0×0 viewport and painted neither tiles nor markers.
-  - **Verified end-to-end against a live dev server, not assumed:** the served chunk now carries
-    `.mapFrame { height: 600px }` and `.map { height: 100% }`; SSR HTML shows
-    `class="DangerMap-module__…__mapFrame"` with zero remaining `h-[600px]`; and
-    `react-leaflet@5`'s `MapContainer.js` was read to confirm it forwards `className` onto the
-    `.leaflet-container` div, which is what makes the 100% resolve. Gate: **tsc clean, eslint
-    clean, vitest 601/601 in 39 files, Node v22.23.2.**
-  - **Trap for whoever touches this next:** `.map`'s `height: 100%` is load-bearing on `.mapFrame`
-    keeping a *definite* height. If that becomes `auto`, Leaflet silently returns to 0×0 — same
-    failure, no error anywhere.
-  - **Left alone deliberately:** `page.tsx` and `error.tsx` are still inert Tailwind. Harmless for
-    rendering now, but unstyled; restyling them is a Magnolia-shaped job, not "fix the height".
+- **🟡 IN FLIGHT — the `SPEC.md` seven-task plan (2026-08-14).** Origin: the map shipped last
+  session was **unreachable**, and the borough dropdown on The chart had exactly one outcome — a
+  refusal — for all five options.
+  - **What was broken:** `GlobalNav.tsx` was the only file linking to the four orphan routes and
+    **nothing imported it**; all four also sat outside `(workspace)`, so they rendered with no nav
+    and no way back — each with a passing test suite. `UnifiedTimeline.tsx:150`'s
+    `boroughBlocked = Boolean(boroughLabel)` is unconditional, so every borough choice hit the
+    refusal panel. Full diagnosis, the four human decisions, and the wave table are in `SPEC.md` —
+    read that, not a second copy here.
+  - **The one thing not to lose:** **T6 adds the `/danger-index` link and T5 must land first.** The
+    map being unreachable is what currently protects users from a wrong ranking.
 
-- **🔴 Danger-index: two data defects OPEN — needs Cedar, not a quick fix.** Both change what a
-  displayed number *means*, so the CLAUDE.md Rule-2 carve-out applies however small the diff.
-  Fixing the height made a **visibly incorrect ranking visible**, so these are now urgent.
-  - (a) **No analysis-window filter.** `dangerIndexFetcher.ts` filters on coordinates only, so it
-    aggregates the dataset's full **2012-07-01 → 2026-06-11** span (verified live) against a window
-    pinned at 2018–2025. Top location reads **887 unwindowed vs 476 windowed** — every figure on
-    that page is ~1.9× its in-contract value and non-comparable with every other number in the
-    product. A `$where` clause is a contract (Rule 4).
-  - (b) **`$group=latitude, longitude` on raw floats splits single intersections.**
-    `40.696033,-73.98453` (712) and `40.6960346,-73.9845292` (587) are the same point ~18 cm apart.
-    Summed = **1,299**, which outranks the 887 currently ranked #1 — so the "Rank" column and the
-    "pinpoint high-risk locations" copy are both wrong as rendered. Persists inside the window too.
-  - **Why the Cypress audit passed anyway:** `__tests__/dangerIndexFetcher.test.ts` mocks
-    `global.fetch` and asserts only `$limit`/`$order` plus the parse. **Nothing renders `DangerMap`
-    or the page**, so no test covers the height, the window, or the grouping.
-  - The three danger-index commits (`64527f2`/`3292011`/`2a144a8`, 2026-08-13) reached `main` with
-    **no ledger entry at all** — this is the first record of them.
+- **✅ WAVE 1 COMPLETE — T1 · T3 · T5 all done, ALL UNCOMMITTED.** Independently re-verified by the
+  main session: **609/609 in 38 files**, `tsc` clean, `eslint` clean, Node v22.23.2. T1 = 11
+  `git mv` renames into `(workspace)` + 18 module-path rewrites, `next build` clean with six
+  borough paths still static. T5 = both defects fixed, verified live by curling the URL
+  reconstructed from the module's own exported `DANGER_INDEX_SOQL` (200, 1,000 rows, 589/478/476).
+  T3 = picker + trio deleted, −12 lines / 0 added. **Count moved 618 → 609 in 38, and that is
+  correct:** deleting `BoroughPicker.test.tsx` retired 13 tests (621 green + 1 fixed − 13 = 609).
+  Redwood measured that file in isolation rather than accepting my impossible 622/39 target.
+  **Next: commit wave 1 (branch first — we are on `main`), then wave 2 sequentially.**
+  - **Process error, do not repeat:** T1 and T5 were dispatched in parallel into the *same* tree
+    instead of isolated worktrees (Rule 5), which contaminated T1's test count. Banyan caught it,
+    remeasured in a detached worktree at pristine `HEAD`, and reconciled. Parallel builder tasks
+    need worktrees or they need to be sequential — wave 2 has real overlap (`LeftNav.tsx` is
+    touched by both T2a and T6), so sequence it.
 
-- **Plain-English copy pass — DONE and COMMITTED as `699d998` ("refactor: simplify terminology
-  across components"), 2026-08-13.** *This entry read "UNCOMMITTED, NEXT STEP: commit it" until
-  2026-08-14, when `git status` showed a clean tree and `dashNote` was found present in HEAD —
-  the ledger had simply never been updated after the commit landed. A second reminder that
-  `SESSION_STATE.md` is episodic and the repo is the source of truth.* Reasoning (the two real
-  bugs it caught, and the honesty-guardrail re-check) archived in `ARCHIVED_SESSIONS.md`,
-  "2026-08-14".
+- **Danger-index data defects — FIXED by T5, uncommitted.** Diagnosis and the three rules it
+  yielded (a pinned SoQL is a hypothesis until curled; "mounts without throwing" is not a
+  behavioural test; `z.coerce.number()` is trap 1 in Zod syntax) archived in
+  `ARCHIVED_SESSIONS.md`, "2026-08-14 — The two danger-index data defects". **Correct ranking is
+  589 / 478 / 476** — the ledger's old "887" and "1,299" were wrong and are gone.
+
+- **Seven out-of-scope follow-ups are enumerated in `SPEC.md`'s closing section** — read there, not
+  a second copy here. The one with teeth: **`src/lib/tdi.ts` filters `borough IS NOT NULL`**, wrong
+  on this dataset (unpopulated rows arrive as an *absent key*; `borough IN (...)` is the verified
+  form). T2b attaches FR-7's warning to `/tdi` but must **not** touch the filter — that changes
+  what the ranking means, so it is a Cedar `[SPEC]` under the Rule-2 carve-out. Also owed: a PRD
+  v1.3 note for T3 partially retiring FR-6 [P1].
 
 - **Vision Zero Shadow Ledger, Phase 1 — spec approved, ready for TDD drafting (2026-08-12).** Not
   started. Local ledger search by ZIP/Community Board, Socrata aggregates, repaired-vs-raw trends.
@@ -70,9 +59,8 @@ wrong.
   identifier in any client chunk) as of the 2026-08-11 redeploy.
 
 - **Machine changes outside the repo, needing re-doing elsewhere:** `nvm install 22` (2026-08-07);
-  `permissions.defaultMode: "auto"` in `~/.claude/settings.json` (2026-08-08, user-scope — applies
-  to *every* project); **removed three stale `~/.local/bin/{node,npm,npx}` symlinks → v24.13.0**
-  (2026-08-08 — they shadowed nvm; **do not re-add**).
+  **removed three stale `~/.local/bin/{node,npm,npx}` symlinks → v24.13.0** (2026-08-08 — they
+  shadowed nvm; **do not re-add**).
 
 - `ARCHITECTURE.md` is **deferred by decision, not pending** — `CLAUDE.md` § Project Layout.
 
@@ -84,24 +72,24 @@ wrong.
 - Every pinned figure in PRD Appendix A was **re-verified live on 2026-08-04** via
   `.claude/scripts/verify-figures.py`: all 32 values across four series matched exactly.
 - **Platform: Node v22.23.2 / npm 10.9.8 via `nvm` at `~/.nvm`. Verify `node -v` at point of use —
-  do not trust a recorded recipe.** This project has now had **three** toolchain regressions of
-  the same shape (fnm vanished 2026-08-07, nvm vanished 2026-08-11, the Homebrew path
-  `/usr/local/opt/nvm/nvm.sh` vanished 2026-08-14, killing a backgrounded `next dev` with exit
-  127). **What works:** `bash -ic '<cmd>'` — an interactive shell loads nvm from `.bashrc`; it
-  emits two harmless `no job control` / `terminal process group` lines on stderr, filter them. A
-  non-interactive `bash -c` inherits no Node at all; for one-offs prepend
-  `$HOME/.nvm/versions/node/v22.23.2/bin` to PATH.
-- **`stop-quality-gate.sh` now sources nvm itself (2026-08-14) — it used to have no Node at all.**
-  Hook shells are non-interactive, inherit a bare PATH and never read `.bashrc`, so the gate was
-  reporting UNVERIFIED on *every* turn regardless of workspace state. It now asks nvm to resolve
-  `.nvmrc` before checking. **Its strictness is unchanged and that is the point** — proved by
-  negative test, not assumed: with `.nvmrc` set to an uninstalled `18` it still exits 2 rather than
-  falling back to the v22 sitting right there. Resolving via `.nvmrc` (not a pinned bin path in
-  `settings.json`) is deliberate — a hardcoded path would rot on the next `nvm install`, which is
-  the exact shape of all three regressions above.
-- **Current verified baseline (2026-08-14, Node v22.23.2): vitest 601/601 in 39 files,
-  `tsc --noEmit` clean, `eslint .` clean.** (Was 599/599 in 38 on 2026-08-13; the delta is the
-  pre-existing `dangerIndexFetcher.test.ts`.)
+  do not trust a recorded recipe.** **Four** toolchain regressions of the same shape so far (fnm
+  vanished 2026-08-07; nvm vanished 2026-08-11; the Homebrew path `/usr/local/opt/nvm/nvm.sh`
+  vanished 2026-08-14; `post-edit-lint.sh` had no Node at all until 2026-08-14). **What works:**
+  `bash -ic '<cmd>'` — an interactive shell loads nvm from `.bashrc`; it emits two harmless
+  `no job control` / `terminal process group` lines on stderr, filter them. A non-interactive
+  `bash -c` inherits no Node; for one-offs prepend `$HOME/.nvm/versions/node/v22.23.2/bin` to PATH.
+- **Both `stop-quality-gate.sh` and `post-edit-lint.sh` now source nvm themselves** (2026-08-14).
+  Hook shells are non-interactive, inherit a bare PATH and never read `.bashrc`. The gate was
+  reporting UNVERIFIED every turn; the lint hook was worse — `node_modules/.bin/eslint` has a
+  `#!/usr/bin/env node` shebang, so it died at exec and the hook reported that **interpreter
+  failure as an unfixable lint violation**, exit 2. Agents then hunted a nonexistent error. Both
+  now resolve through nvm/`.nvmrc` — never a hardcoded bin path, which is precisely what rots — and
+  the lint hook exits 0 with an honest environment message when Node is genuinely absent rather
+  than blocking. **Strictness is unchanged, proved by negative test:** with `.nvmrc` set to an
+  uninstalled `18` the gate still exits 2 rather than falling back to the v22 sitting right there.
+- **Verified baseline: vitest 618/618 in 39 files, `tsc --noEmit` clean, `eslint .` clean**
+  (2026-08-14, Node v22.23.2, working tree with T1+T5 applied). Was 601/601 in 39 at `HEAD`
+  (`f260705`); T5 traded a 2-test root file for a 19-test sibling.
 - **`node_modules/` wiping is a recurring pattern (2 occurrences), not a one-off.** Recovery:
   `nvm use` → `npm ci` → `npx next typegen` → gates. Typegen is non-optional (`layout.tsx` uses
   Next 16's generated `LayoutProps<"/">`; a wiped `.next/` fails `tsc` with a misleading
@@ -119,6 +107,18 @@ wrong.
   (d) **`B`=Bronx re-confirmed by live row count** (Q1 2019 `arrest_boro`: `K` 15,809 > `B` 13,410).
 - **Handoff schemas live only in the `handoff-schemas` skill** — load before any dispatch; no agent
   file defines those fields. **`github`'s MCP is off on a fault, not disuse** (run `/mcp`).
+- **🔴 Never write `$` + a digit in a skill file.** The Skill tool substitutes the caller's
+  arguments into `$<digit>` at load time, so `.claude/skills/mvcc-data/SKILL.md`'s pinned
+  `$1,000` MV-104 damage threshold was reaching agents as `<argument>,000`. Found by Cypress,
+  **reproduced deliberately 2026-08-14** by invoking the skill with a marker argument. Fixed to
+  `USD 1,000` in both the live copy and the `skills/` master (a live-only fix would return on the
+  next re-copy). SoQL `$select`/`$where`/`$limit` are unaffected — only `$<digit>` is at risk. This
+  is a Rule-1 violation delivered by the toolchain rather than by a model: a pinned figure in the
+  dataset contract, silently rewritten. Check any new skill prose for the pattern.
+- **Moving a test file? `vi.mock("../../lib/x")` is a module specifier like any other.** T1's
+  rehearsal scanned for `../../` in *any* syntax rather than just `import … from` and caught three
+  the naive grep misses. Left unrewritten they resolve to nothing, `vi.mock` silently no-ops, and
+  the page tests run against the **real Socrata fetchers** — green, while hitting the network.
 - **Styling is CSS Modules**, not Tailwind — chosen on reversibility, not taste. Tailwind is two
   dev deps and a PostCSS config to add later; removing it means unwinding class attributes across
   every component. **The danger-index files violated this and rendered nothing** (see Active) —

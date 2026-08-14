@@ -1397,3 +1397,88 @@ Built the imported Design Composer mockup ("MVCC Workspace.dc.html") as the real
   `Rayan Khan <rayan@macbookpro.mynetworksettings.com>` (hostname-derived) because no global
   git identity is set on this machine. User was offered an amend + force-push and chose to
   leave it. Set the identity before the next commit rather than rewriting published history.
+
+## 2026-08-14 — Danger-index height fix closed; the reachability defect it exposed
+
+**Closed and committed (`bf930b1`).** New `src/components/DangerMap.module.css`; `DangerMap.tsx`
+rewired at three elements (frame, `MapContainer` className, loading skeleton).
+
+**Root cause worth keeping: the map container was 0 px tall.** `DangerMap.tsx`,
+`danger-index/page.tsx`, and `danger-index/error.tsx` were the only three files in `src/` written
+in Tailwind utility classes — **and Tailwind is not installed** (no dep, no config, no PostCSS, no
+`@tailwind` in `globals.css`). Proven, not inferred: the two stylesheets actually served contained
+zero matches for `.w-full` / `.h-full` / `.h-[600px]`, and `leaflet.css` sets no height on
+`.leaflet-container` — Leaflet requires the author to size it. Outer div → `height: auto`; its only
+child was `ssr:false` dynamic. Leaflet initialised into a 0×0 viewport and painted nothing.
+
+**The trap that survives the fix:** `.map`'s `height: 100%` is load-bearing on `.mapFrame` keeping
+a *definite* height. If that becomes `auto`, Leaflet silently returns to 0×0 — same failure, no
+error anywhere.
+
+**Why this mattered more than it looked.** Fixing the height made a *visibly incorrect ranking
+visible*, which is what surfaced the two data defects (no window filter, float-splitting `$group`).
+And the follow-up question — "how would a user even reach this?" — surfaced that
+`src/components/GlobalNav.tsx` was the only file linking to `/danger-index`, `/local`, `/tdi`, and
+`/auditor`, and that **nothing imported GlobalNav**. Four routes had been unreachable from inside
+the product for weeks, each with a passing test suite. The lesson generalises past this bug: a
+green test on an unrendered component conceals that it is unrendered, which is why the 2026-08-14
+plan deletes `GlobalNav` and `BoroughPicker` outright rather than leaving them green.
+
+**Left alone deliberately at the time:** `page.tsx` and `error.tsx` stayed inert Tailwind —
+harmless for rendering, but unstyled. Now scoped as T6.
+
+## 2026-08-14 — Plain-English copy pass closed
+
+Committed as `699d998` ("refactor: simplify terminology across components"), 2026-08-13. The ledger
+entry claimed "UNCOMMITTED, NEXT STEP: commit it" until 2026-08-14, when `git status` showed a clean
+tree and `dashNote` was found in HEAD — the ledger had simply never been updated after the commit
+landed. Second recorded instance of the same failure: `SESSION_STATE.md` is episodic, the repo is
+procedural truth. Full reasoning (the two real bugs it caught, the honesty-guardrail re-check)
+already archived under the earlier "2026-08-14" entry.
+
+
+## 2026-08-14 — The two danger-index data defects: diagnosis, and what verifying them overturned
+
+Closed by T5 (see `SPEC.md`). Kept here for the reasoning, which outlives the fix.
+
+**The defects.** (a) `fetchDangerIndex()` filtered on coordinates only, with no `crash_date`
+bounds, so it aggregated the dataset's full 2012-07-01 → 2026-06-11 span against a window pinned
+at 2018–2025. (b) `$group=latitude, longitude` on raw floats split one intersection across rows —
+`40.696033,-73.98453` and `40.6960346,-73.9845292` are the same point ~18 cm apart.
+
+**What re-verification overturned, and why that matters more than the fix.** The ledger recorded
+"887 unwindowed vs 476 windowed" and a split pair summing to "1,299". Live probe on 2026-08-14
+showed the 1,299 was the *unwindowed* sum — the two defects were **compounding**, so neither
+recorded figure survived. Windowed and grid-merged, the real top three are `406960/-739846` = 589,
+`406757/-738969` = 478, `406087/-740381` = 476. The previously-rendered #1 (476) is really third.
+Both defects were real; both numbers used to describe them were wrong. This is the third recorded
+instance of a `SESSION_STATE.md` claim failing verification, and the cleanest illustration of why
+the ledger is episodic and the repo (plus a live query) is procedural truth: the entry was written
+in good faith by someone who had checked *one* defect at a time.
+
+**The trap the probe caught that the spec did not.** Cedar's first draft aliased
+`avg(latitude) AS latitude`. That shadows the source column, so `$where … latitude != 0` resolves
+to the aggregate and Socrata rejects the entire query with
+`query.soql.aggregate-in-ungrouped-context`. Alias to `lat_c`/`lon_c` and do the rename inside Zod
+instead — which also keeps `DangerMap.tsx` out of scope. **A pinned SoQL in a `[SPEC]` is a
+hypothesis until someone curls it.** `floor()` in `$select`/`$group` was confirmed working on
+`h9gi-nx95` by the same probe.
+
+**Why the original Cypress audit passed a wrong query.** `__tests__/dangerIndexFetcher.test.ts`
+stubbed `global.fetch` and asserted only `$limit`/`$order` plus the parse. Nothing rendered the
+page. So no test covered the height, the window, or the grouping — and all three shipped. The rule
+this yields: **"mounts without throwing" is not a behavioural test.** A fetcher with a wrong
+`$where` passes it, and so does a component rendering into a 0px box. Assert on the query that was
+*sent* and the shape that comes *back*.
+
+**A second Zod-shaped instance of trap 1, verified rather than assumed.** Cypress probed directly:
+`z.coerce.number().safeParse(null)` returns `{success: true, data: 0}` while `safeParse(undefined)`
+fails. So a test for an *absent* key passes against a `z.coerce.number()` implementation — only a
+test for an explicit `null` catches it. On this product that single test is the margin between a
+correct fetcher and one silently reporting a zero-collision intersection. `z.coerce.number()` is
+absent-key-as-zero wearing a Zod costume; the repo's strict pattern (`socrata.ts` `ValueSchema`,
+digits-only string + explicit transform) is the one to copy.
+
+The three danger-index commits (`64527f2`/`3292011`/`2a144a8`, 2026-08-13) had reached `main` with
+no ledger entry at all, which is how all of the above stayed invisible for a day.
+

@@ -5567,3 +5567,33 @@ Two Phase 5 risks were also retired early, since both were cheap and read-only:
 
 ---
 
+
+## 2026-08-14 — [SPEC] MVCC Enterprise Workspace: Phase 4 (QA & Test Repair) — COMPLETE
+
+Archived on completion. Verified complete before archiving, not assumed: both files it
+called for exist (`src/app/(workspace)/integrity/page.test.tsx`,
+`src/app/(workspace)/registry/page.test.tsx`) and the suite is green at 601/601 in 39 files,
+`tsc --noEmit` clean, Node v22.23.2.
+
+**Why it existed:** the 3-column Enterprise Workspace refactor and the consolidation of the
+charts into `UnifiedTimeline.tsx` invalidated the legacy assertions in
+`[[...borough]]/page.test.tsx` — the page had stopped mounting `MetricSection`,
+`CoverageWarning`, `Caveats`, and `StatenIslandPilotPanel`, and now mounted `UnifiedTimeline`
+with the resolved data passed down.
+
+**The reasoning worth keeping:** its `[FORCES]` block chose black-box testing over
+implementation coverage — "do not mock internal Recharts implementation details; test what the
+user sees (or just that it mounts successfully and passes a11y checks)." That choice is why
+`UnifiedTimeline.test.tsx:164-230` characterizes the borough refusal panel *behaviourally*, and
+so why the 2026-08-14 borough-picker removal (T3 below) could delete the control while proving
+the refusal state still renders for a direct URL hit.
+
+**The limit of that choice, learned later the hard way:** "mounts successfully and passes axe"
+is satisfiable by a component rendering into a 0px box, and by a fetcher whose query is wrong.
+Both happened. The danger-index height bug and both danger-index data defects shipped through
+a passing audit because no test rendered the page and no test asserted the `$where`/`$group`
+text. Behavioural > implementation testing stands; "mounts without throwing" is not a
+behavioural test.
+
+---
+
