@@ -1,7 +1,7 @@
 /*
  * Scoped Broadsheet design tokens for the MVCC Workspace (Timeline / Integrity
  * audit / Series registry) only. Deliberately does NOT touch globals.css's
- * :root tokens -- KPIRow, MetricSection, CachedDataBanner, BoroughPicker,
+ * :root tokens -- KPIRow, MetricSection, CachedDataBanner,
  * PrintButton, TDILeaderboard, LocalSearch, SIPAuditor, and the /local, /tdi,
  * /auditor pages all still depend on the old --color-surface-hover /
  * --color-accent-3..5 / --color-text-heading token set. Custom properties

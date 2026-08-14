@@ -40,7 +40,6 @@
 // src/lib/boroughs.ts's `parseBoroughParam`, unmodified (this task's Query
 // section keeps that file out of scope).
 
-import { BoroughPicker } from "@/components/BoroughPicker";
 import { CachedDataBanner } from "@/components/CachedDataBanner";
 import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 
@@ -57,8 +56,6 @@ import { withFallback } from "@/lib/fallback";
 import deathsFixtureData from "@/lib/fixtures/deaths-fallback.json";
 import { fetchInjuriesPerYear } from "@/lib/injuries";
 import { fetchRepairedCollisionsPerYear } from "@/lib/repairedCollisions";
-
-import workspaceStyles from "@/app/(workspace)/workspace.module.css";
 
 // Citywide dataset-coverage rates (used for the borough-blocked explainer)
 // aren't borough-specific, so this fetch runs alongside the per-borough
@@ -158,12 +155,6 @@ export default async function Home({
         headline="The crash count fell. The crashes didn't."
         standfirst="Reported crashes, injuries and deaths on one chart. Each line starts at the same point in the first year, so you can see how differently they move — because a steep drop in a number that depends on paperwork is not the same thing as safer streets."
       >
-        <div
-          className={workspaceStyles.field}
-          style={{ marginTop: "var(--space-3)" }}
-        >
-          <BoroughPicker currentBorough={activeCode ?? ""} />
-        </div>
         {boroughParam.status === "invalid" && (
           <p role="alert">
             &quot;{boroughParam.received}&quot; isn&apos;t a borough we
