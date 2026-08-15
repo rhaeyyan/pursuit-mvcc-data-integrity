@@ -8,6 +8,62 @@ constraint forced a design are kept, because those are what a future session can
 
 ---
 
+## 2026-08-15 — PRD reconciled for two shipped-without-a-contract features (v1.2 → v1.4)
+
+Two features had shipped straight to `main` with no PRD FR/NFR ever written for them: the
+danger-index map (shipped 2026-08-13) and the Hyper-Local Ledger at `/local` (shipped 2026-08-12).
+Both got the same treatment — retroactively write the FR that matches what was actually built,
+rather than either rubber-stamping the code as the spec or ripping it out.
+
+- **Danger-index (→ v1.3, FR-14):** the shipped feature is a plain `COUNT(*)`-by-rounded-coordinate
+  crash-density map, but PRD §6 reserves the name "Danger Index" for a future *severity-weighted,
+  street-network safe-routing algorithm* — a materially different, harder thing that's still out
+  of scope. Asked the human whether to rename the page to avoid the naming clash; **decision: keep
+  the name for continuity, close the gap by stating explicitly in both the FR text and the page
+  copy that it's a raw count, not an algorithmic risk score.** The alternative (renaming) was
+  available and explicitly offered — recorded here because a future session might otherwise
+  "fix" the perceived mislabeling by renaming without knowing that was already considered and
+  declined.
+- **Hyper-Local Ledger (→ v1.4, FR-15):** `/local` was fully built and merged 2026-08-12, then
+  orphaned by the 2026-08-13 workspace redesign, which swapped `GlobalNav` for `LeftNav` and
+  didn't carry the link forward — live, deployed, reachable by URL, but undiscoverable and
+  uncovered by the PRD for three days before this session. Restored a nav link and wrote FR-15.
+  **While verifying the shipped code against the new FR (not something a blind PRD-only pass would
+  have caught), found `src/app/local/page.tsx` displaying a hand-typed SoQL string that had
+  drifted from the query actually executed** — wrong group function name, and the pinned
+  2018–2025 window silently absent from the displayed text. This is exactly the FR-8/Rule-4
+  failure mode the project's "a query is a contract" principle exists to prevent: the page was
+  telling a verifying reader a different query ran than the one that did. Fixed by threading the
+  fetch result's own `.soql` field through (every other page already does this; `/local` was
+  hand-writing a duplicate that could drift, and did). **Why this matters beyond the immediate
+  fix:** reconciling a PRD gap isn't just paperwork — reading the shipped code closely enough to
+  write an accurate FR is what surfaced a real correctness bug that a "just add the missing
+  section" pass would have missed.
+- **Discovered, not resolved: `/tdi` and `/auditor` are a bigger version of the same problem.**
+  While chasing down what `UNIFIED_NAVIGATION_PLAN.md` was, found that a nav-integration plan
+  (drafted, apparently, as a review of already-shipped code rather than before it) had flagged
+  both routes as unspecced, unsanctioned: `/tdi` reimplements the PRD-deferred Danger Index
+  algorithm with an uncited `deaths*10` severity weight; `/auditor` reimplements a Street
+  Improvement Project analysis explicitly rejected on 2026-08-04 for requiring a census join,
+  using a hand-typed fixture instead of solving that problem. The plan's own text says this needs
+  an explicit human decision "before any nav work starts" — nav work (GlobalNav, hero cards)
+  happened anyway. That decision is still outstanding. Deliberately left both orphaned this
+  session (no nav link added, no PRD amendment written, no deletion) rather than either promoting
+  or removing them unilaterally — sanctioning or rolling back a whole feature is exactly the kind
+  of call this project's Rule 1 carve-out reserves for the human.
+- **The ledger itself was wrong going in.** `SESSION_STATE.md` had carried "Phase 1 — spec
+  approved, ready for TDD drafting... Not started" across at least one prior session close, when
+  `git log` shows the build, tests, and merge all happened on 2026-08-12. Worth naming as a
+  pattern: this is the second stale-ledger correction in as many sessions (the danger-index
+  "uncommitted" claim was the first, same day). A ledger entry describing a future step should be
+  re-verified against `git log`/`git status` before being trusted, not just read.
+
+Gates after all changes: vitest 601/601 in 39 files, `tsc --noEmit` clean, `eslint .` clean.
+Commits: `2ccb0f2`, `cda5a06`, `8488f08`, `86e84ad` (danger-index/§6); `e6d45f1`, `fbe0722`,
+`5b3d5c5`, `05ef4f0` (Hyper-Local Ledger/FR-15).
+
+---
+
 > **Filing note (2026-08-14).** This file is *mostly* newest-first, but
 > "2026-08-13 — MVCC Workspace 3-column redesign" was appended at the **end** (~line 1264) rather
 > than the top. Left in place rather than reordering 1,300 lines for cosmetics — but don't assume

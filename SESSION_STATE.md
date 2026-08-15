@@ -1,28 +1,31 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** none active. PRD §6 amendment (reconciling the shipped danger-index feature
-with the standing contract) is DONE and committed. Danger-index data fix from the prior session
-was already committed at session start (the ledger had gone stale claiming it was uncommitted —
-verified against `git status`/`git log` and corrected).
+**Current objective:** none active. Two shipped-without-a-PRD-contract features have now been
+reconciled: the danger-index map (§6 amendment, v1.3) and the Hyper-Local Ledger (`/local`, v1.4).
+`/tdi` and `/auditor` remain the one open scope question (see below) — do not treat their
+existence in the tree as sanctioned.
 
 ## Active
 
-- **✅ PRD §6 amendment — DONE, committed (2026-08-15).** Reconciled PRD §6 ("Out of Scope") with
-  the danger-index feature that shipped 2026-08-13. Five commits: (1) `2ccb0f2` — new **FR-14
-  [P1]** in §5.3 documenting what actually shipped (a plain `COUNT(*)`-by-rounded-coordinate map,
-  not a severity-weighted algorithm) plus a matching street-safety-advocate story in §3; (2)
-  `cda5a06` — narrowed the two §6 bullets ("Maps and geospatial clustering", "The Danger
-  Index / safe-routing algorithm") to keep the harder clustering/severity-weighting work out of
-  scope while acknowledging FR-14's plain map is in; (3) `8488f08` — version bump to v1.3 with a
-  revision-notes block following the existing v1.1/v1.2 pattern; (4) `86e84ad` — added a raw-count-
-  not-risk-score caveat to the actual page copy (`src/app/danger-index/page.tsx`) so the product
-  matches FR-14's text; (5) this ledger update. **Naming decision (human, 2026-08-15):** keep the
-  "Danger Index" name/route for continuity rather than renaming — the gap is closed by making both
-  the PRD and the page copy state explicitly that it's a raw count, not an algorithmic risk score,
-  not by renaming the feature. `tsc --noEmit` and `eslint` both clean on the page.tsx change.
-  Gates not re-run in full (docs-only + one-line copy change; no query/logic touched).
-- **Vision Zero Shadow Ledger, Phase 1 — spec approved, ready for TDD drafting (2026-08-12).** Not
-  started, not touched this session.
+- **✅ Vision Zero Shadow Ledger, Phase 1 (`/local`) — reconciled, DONE, committed (2026-08-15).**
+  Was already shipped 2026-08-12, not "not started" as this ledger previously (wrongly) claimed —
+  see `ARCHIVED_SESSIONS.md`, "2026-08-15 — PRD reconciled for two shipped-without-a-contract
+  features", for full reasoning including an FR-8 SoQL-display bug found and fixed along the way.
+  New PRD FR-15 (v1.4); nav link restored; gates clean (vitest 601/601, `tsc`/`eslint` clean).
+  **Known gap, not fixed:** `/local` has no way back to the dashboard from the page itself (sits
+  outside the `(workspace)` route group) — cosmetic, not data-integrity, flag if worth a follow-up.
+- **🟡 `/tdi` and `/auditor` scope — still unresolved, open since 2026-08-12.**
+  `UNIFIED_NAVIGATION_PLAN.md`'s reviewer findings flag both as unspecced, unsanctioned features
+  built and merged with no FR/NFR, SPEC, or ADR: `/tdi` reimplements the PRD-deferred "Danger
+  Index / safe-routing algorithm" with an uncited `deaths*10` severity weight
+  (`src/lib/tdi.ts`); `/auditor` reimplements a Street-Improvement-Project analysis the project
+  explicitly rejected on 2026-08-04 (see `ARCHIVED_SESSIONS.md`) using a hand-typed fixture
+  (`src/lib/auditor.ts` + `src/lib/fixtures/sips.json`) instead of the real dataset. Both are
+  currently orphaned (no live nav link, same as `/local` was) but still deployed and reachable by
+  direct URL. **Needs an explicit human decision, per the nav plan's own blocking note:** either
+  sanction both with a real PRD amendment (a defensible severity-weighting methodology for TDI; a
+  documented SIP data source, not a fixture, for the auditor), or roll them back/delete them. Not
+  touched this session — deliberately left orphaned rather than either promoted or removed.
 
 - **✅ Leaked-credential rotation — resolved by the human (per human, 2026-08-15).** The GitHub PAT
   and Context7 API key that `~/.bashrc` had exported in plaintext (found 2026-08-08) have been
