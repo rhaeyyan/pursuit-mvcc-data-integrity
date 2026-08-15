@@ -103,6 +103,7 @@ filter and query it responsibly"). **Validate before treating any as established
 
 - **P0** — As an advocate, I want to compare a discretionary metric against a non-discretionary one side by side, so that I can show the divergence rather than assert it.
 - **P1** — As an advocate, I want to narrow the view to one borough, so that I can speak to my own community board's area.
+- **P1** — As an advocate, I want to see which specific locations have the highest recorded collision counts, so that I can point to concrete intersections rather than only citywide or borough-level aggregates.
 - **P2** — As an advocate, I want to export the chart as an image, so that I can use it in a presentation.
 
 ### Open-data student / analyst
@@ -213,6 +214,7 @@ of that group — it depends only on the primary dataset.
 11. **[P0]** The system shall treat all numeric fields from the API as strings requiring explicit casting. Absent-key-as-zero coercion applies **only** to optional row-level fields; for the core yearly aggregates (deaths, injuries, collisions, arrests), an absent or null value for any year in the window shall trigger the FR-10 error state — never a silent zero. A validation shall assert that every year 2018–2025 returns a present, non-null, parseable value for each core metric (this is the guard for the confirmed post-2026-05-05 `number_of_persons_killed` dropout pattern).
 12. **[P0]** The system shall display a casualty-filtered "repaired" collision series — collisions where `number_of_persons_injured > 0 OR number_of_persons_killed > 0` — alongside the raw series, so the corrected trend (−18.2%) and the artifact trend (−63.1%) are visible together. This is a single additional SoQL query with a `$where` clause, not a new subsystem; it is P0 because without it the product diagnoses a problem and offers no usable number in its place.
 13. **[P1]** The system shall mark the two documented policy dates on the time axis — 2019-03-18 (Staten Island pilot) and 2020-04-06 (citywide) — as labelled reference markers, so the structural break is located visually rather than only described in prose.
+14. **[P1]** The system shall display a supplementary map of the highest-collision-count locations in the 2018–2025 window, computed as `COUNT(*)` from `h9gi-nx95` grouped by latitude/longitude rounded to 5 decimal places (~1m precision), ranked descending, limited to the top 1000 points, with a screen-reader-accessible tabular fallback per NFR-3. This is a raw collision-count map, not a severity-weighted risk score — page copy shall state that distinction explicitly, so the "Danger Index" name is not read as an algorithmic safety index (§6).
 
 ### 5.4 Non-functional requirements
 
