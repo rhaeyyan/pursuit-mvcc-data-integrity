@@ -15,10 +15,11 @@ export type DangerIndexRow = z.infer<typeof DANGER_INDEX_SCHEMA>[number];
 
 export async function fetchDangerIndex(): Promise<DangerIndexRow[]> {
   const query = new URLSearchParams({
-    $select: "latitude, longitude, COUNT(*) AS total",
+    $select:
+      "round(latitude, 5) AS latitude, round(longitude, 5) AS longitude, COUNT(*) AS total",
     $where:
-      "latitude IS NOT NULL AND longitude IS NOT NULL AND latitude != 0 AND longitude != 0",
-    $group: "latitude, longitude",
+      "crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00' AND latitude IS NOT NULL AND longitude IS NOT NULL AND latitude != 0 AND longitude != 0",
+    $group: "round(latitude, 5), round(longitude, 5)",
     $order: "total DESC",
     $limit: "1000",
   });
