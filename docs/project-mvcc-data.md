@@ -1,6 +1,6 @@
 # Product Requirement Document (PRD): MVCC Data — NYC Traffic Reporting-Integrity Dashboard
 
-**Document Version:** 1.3 (revised draft — supersedes v1.2)
+**Document Version:** 1.4 (revised draft — supersedes v1.3)
 
 **Status:** Draft — pending human review before Cedar (Tech Lead) [SPEC] conversion
 
@@ -61,6 +61,20 @@
 > (4) the "Danger Index" name is kept for continuity (human decision, 2026-08-15) but both FR-14
 > and the page copy now state explicitly that it is a raw count, not an algorithmic risk score, so
 > the name does not misrepresent what is computed.
+
+> **v1.4 revision notes.** The Hyper-Local Ledger (ZIP-filtered raw-vs-repaired collision lookup
+> at `/local`) shipped to `main` on 2026-08-12 with no PRD FR/NFR citation — the same
+> shipped-without-a-contract gap FR-14/v1.3 closed for the danger-index map. This revision adds
+> **FR-15 [P1]** documenting the feature's actual query contract (it reuses `fetchYearlyMetric`,
+> the same window/`$where`-composition helper the citywide view uses) and its ZIP-validation
+> boundary, plus a matching street-safety-advocate story in §3. While reconciling FR-15 against
+> the shipped code, `src/app/local/page.tsx` was found displaying a hand-typed SoQL string that
+> had drifted from the query actually sent (wrong group function, and the 2018–2025 window
+> silently omitted from the displayed text) — an FR-8 violation, fixed by threading the fetch
+> result's own `soql` field through instead, the pattern every other page already uses. **Not
+> resolved by this revision:** the TDI Leaderboard and SIP Auditor features (`/tdi`, `/auditor`)
+> remain unspecced and unsanctioned per `UNIFIED_NAVIGATION_PLAN.md`'s reviewer findings
+> (2026-08-12) — that scope decision is still owed separately, tracked in `SESSION_STATE.md`.
 
 ---
 
