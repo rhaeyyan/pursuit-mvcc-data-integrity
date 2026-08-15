@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: "The chart", href: "/" },
   { label: "Data quality", href: "/integrity" },
   { label: "Where numbers come from", href: "/registry" },
+  { label: "Look up your ZIP", href: "/local" },
 ];
 
 export function LeftNav() {
