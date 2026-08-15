@@ -114,6 +114,7 @@ filter and query it responsibly"). **Validate before treating any as established
 
 - **P0** — As an advocate, I want to compare a discretionary metric against a non-discretionary one side by side, so that I can show the divergence rather than assert it.
 - **P1** — As an advocate, I want to narrow the view to one borough, so that I can speak to my own community board's area.
+- **P1** — As an advocate, I want to look up collision data for my own ZIP code, so that I can speak to my own neighborhood with the same raw-vs-repaired distinction the citywide view uses.
 - **P1** — As an advocate, I want to see which specific locations have the highest recorded collision counts, so that I can point to concrete intersections rather than only citywide or borough-level aggregates.
 - **P2** — As an advocate, I want to export the chart as an image, so that I can use it in a presentation.
 
@@ -226,6 +227,7 @@ of that group — it depends only on the primary dataset.
 12. **[P0]** The system shall display a casualty-filtered "repaired" collision series — collisions where `number_of_persons_injured > 0 OR number_of_persons_killed > 0` — alongside the raw series, so the corrected trend (−18.2%) and the artifact trend (−63.1%) are visible together. This is a single additional SoQL query with a `$where` clause, not a new subsystem; it is P0 because without it the product diagnoses a problem and offers no usable number in its place.
 13. **[P1]** The system shall mark the two documented policy dates on the time axis — 2019-03-18 (Staten Island pilot) and 2020-04-06 (citywide) — as labelled reference markers, so the structural break is located visually rather than only described in prose.
 14. **[P1]** The system shall display a supplementary map of the highest-collision-count locations in the 2018–2025 window, computed as `COUNT(*)` from `h9gi-nx95` grouped by latitude/longitude rounded to 5 decimal places (~1m precision), ranked descending, limited to the top 1000 points, with a screen-reader-accessible tabular fallback per NFR-3. This is a raw collision-count map, not a severity-weighted risk score — page copy shall state that distinction explicitly, so the "Danger Index" name is not read as an algorithmic safety index (§6).
+15. **[P1]** The system shall let a user enter a ZIP code and display that ZIP's raw and casualty-filtered ("repaired") collision series for 2018–2025 side by side, computed through the same `fetchYearlyMetric` window/query contract as the citywide view (FR-1–4, FR-12), with the exact SoQL displayed per FR-8. The ZIP code shall be validated against `^\d{5}$` before being interpolated into `$where`, so a URL-supplied value cannot reach the query unvalidated.
 
 ### 5.4 Non-functional requirements
 
