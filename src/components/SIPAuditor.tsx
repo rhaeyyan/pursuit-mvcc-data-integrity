@@ -1,8 +1,10 @@
 import React from "react";
-import sips from "../lib/fixtures/sips.json";
+import { fetchDynamicSIPs } from "../lib/socrata-sips";
 import styles from "./SIPAuditor.module.css";
 
-export default function SIPAuditor() {
+export default async function SIPAuditor() {
+  const sips = await fetchDynamicSIPs();
+
   return (
     <div className={styles.formWrapper}>
       <form method="GET" action="/auditor" aria-label="Select Project">
@@ -21,7 +23,7 @@ export default function SIPAuditor() {
             </option>
             {sips.map((sip) => (
               <option key={sip.id} value={sip.id}>
-                {sip.name} ({sip.borough})
+                {sip.name}
               </option>
             ))}
           </select>

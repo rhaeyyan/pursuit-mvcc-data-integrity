@@ -1,4 +1,4 @@
-import sips from "./fixtures/sips.json";
+import { fetchDynamicSIPs } from "./socrata-sips";
 
 export interface SIPObject {
   id: string;
@@ -83,6 +83,7 @@ export async function fetchSIPAwardStats(
   sipId: string,
   radius: number = 200,
 ): Promise<SIPStats> {
+  const sips = await fetchDynamicSIPs();
   const sip = sips.find((s) => s.id === sipId);
   if (!sip) {
     throw new Error(`SIP with id ${sipId} not found`);

@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchSIPAwardStats } from "./auditor";
+import { fetchDynamicSIPs } from "./socrata-sips";
+
+vi.mock("./socrata-sips", () => ({
+  fetchDynamicSIPs: vi.fn(),
+}));
 
 // Fixture matches src/lib/fixtures/sips.json
 // sip-northern-blvd has completionDate: 2021-09-15, lat: 40.7530, lon: -73.8820
@@ -19,6 +24,17 @@ describe("fetchSIPAwardStats()", () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    
+    vi.mocked(fetchDynamicSIPs).mockResolvedValue([
+      {
+        id: SIP_ID,
+        name: "Northern Blvd",
+        borough: "Queens",
+        completionDate: "2021-09-15",
+        latitude: 40.753,
+        longitude: -73.882,
+      },
+    ]);
   });
 
   afterEach(() => {
@@ -40,6 +56,7 @@ describe("fetchSIPAwardStats()", () => {
 
     await fetchSIPAwardStats(SIP_ID);
 
+    expect(fetchDynamicSIPs).toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     const call1Url = new URL(fetchMock.mock.calls[0][0]);
