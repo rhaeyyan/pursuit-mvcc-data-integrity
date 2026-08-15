@@ -1,63 +1,30 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** Danger-index map — height bug fixed and shipped (`bf930b1`). The two data
-defects underneath it are open and need Cedar; until they land, the map renders a ranking that is
-wrong.
+**Current objective:** none active. Danger-index data fix (analysis-window filter +
+coordinate-grouping precision) is DONE — Cypress final audit PASS, gates green — but
+**UNCOMMITTED**; working tree has the fix plus ledger/SPEC housekeeping, awaiting the human's
+go-ahead to commit (per this session's own commit policy: never commit unprompted).
 
 ## Active
 
-- **Danger-index height fix — DONE, committed `bf930b1`, pushed to `origin/main` (2026-08-14).**
-  New `src/components/DangerMap.module.css`; `DangerMap.tsx` rewired to it at three elements (the
-  frame, the `MapContainer` className, the loading skeleton). CSS Modules, not the Tailwind the
-  file was written in — repo convention.
-  - **Root cause: the map container was 0 px tall.** `DangerMap.tsx`, `danger-index/page.tsx`, and
-    `danger-index/error.tsx` are the *only* three files in `src/` written in Tailwind utility
-    classes — **and Tailwind is not installed** (no dep, no config, no PostCSS, no `@tailwind` in
-    `globals.css`). Proven, not inferred: the two stylesheets actually served contained **zero**
-    matches for `.w-full` / `.h-full` / `.h-[600px]`, and `leaflet.css` sets no height on
-    `.leaflet-container` — Leaflet requires the author to size it. Outer div → `height: auto`; its
-    only child was `ssr:false` dynamic (0 `leaflet-container` in the SSR HTML). Leaflet initialised
-    into a 0×0 viewport and painted neither tiles nor markers.
-  - **Verified end-to-end against a live dev server, not assumed:** the served chunk now carries
-    `.mapFrame { height: 600px }` and `.map { height: 100% }`; SSR HTML shows
-    `class="DangerMap-module__…__mapFrame"` with zero remaining `h-[600px]`; and
-    `react-leaflet@5`'s `MapContainer.js` was read to confirm it forwards `className` onto the
-    `.leaflet-container` div, which is what makes the 100% resolve. Gate: **tsc clean, eslint
-    clean, vitest 601/601 in 39 files, Node v22.23.2.**
-  - **Trap for whoever touches this next:** `.map`'s `height: 100%` is load-bearing on `.mapFrame`
-    keeping a *definite* height. If that becomes `auto`, Leaflet silently returns to 0×0 — same
-    failure, no error anywhere.
-  - **Left alone deliberately:** `page.tsx` and `error.tsx` are still inert Tailwind. Harmless for
-    rendering now, but unstyled; restyling them is a Magnolia-shaped job, not "fix the height".
-
-- **🔴 Danger-index: two data defects OPEN — needs Cedar, not a quick fix.** Both change what a
-  displayed number *means*, so the CLAUDE.md Rule-2 carve-out applies however small the diff.
-  Fixing the height made a **visibly incorrect ranking visible**, so these are now urgent.
-  - (a) **No analysis-window filter.** `dangerIndexFetcher.ts` filters on coordinates only, so it
-    aggregates the dataset's full **2012-07-01 → 2026-06-11** span (verified live) against a window
-    pinned at 2018–2025. Top location reads **887 unwindowed vs 476 windowed** — every figure on
-    that page is ~1.9× its in-contract value and non-comparable with every other number in the
-    product. A `$where` clause is a contract (Rule 4).
-  - (b) **`$group=latitude, longitude` on raw floats splits single intersections.**
-    `40.696033,-73.98453` (712) and `40.6960346,-73.9845292` (587) are the same point ~18 cm apart.
-    Summed = **1,299**, which outranks the 887 currently ranked #1 — so the "Rank" column and the
-    "pinpoint high-risk locations" copy are both wrong as rendered. Persists inside the window too.
-  - **Why the Cypress audit passed anyway:** `__tests__/dangerIndexFetcher.test.ts` mocks
-    `global.fetch` and asserts only `$limit`/`$order` plus the parse. **Nothing renders `DangerMap`
-    or the page**, so no test covers the height, the window, or the grouping.
-  - The three danger-index commits (`64527f2`/`3292011`/`2a144a8`, 2026-08-13) reached `main` with
-    **no ledger entry at all** — this is the first record of them.
-
-- **Plain-English copy pass — DONE and COMMITTED as `699d998` ("refactor: simplify terminology
-  across components"), 2026-08-13.** *This entry read "UNCOMMITTED, NEXT STEP: commit it" until
-  2026-08-14, when `git status` showed a clean tree and `dashNote` was found present in HEAD —
-  the ledger had simply never been updated after the commit landed. A second reminder that
-  `SESSION_STATE.md` is episodic and the repo is the source of truth.* Reasoning (the two real
-  bugs it caught, and the honesty-guardrail re-check) archived in `ARCHIVED_SESSIONS.md`,
-  "2026-08-14".
-
+- **🟡 Danger-index data fix — DONE, gates green, UNCOMMITTED (2026-08-14).** Both defects (no
+  analysis-window filter; raw-float coordinate grouping splitting intersections) fixed in
+  `src/lib/dangerIndexFetcher.ts` + `__tests__/dangerIndexFetcher.test.ts`. Full Cedar → Cypress →
+  Redwood → Cypress pipeline; final `[COMPLIANCE-REPORT]` PASS, no critical violations. Gates:
+  vitest 601/601 in 39 files, `tsc --noEmit` clean, `eslint .` clean, live Socrata re-verification
+  by two independent parties. Full narrative (the mid-flight `round()` arity correction, the PRD
+  §6 scope conflict and the human's "fix now, reconcile PRD later" decision, three unrelated
+  infra-rot fixes found along the way) archived in `ARCHIVED_SESSIONS.md`, "2026-08-14 — Danger-
+  index data fix". SPEC archived verbatim in `ARCHIVED_SPECS.md`. **NEXT STEP: ask the human
+  whether to commit** (working tree: `src/lib/dangerIndexFetcher.ts`,
+  `__tests__/dangerIndexFetcher.test.ts`, `SPEC.md`, `ARCHIVED_SPECS.md`, `ARCHIVED_SESSIONS.md`,
+  `SESSION_STATE.md`).
+- **PRD §6 amendment still owed, NOT done.** Danger-index shipped 2026-08-13 while PRD §6 called
+  it out of scope indefinitely; human deferred reconciling the PRD text itself. Someone needs to
+  either amend §6 to bring it into scope (with a real FR/NFR) or decide to roll it back — not
+  resolved by the data fix above.
 - **Vision Zero Shadow Ledger, Phase 1 — spec approved, ready for TDD drafting (2026-08-12).** Not
-  started. Local ledger search by ZIP/Community Board, Socrata aggregates, repaired-vs-raw trends.
+  started, not touched this session.
 
 - **🔴 ROTATE TWO CREDENTIALS — `~/.bashrc` exports a GitHub PAT and a Context7 API key in
   plaintext** (found 2026-08-08; both were read into a session transcript, so rotation is the only

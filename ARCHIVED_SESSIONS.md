@@ -1397,3 +1397,81 @@ Built the imported Design Composer mockup ("MVCC Workspace.dc.html") as the real
   `Rayan Khan <rayan@macbookpro.mynetworksettings.com>` (hostname-derived) because no global
   git identity is set on this machine. User was offered an amend + force-push and chose to
   leave it. Set the identity before the next commit rather than rewriting published history.
+
+---
+
+## 2026-08-14 — Danger-index height fix (commit `bf930b1`)
+
+**Root cause:** the map container was 0 px tall. `DangerMap.tsx`, `danger-index/page.tsx`, and
+`danger-index/error.tsx` are the only three files in `src/` written in Tailwind utility classes —
+and Tailwind is not installed (no dep, no config, no PostCSS, no `@tailwind` in `globals.css`).
+Proven, not inferred: the served stylesheets contained zero matches for `.w-full`/`.h-full`/
+`.h-[600px]`, and `leaflet.css` sets no height on `.leaflet-container` — Leaflet requires the
+author to size it. Fix: new `DangerMap.module.css` (CSS Modules, matching repo convention, not
+the Tailwind the file was written in), rewired at three elements. Verified against a live dev
+server: served chunk carries `.mapFrame { height: 600px }`/`.map { height: 100% }`, SSR HTML
+shows the CSS-Modules class, and `react-leaflet@5`'s `MapContainer.js` was read to confirm it
+forwards `className` onto `.leaflet-container`. **Trap for next time:** `.map`'s `height: 100%`
+is load-bearing on `.mapFrame` keeping a *definite* height — if that becomes `auto`, Leaflet
+silently returns to 0×0 with no error anywhere. `page.tsx`/`error.tsx` are still inert Tailwind,
+left alone deliberately (restyling them is Magnolia's job, not this fix's).
+
+## 2026-08-13 — Plain-English copy pass (commit `699d998`)
+
+Simplified terminology across components: "All reported crashes" / "Injury & fatal crashes" /
+"Minor crashes, no injuries" / "Change since 2018", and the three page names "The chart" / "Data
+quality" / "Where numbers come from". This is the **second** time this terminology was set —
+first in `d3f60f2`, then regressed when the 2026-08-13 workspace redesign imported the Design
+Composer mockup's jargon wholesale, then restored here. Caught two real bugs while doing the
+copy pass and re-checked the honesty guardrails (correlation-only language, confounder
+citations) were still intact after the wording changes. *Ledger hygiene note:* this entry read
+"UNCOMMITTED, NEXT STEP: commit it" for a full day after the commit had already landed — the
+ledger was simply never updated post-commit. Second occurrence of this exact failure mode
+(`SESSION_STATE.md` is episodic, the repo is authoritative) in this project's history.
+
+---
+
+## 2026-08-14 — Danger-index data fix: window filter + coordinate-grouping precision
+
+Fixed the two data defects the height-bug fix (above) made visible: `fetchDangerIndex()` had no
+`crash_date` window filter (aggregated the full 2012–2026 span against the product's pinned
+2018–2025 window, ~1.9× inflation) and grouped on raw-float `latitude`/`longitude`, splitting
+single intersections 18cm apart into separate ranked rows (`40.696033`/`40.6960346`, 712+587,
+would have outranked the actual #1). Full pipeline: Cedar `[SPEC]` → Cypress red tests → Redwood
+implementation → Cypress final audit PASS. SPEC archived verbatim in `ARCHIVED_SPECS.md`.
+
+- **Scope conflict surfaced and resolved by human:** PRD §6 defers "Maps and geospatial
+  clustering" (v2) and "The Danger Index / safe-routing algorithm" (indefinitely, "a separate
+  product, not a feature of this one") — yet three commits shipped it to `main` on 2026-08-13
+  with no ledger record. Human chose **"fix now, reconcile PRD later."** **A PRD §6 amendment is
+  still owed and not done** — carried forward in `SESSION_STATE.md` Active until closed.
+- **Why this is the interesting part, not just the bug fix:** the SPEC's originally pinned query
+  (`round(latitude * 100000) / 100000`) was itself wrong — Redwood's live sanity check (required
+  by the SPEC's own halt-and-report constraint) found Socrata rejects `round()` at arity 1
+  (`query.soql.no-such-function`). Redwood halted rather than substituting a workaround, exactly
+  per Rule 4 discipline. The orchestrator independently re-verified live before trusting the
+  report (found `round(latitude, 5)`, the 2-arg form, works and correctly merges the known
+  duplicate intersection to one row: `40.69603,-73.98453 → 452`, windowed). Cedar revised the
+  SPEC on that evidence; both Redwood and the orchestrator re-verified the revision live before
+  it shipped. This is the project's "compute deterministically, verify live" discipline
+  functioning exactly as designed, not as an aspiration — worth remembering as a demonstrated
+  pattern, not just a fixed bug.
+- **Infra rot found and repaired mid-task, all three pre-existing (not caused by this session's
+  edits, all surfaced by an unrelated `tsc` run that looked like a regression at first):**
+  1. `node_modules` predated the `package-lock.json` update that added
+     `leaflet`/`react-leaflet`/`@types/leaflet` (lockfile Aug 14 20:20 vs
+     `node_modules/.package-lock.json` Aug 6) — `npm ci` had never run since those deps were
+     added. Fixed: `npm ci`.
+  2. `.next/` cache was stale from Aug 8, predating the `(workspace)` route-group restructure —
+     post-`npm ci` typegen referenced a since-moved `src/app/page.tsx` that no longer exists.
+     Fixed: `rm -rf .next && npx next typegen`.
+  3. `.git/hooks/commit-msg` (the AI-byline-ban guard) was **entirely absent**, not stale — first
+     time this exact gap has been found outside the documented "fresh clone" case; unclear how it
+     was lost on an already-cloned, already-protected repo. Fixed: recopied from `.githooks/`,
+     confirmed byte-identical.
+- **Stale `SPEC.md` also found and archived before this task started:** held a completed-but-
+  never-archived Phase 4 QA/test-repair SPEC written pre-`(workspace)`-route-group. Verified its
+  objective was actually satisfied under the current route paths before archiving — see
+  `ARCHIVED_SPECS.md`, "Archived 2026-08-14... (COMPLETE, found not recorded)".
+- **Gates at close:** vitest 601/601 in 39 files, `tsc --noEmit` clean, `eslint .` clean, live
+  Socrata re-verification by two independent parties (Redwood, orchestrator).

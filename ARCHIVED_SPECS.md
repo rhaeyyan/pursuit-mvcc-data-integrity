@@ -5,6 +5,125 @@ work (CLAUDE.md § Session Continuity).
 
 ---
 
+## Archived 2026-08-14 — Danger-index data fix: analysis window + coordinate-grouping precision (COMPLETE)
+
+**Outcome:** both defects fixed in `src/lib/dangerIndexFetcher.ts`; Cypress final audit PASS with
+no critical violations. Gates: vitest 601/601 in 39 files, `tsc --noEmit` clean, `eslint .` clean,
+live-reverified against the real Socrata endpoint by both Redwood and the orchestrator
+independently. One mid-flight correction: the SPEC as originally written pinned
+`round(latitude * 100000) / 100000`, which Redwood's own live sanity check (required by the
+SPEC's halt-and-report constraint) found rejected by Socrata — `round()` has no 1-argument form
+on this dataset (`query.soql.no-such-function; arity=1`). Cedar revised to the 2-argument
+`round(latitude, 5)` form, which both Redwood and the orchestrator independently confirmed live
+before the revision was accepted. **Why this matters beyond the immediate fix:** this is a
+concrete instance of the project's own discipline working as designed — a SPEC's pinned query
+was wrong, the executing agent was contractually required to verify against reality rather than
+trust the SPEC text, and it halted instead of silently substituting a workaround. Not resolved by
+this SPEC: the danger-index feature itself is out of PRD §6 scope ("deferred indefinitely") but
+shipped anyway on 2026-08-13 with no ledger record; human chose "fix now, reconcile PRD later"
+(2026-08-14) — the PRD §6 amendment is still owed, tracked separately in `SESSION_STATE.md`.
+
+**SPEC text, verbatim below:**
+
+# Active SPEC
+
+**Status:** REVISED 2026-08-14 — Redwood's live sanity check found the original `round()` query
+rejected by Socrata (arity-1 not supported); Cedar revised to the 2-arg form below, live-verified
+by both Redwood and the orchestrator independently. Dispatch to Cypress (update test constants),
+then Redwood (continue same invocation with the corrected literal).
+**Author:** Cedar (Tech Lead) · **Created:** 2026-08-14 · **Revised:** 2026-08-14
+**Executing agent:** Redwood · **Audit:** Cypress (before implementation, per Rule 4 TDD)
+
+**Scope note (human decision, 2026-08-14):** the danger-index feature itself is out of PRD scope
+(§6 defers "Maps and geospatial clustering" to v2 and "The Danger Index / safe-routing algorithm"
+indefinitely) but shipped to `main` on 2026-08-13 with no ledger record of that decision. Human
+chose **"fix now, reconcile PRD later"** — this SPEC proceeds to fix the correctness defect in the
+already-live feature; a separate PRD §6 amendment is still owed and tracked in `SESSION_STATE.md`.
+
+---
+
+[SPEC]
+- **Objective**: Fix two data-integrity defects in `fetchDangerIndex()` that change what the rendered danger-index ranking means: (a) add the product's pinned 2018–2025 analysis-window filter to `$where`, which the current query omits entirely; (b) group on coordinates rounded to 5 decimal places instead of raw floats, so floating-point noise no longer splits one physical intersection into multiple ranked rows.
+- **Requirement**: No PRD FR/NFR currently covers the Danger Index — PRD §6 lists it "Out of Scope (v1)... deferred indefinitely," a discrepancy flagged to the human and resolved 2026-08-14 (see Scope note above; PRD amendment still owed separately). Given the feature already exists in the shipped tree, this SPEC instead satisfies CLAUDE.md's cross-cutting Rule 4 ("a query is a contract, not an implementation detail") and NFR-4 (every displayed figure computed by SoQL aggregation, never inferred or left out-of-contract) by bringing the query in line with the product-wide 2018–2025 window every other feature is pinned to.
+- **Inputs/Outputs**:
+  - Input: none (no parameters).
+  - Output: unchanged `Promise<DangerIndexRow[]>` — `{ latitude: number, longitude: number, total: number }[]`, still Zod-coerced from Socrata's string numerics via the existing `DANGER_INDEX_SCHEMA`. No schema change. Semantic change only: `latitude`/`longitude` are now the rounded (5-decimal) group keys, not raw floats, and `total` now counts only 2018–2025 crashes at that rounded point.
+- **Query** (dataset `h9gi-nx95`) — **REVISED, live-verified 2026-08-14**:
+  ```
+  $select=round(latitude, 5) AS latitude,
+          round(longitude, 5) AS longitude,
+          COUNT(*) AS total
+  $where=crash_date >= '2018-01-01T00:00:00' AND crash_date < '2026-01-01T00:00:00'
+         AND latitude IS NOT NULL AND longitude IS NOT NULL
+         AND latitude != 0 AND longitude != 0
+  $group=round(latitude, 5), round(longitude, 5)
+  $order=total DESC
+  $limit=1000
+  ```
+  Expected response shape: JSON array, each element `{ latitude: "<string, 5 decimal places, no trailing zeros beyond precision>", longitude: "<string, 5 decimal places>", total: "<string int>" }`, sorted descending by `total`, ≤1000 rows. Live-verified top row: `{ latitude: "40.60876", longitude: "-74.03809", total: "476" }`. The previously-split intersection (`40.696033`/`40.6960346`, 712+587 unwindowed) is confirmed merged post-window-and-round to `40.69603,-73.98453 → 452`. The `round(...,5)` expression must appear character-identical in both `$select` and `$group`.
+  - **Rejected alternative (do not use):** `round(latitude * 100000) / 100000`. Live-tested: syntactically valid but produces trailing-zero-padded strings (e.g. `"40.6217900000000000"`) instead of clean 5-decimal values.
+  - **Confirmed broken (do not use):** single-argument `round(latitude)`. Live-tested: Socrata returns HTTP 400 `query.soql.no-such-function; No such function 'round'; arity=1` — this dataset's SoQL surface has no 1-arg `round()`, only the 2-arg decimal-places form.
+- **Design Pattern**: none — simple case. Both defects are corrections to a single pinned SoQL query string; there is no genuine variation to encapsulate here (contrast with the per-series axis the PRD identifies elsewhere — this task doesn't touch it).
+- **Intellectual Control**: The query stays a single string literal in one function, matching the existing shape — no new abstraction is introduced to fix a two-clause bug. The rounding precision (5 decimal places) is derived and pinned here, not left for Redwood to pick, so Cypress can assert on it exactly and it can't silently drift to a value that either re-fragments intersections (too many decimals) or merges distinct ones (too few). The window bound reuses the exact literal pattern from the `mvcc-data` skill's "deaths per year" query, so this feature stays comparable to every other figure in the product rather than inventing its own date format.
+- **Constraints**:
+  - No new NPM dependency.
+  - Do not change `DANGER_INDEX_SCHEMA` or the function's exported type signature.
+  - Do not alter `$limit=1000` or `$order=total DESC` — out of scope for this defect fix.
+  - The query string above is the contract, now live-verified. If any further Socrata error surfaces on this exact query, halt and request a SPEC revision from Cedar — do not substitute an alternate expression in place per CLAUDE.md Rule 4.
+  - Precision (`round(x, 5)`, 5 decimal places) is pinned by this SPEC; do not change it without a SPEC revision.
+- **Edge Cases**:
+  - `total` is a `COUNT(*)` over a formed group — it is never absent or null for a row that exists in the response, so no fail-loud branch is needed for it (distinct from trap 1's absent-key concern, which applies to summed casualty fields, not counts).
+  - The merge behavior of the rounding expression (that the two verified 18cm-apart coordinate pairs collapse into one group) is a server-side Socrata aggregation outcome, verified live against the API — it is not something a client-side unit test can prove by mocking `fetch`, since the fetcher never sees ungrouped rows. Cypress's test for this defect is therefore a query-contract test (does the correct `$select`/`$group`/`$where` get sent), not a grouping-logic test.
+  - Test must not assert on the raw percent-encoded URL substring (e.g., `%24where=...`) as the sole check — encoding is incidental and that style is exactly how the previous test passed while shipping the defect. Instead, parse the fetch call's URL with `new URL(...)`, read `.searchParams.get("$where")`, `.get("$select")`, `.get("$group")` (decoded), and assert exact string equality (or a precise `toContain` on the decoded literal) against the pinned clauses above.
+  - Existing two tests (`should format the query correctly...`, `should throw an error on a failed fetch`) must continue to pass; extend the first rather than replacing it, and add the `$where`/`$select`/`$group` assertions to it (or a sibling `it` block) rather than duplicating the fetch mock.
+- **Files**:
+  1. `src/lib/dangerIndexFetcher.ts`
+  2. `__tests__/dangerIndexFetcher.test.ts`
+- **Tipping Point**: If a future task needs more than one danger-index series (e.g., a casualty-filtered or per-borough variant), a bare hardcoded query string stops being sufficient and this function should be revisited for a parameterized query builder (evaluate Strategy at that point, per composition-patterns) — not before. A single fixed query for a single fixed window does not earn that abstraction yet.
+
+[FORCES]
+1. Correctness of a displayed ranking (in-contract, non-inflated, non-fragmented figures) > shipping velocity
+2. Simplicity > Pattern purity
+
+## Archived 2026-08-14 — MVCC Enterprise Workspace: Phase 4 (QA & Test Repair) (COMPLETE, found not recorded)
+
+**Outcome:** objective satisfied — `src/app/(workspace)/[[...borough]]/page.test.tsx` mounts and
+mocks `UnifiedTimeline`, and `src/app/(workspace)/integrity/page.test.tsx` and
+`src/app/(workspace)/registry/page.test.tsx` both exist with baseline render + axe checks. The
+route paths landed under a `(workspace)` route group the SPEC text (written pre-group) doesn't
+mention, which is why a path-literal search for it initially came up empty. No ledger entry
+recorded this as done; discovered stale while clearing `SPEC.md` to dispatch the next task.
+Verified against current baseline: vitest 601/601, tsc clean, eslint clean (2026-08-14).
+
+**Original SPEC text, verbatim below:**
+
+# [SPEC] MVCC Enterprise Workspace: Phase 4 (QA & Test Repair)
+
+## Objective
+The massive architectural shift to the 3-column "Enterprise Workspace" and the consolidation of the charts into `UnifiedTimeline.tsx` has broken the legacy unit tests in `src/app/[[...borough]]/page.test.tsx`.
+Your job is to repair the test suite so it accurately reflects the new component hierarchy and passes cleanly.
+
+## Inputs/Outputs
+- **`src/app/[[...borough]]/page.test.tsx`**: Modify this file.
+  - The page no longer mounts `MetricSection`, `CoverageWarning`, `Caveats`, or `StatenIslandPilotPanel`.
+  - It now mounts `UnifiedTimeline` passing down the resolved data props.
+  - Update the assertions to check for `UnifiedTimeline` (or simply ensure the page mounts successfully without throwing and passes axe accessibility).
+- **`src/components/UnifiedTimeline.test.tsx`** (New or Optional): If needed, write a lightweight test verifying the `UnifiedTimeline` mounts without crashing.
+- **`src/app/integrity/page.test.tsx`** & **`src/app/registry/page.test.tsx`** (New): Write baseline rendering tests + `axe-core` accessibility checks for the two new routes.
+
+## Tasks (≤ 5 files)
+
+1. Run the test suite: `npm run test` to see exactly what fails.
+2. Update/Rewrite `src/app/[[...borough]]/page.test.tsx` to align with Phase 2 changes.
+3. Write `src/app/integrity/page.test.tsx`.
+4. Write `src/app/registry/page.test.tsx`.
+5. Ensure `npm run test` is 100% green and linting passes.
+
+## [FORCES]
+- **Black-Box Testing**: Treat the new components as black boxes. Do not mock internal Recharts implementation details. Test what the user sees (or just that it mounts successfully and passes a11y checks).
+
+---
+
 ## Archived 2026-08-04 — Kickoff scaffold (COMPLETE)
 
 **Outcome:** delivered 6 of 6 budgeted files; all four gates green on Node 22.23.2;
