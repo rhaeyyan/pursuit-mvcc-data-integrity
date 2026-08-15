@@ -1,28 +1,26 @@
 # Sprint Ledger — MVCC Data
 
-**Current objective:** none active. Danger-index data fix (analysis-window filter +
-coordinate-grouping precision) is DONE — Cypress final audit PASS, gates green — but
-**UNCOMMITTED**; working tree has the fix plus ledger/SPEC housekeeping, awaiting the human's
-go-ahead to commit (per this session's own commit policy: never commit unprompted).
+**Current objective:** none active. PRD §6 amendment (reconciling the shipped danger-index feature
+with the standing contract) is DONE and committed. Danger-index data fix from the prior session
+was already committed at session start (the ledger had gone stale claiming it was uncommitted —
+verified against `git status`/`git log` and corrected).
 
 ## Active
 
-- **🟡 Danger-index data fix — DONE, gates green, UNCOMMITTED (2026-08-14).** Both defects (no
-  analysis-window filter; raw-float coordinate grouping splitting intersections) fixed in
-  `src/lib/dangerIndexFetcher.ts` + `__tests__/dangerIndexFetcher.test.ts`. Full Cedar → Cypress →
-  Redwood → Cypress pipeline; final `[COMPLIANCE-REPORT]` PASS, no critical violations. Gates:
-  vitest 601/601 in 39 files, `tsc --noEmit` clean, `eslint .` clean, live Socrata re-verification
-  by two independent parties. Full narrative (the mid-flight `round()` arity correction, the PRD
-  §6 scope conflict and the human's "fix now, reconcile PRD later" decision, three unrelated
-  infra-rot fixes found along the way) archived in `ARCHIVED_SESSIONS.md`, "2026-08-14 — Danger-
-  index data fix". SPEC archived verbatim in `ARCHIVED_SPECS.md`. **NEXT STEP: ask the human
-  whether to commit** (working tree: `src/lib/dangerIndexFetcher.ts`,
-  `__tests__/dangerIndexFetcher.test.ts`, `SPEC.md`, `ARCHIVED_SPECS.md`, `ARCHIVED_SESSIONS.md`,
-  `SESSION_STATE.md`).
-- **PRD §6 amendment still owed, NOT done.** Danger-index shipped 2026-08-13 while PRD §6 called
-  it out of scope indefinitely; human deferred reconciling the PRD text itself. Someone needs to
-  either amend §6 to bring it into scope (with a real FR/NFR) or decide to roll it back — not
-  resolved by the data fix above.
+- **✅ PRD §6 amendment — DONE, committed (2026-08-15).** Reconciled PRD §6 ("Out of Scope") with
+  the danger-index feature that shipped 2026-08-13. Five commits: (1) `2ccb0f2` — new **FR-14
+  [P1]** in §5.3 documenting what actually shipped (a plain `COUNT(*)`-by-rounded-coordinate map,
+  not a severity-weighted algorithm) plus a matching street-safety-advocate story in §3; (2)
+  `cda5a06` — narrowed the two §6 bullets ("Maps and geospatial clustering", "The Danger
+  Index / safe-routing algorithm") to keep the harder clustering/severity-weighting work out of
+  scope while acknowledging FR-14's plain map is in; (3) `8488f08` — version bump to v1.3 with a
+  revision-notes block following the existing v1.1/v1.2 pattern; (4) `86e84ad` — added a raw-count-
+  not-risk-score caveat to the actual page copy (`src/app/danger-index/page.tsx`) so the product
+  matches FR-14's text; (5) this ledger update. **Naming decision (human, 2026-08-15):** keep the
+  "Danger Index" name/route for continuity rather than renaming — the gap is closed by making both
+  the PRD and the page copy state explicitly that it's a raw count, not an algorithmic risk score,
+  not by renaming the feature. `tsc --noEmit` and `eslint` both clean on the page.tsx change.
+  Gates not re-run in full (docs-only + one-line copy change; no query/logic touched).
 - **Vision Zero Shadow Ledger, Phase 1 — spec approved, ready for TDD drafting (2026-08-12).** Not
   started, not touched this session.
 
