@@ -1,5 +1,5 @@
-import TDILeaderboard from "../../components/TDILeaderboard";
-import { fetchTDILeaderboard } from "../../lib/tdi";
+import TDILeaderboard from "../../../components/TDILeaderboard";
+import { fetchTDILeaderboard } from "../../../lib/tdi";
 import styles from "./page.module.css";
 
 // Prevent static generation since this hits the Socrata API dynamically
@@ -18,7 +18,7 @@ export default async function TDIPage({
   const data = await fetchTDILeaderboard();
 
   return (
-    <main className={styles.main}>
+    <div className={styles.pageRoot}>
       <header className={styles.header}>
         <h1 className={styles.title}>Vision Zero Shadow Ledger</h1>
         <p className={styles.subtitle}>True Danger Index (TDI) Leaderboard</p>
@@ -27,6 +27,6 @@ export default async function TDIPage({
       <section className={styles.content}>
         <TDILeaderboard data={data} />
       </section>
-    </main>
+    </div>
   );
 }

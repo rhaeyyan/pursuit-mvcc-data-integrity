@@ -1,6 +1,6 @@
 import React from "react";
-import SIPAuditor from "../../components/SIPAuditor";
-import { fetchSIPAwardStats, SIPStats } from "../../lib/auditor";
+import SIPAuditor from "../../../components/SIPAuditor";
+import { fetchSIPAwardStats, SIPStats } from "../../../lib/auditor";
 import styles from "./page.module.css";
 
 export default async function AuditorPage({
@@ -17,7 +17,7 @@ export default async function AuditorPage({
   }
 
   return (
-    <main className={styles.container}>
+    <div className={styles.pageRoot}>
       <header className={styles.header}>
         <h1 className={styles.title}>Vision Zero SIP Auditor</h1>
       </header>
@@ -31,7 +31,7 @@ export default async function AuditorPage({
       ) : stats ? (
         <Scorecard stats={stats} />
       ) : null}
-    </main>
+    </div>
   );
 }
 

@@ -1,10 +1,10 @@
-import LocalSearch from "../../components/LocalSearch";
-import { MetricSection } from "../../components/MetricSection";
-import { YearlyLineChart } from "../../components/YearlyLineChart";
+import LocalSearch from "../../../components/LocalSearch";
+import { MetricSection } from "../../../components/MetricSection";
+import { YearlyLineChart } from "../../../components/YearlyLineChart";
 import {
   fetchLocalRawSeries,
   fetchLocalRepairedSeries,
-} from "../../lib/localLedger";
+} from "../../../lib/localLedger";
 import styles from "./page.module.css";
 
 // Dynamic route due to searchParams
@@ -20,13 +20,13 @@ export default async function LocalPage({
 
   if (!zip) {
     return (
-      <main className={styles.main}>
+      <div className={styles.pageRoot}>
         <h1 className={styles.title}>Local Shadow Ledger</h1>
         <p className={styles.prompt}>
           Lookup your ZIP code to see local collision data.
         </p>
         <LocalSearch />
-      </main>
+      </div>
     );
   }
 
@@ -36,7 +36,7 @@ export default async function LocalPage({
   ]);
 
   return (
-    <main className={styles.main}>
+    <div className={styles.pageRoot}>
       <header className={styles.header}>
         <h1 className={styles.title}>Local Shadow Ledger: {zip}</h1>
         <LocalSearch />
@@ -87,6 +87,6 @@ export default async function LocalPage({
           />
         </section>
       </div>
-    </main>
+    </div>
   );
 }

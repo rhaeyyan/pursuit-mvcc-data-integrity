@@ -12,8 +12,7 @@ existence in the tree as sanctioned.
   see `ARCHIVED_SESSIONS.md`, "2026-08-15 — PRD reconciled for two shipped-without-a-contract
   features", for full reasoning including an FR-8 SoQL-display bug found and fixed along the way.
   New PRD FR-15 (v1.4); nav link restored; gates clean (vitest 601/601, `tsc`/`eslint` clean).
-  **Known gap, not fixed:** `/local` has no way back to the dashboard from the page itself (sits
-  outside the `(workspace)` route group) — cosmetic, not data-integrity, flag if worth a follow-up.
+  **Update:** `/local`, `/tdi`, and `/auditor` moved into the `(workspace)` route group (2026-08-15), restoring global navigation and light-theme aesthetic.
 - **✅ `/tdi` and `/auditor` scope — implemented and DONE (2026-08-15).**
   Sanctioned via PRD amendment v1.5 per human decision.
   - `/tdi`: Method updated to Vision Zero standard (Fatalities=3, Injuries=1) (FR-16).

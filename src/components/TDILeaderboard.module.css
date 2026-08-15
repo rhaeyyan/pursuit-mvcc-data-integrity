@@ -1,42 +1,42 @@
 .tableWrapper {
   overflow-x: auto;
-  background: rgba(30, 41, 59, 0.5); /* Obsidian/slate card */
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem;
-  backdrop-filter: blur(12px);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-divider);
+  padding: var(--space-4);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-  font-size: 0.875rem;
-  color: #f8fafc;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text);
 }
 
 .table caption {
   text-align: left;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin-bottom: 1rem;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: var(--font-heading-weight);
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
 }
 
 .table th,
 .table td {
-  padding: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .table th {
-  background: rgba(15, 23, 42, 0.8);
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
   font-weight: 600;
-  color: #94a3b8;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .table tbody tr {
@@ -48,23 +48,23 @@
 }
 
 .rowNeutral:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
 }
 
 .rowDanger {
-  background-color: #f43f5e1a; /* Coral Pink accent */
-  border-left: 4px solid #f43f5e;
+  background-color: var(--color-accent-2-100);
+  border-left: 4px solid var(--color-accent-2-500);
 }
 
 .rowDanger td {
-  color: #fb7185;
+  color: var(--color-accent-2-900);
 }
 
 .rowSafe {
-  background-color: rgba(16, 185, 129, 0.1); /* Emerald Teal accent */
-  border-left: 4px solid #10b981;
+  background-color: var(--color-accent-100);
+  border-left: 4px solid var(--color-accent-500);
 }
 
 .rowSafe td {
-  color: #34d399;
+  color: var(--color-accent-900);
 }
