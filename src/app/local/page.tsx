@@ -61,7 +61,7 @@ export default async function LocalPage({
             columnLabel="Raw Collisions"
             captionText={`Raw local collisions for zip ${zip}`}
             result={rawResult}
-            soql={`SELECT count(collision_id) AS collisions WHERE zip_code = '${zip}' GROUP BY date_trunc_y(crash_date)`}
+            soql={rawResult.soql}
           />
         </section>
 
@@ -83,7 +83,7 @@ export default async function LocalPage({
             columnLabel="Repaired Collisions"
             captionText={`Repaired local collisions for zip ${zip}`}
             result={repairedResult}
-            soql={`SELECT count(collision_id) AS collisions WHERE (number_of_persons_injured > 0 OR number_of_persons_killed > 0) AND zip_code = '${zip}' GROUP BY date_trunc_y(crash_date)`}
+            soql={repairedResult.soql}
           />
         </section>
       </div>
