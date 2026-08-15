@@ -24,11 +24,10 @@ verified against `git status`/`git log` and corrected).
 - **Vision Zero Shadow Ledger, Phase 1 — spec approved, ready for TDD drafting (2026-08-12).** Not
   started, not touched this session.
 
-- **🔴 ROTATE TWO CREDENTIALS — `~/.bashrc` exports a GitHub PAT and a Context7 API key in
-  plaintext** (found 2026-08-08; both were read into a session transcript, so rotation is the only
-  fix — editing `.bashrc` does not un-leak them). Revoke the PAT at github.com/settings/tokens,
-  rotate the Context7 key, then move both to a `chmod 600` file sourced conditionally. Neither is
-  in the repo; nothing consumes them now. Violates the repo's own Rule 3.
+- **✅ Leaked-credential rotation — resolved by the human (per human, 2026-08-15).** The GitHub PAT
+  and Context7 API key that `~/.bashrc` had exported in plaintext (found 2026-08-08) have been
+  revoked/suspended directly by the human, outside this session. Not independently re-verified
+  here (`.bashrc` is off-limits to read — see Context Cache). Do not re-raise this item.
 
 - **Deployed and live-verified:** <https://pursuit-mvcc-data-integrity.vercel.app/> — root dir
   `./`, Vercel defaults, `SOCRATA_APP_TOKEN` server-side only. NFR-2 confirmed clean (no token
