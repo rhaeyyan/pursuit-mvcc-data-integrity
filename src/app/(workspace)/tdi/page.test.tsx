@@ -5,11 +5,11 @@ import { render, screen } from "@testing-library/react";
 import { expect, test, describe, vi, beforeEach } from "vitest";
 import axe from "axe-core";
 
-import TDILeaderboard from "../../components/TDILeaderboard";
+import TDILeaderboard from "../../../components/TDILeaderboard";
 import TDIPage from "./page";
-import * as tdiLib from "../../lib/tdi";
+import * as tdiLib from "../../../lib/tdi";
 
-vi.mock("../../lib/tdi", () => ({
+vi.mock("../../../lib/tdi", () => ({
   fetchTDILeaderboard: vi.fn(),
 }));
 

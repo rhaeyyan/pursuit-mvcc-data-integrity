@@ -794,7 +794,7 @@ describe("<YearlyLineChart> — source-level greps (the only net for these const
       .filter((f) => /\.(ts|tsx)$/.test(f))
       .filter((f) => !isTestFile(f))
       .flatMap((f) => readFileSync(f, "utf8").split("\n"))
-      .filter((line) => line.includes("lib/socrata"));
+      .filter((line) => /lib\/socrata["']/.test(line));
 
     expect(libSocrataLines).toHaveLength(2);
     for (const line of libSocrataLines) {

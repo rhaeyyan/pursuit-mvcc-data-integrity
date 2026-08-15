@@ -6,10 +6,10 @@ import userEvent from "@testing-library/user-event";
 import { expect, test, describe, vi, beforeEach } from "vitest";
 import axe from "axe-core";
 
-import LocalSearch from "../../components/LocalSearch";
+import LocalSearch from "../../../components/LocalSearch";
 import LocalPage from "./page";
-import * as localLedger from "../../lib/localLedger";
-import type { YearlyMetricResult } from "../../lib/socrata";
+import * as localLedger from "../../../lib/localLedger";
+import type { YearlyMetricResult } from "../../../lib/socrata";
 
 // Mock Next.js router
 const mockPush = vi.fn();
@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Mock the data layer
-vi.mock("../../lib/localLedger", () => ({
+vi.mock("../../../lib/localLedger", () => ({
   fetchLocalRawSeries: vi.fn(),
   fetchLocalRepairedSeries: vi.fn(),
 }));

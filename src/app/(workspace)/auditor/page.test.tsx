@@ -5,17 +5,31 @@ import { render, screen } from "@testing-library/react";
 import { expect, test, describe, vi, beforeEach } from "vitest";
 import axe from "axe-core";
 
-import SIPAuditor from "../../components/SIPAuditor";
 import AuditorPage from "./page";
-import * as auditorLib from "../../lib/auditor";
+import * as auditorLib from "../../../lib/auditor";
+import * as sipsLib from "../../../lib/socrata-sips";
 
-vi.mock("../../lib/auditor", () => ({
+vi.mock("../../../lib/auditor", () => ({
   fetchSIPAwardStats: vi.fn(),
+}));
+vi.mock("../../../lib/socrata-sips", () => ({
+  fetchDynamicSIPs: vi.fn(),
+}));
+vi.mock("../../../components/SIPAuditor", () => ({
+  default: () => <div data-testid="mock-sip-auditor">Mock SIP Auditor</div>,
 }));
 
 describe("SIPAuditor component", () => {
+  beforeEach(() => {
+    vi.mocked(sipsLib.fetchDynamicSIPs).mockResolvedValue([
+      { id: "test-id", name: "Test SIP", borough: "N/A", latitude: 40, longitude: -73, completionDate: "2023-01-01" }
+    ]);
+  });
+
   test("renders a form with a select and a valid accessible label", async () => {
-    const { container } = render(<SIPAuditor />);
+    const { default: ActualSIPAuditor } = await vi.importActual<{ default: any }>("../../../components/SIPAuditor");
+    const UI = await ActualSIPAuditor();
+    const { container } = render(UI);
 
     const form =
       screen.getByRole("form", { name: /select project/i }) ||
