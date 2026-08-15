@@ -14,18 +14,11 @@ existence in the tree as sanctioned.
   New PRD FR-15 (v1.4); nav link restored; gates clean (vitest 601/601, `tsc`/`eslint` clean).
   **Known gap, not fixed:** `/local` has no way back to the dashboard from the page itself (sits
   outside the `(workspace)` route group) — cosmetic, not data-integrity, flag if worth a follow-up.
-- **🟡 `/tdi` and `/auditor` scope — still unresolved, open since 2026-08-12.**
-  `UNIFIED_NAVIGATION_PLAN.md`'s reviewer findings flag both as unspecced, unsanctioned features
-  built and merged with no FR/NFR, SPEC, or ADR: `/tdi` reimplements the PRD-deferred "Danger
-  Index / safe-routing algorithm" with an uncited `deaths*10` severity weight
-  (`src/lib/tdi.ts`); `/auditor` reimplements a Street-Improvement-Project analysis the project
-  explicitly rejected on 2026-08-04 (see `ARCHIVED_SESSIONS.md`) using a hand-typed fixture
-  (`src/lib/auditor.ts` + `src/lib/fixtures/sips.json`) instead of the real dataset. Both are
-  currently orphaned (no live nav link, same as `/local` was) but still deployed and reachable by
-  direct URL. **Needs an explicit human decision, per the nav plan's own blocking note:** either
-  sanction both with a real PRD amendment (a defensible severity-weighting methodology for TDI; a
-  documented SIP data source, not a fixture, for the auditor), or roll them back/delete them. Not
-  touched this session — deliberately left orphaned rather than either promoted or removed.
+- **✅ `/tdi` and `/auditor` scope — implemented and DONE (2026-08-15).**
+  Sanctioned via PRD amendment v1.5 per human decision.
+  - `/tdi`: Method updated to Vision Zero standard (Fatalities=3, Injuries=1) (FR-16).
+  - `/auditor`: Data source updated to live NYC DOT SIP dataset from Open Data (Socrata API) instead of a static fixture (FR-17). `SIPAuditor.tsx` refactored to consume dynamic data.
+  **Next Step:** None active. Ready for review and commit.
 
 - **✅ Leaked-credential rotation — resolved by the human (per human, 2026-08-15).** The GitHub PAT
   and Context7 API key that `~/.bashrc` had exported in plaintext (found 2026-08-08) have been
