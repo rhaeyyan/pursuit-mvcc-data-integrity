@@ -1,6 +1,6 @@
 # Product Requirement Document (PRD): MVCC Data — NYC Traffic Reporting-Integrity Dashboard
 
-**Document Version:** 1.4 (revised draft — supersedes v1.3)
+**Document Version:** 1.5 (revised draft — supersedes v1.4)
 
 **Status:** Draft — pending human review before Cedar (Tech Lead) [SPEC] conversion
 
@@ -75,6 +75,8 @@
 > resolved by this revision:** the TDI Leaderboard and SIP Auditor features (`/tdi`, `/auditor`)
 > remain unspecced and unsanctioned per `UNIFIED_NAVIGATION_PLAN.md`'s reviewer findings
 > (2026-08-12) — that scope decision is still owed separately, tracked in `SESSION_STATE.md`.
+
+> **v1.5 revision notes.** This revision resolves the open scope question regarding the TDI Leaderboard and SIP Auditor features (`/tdi`, `/auditor`), sanctioning both with defensible methodologies per human decision on 2026-08-15. (1) **FR-16 [P1]** sanctions the Traffic Danger Index (`/tdi`) using the Vision Zero severity-weighting standard (Fatalities=3, Injuries=1) instead of the previous ad-hoc multiplier. (2) **FR-17 [P1]** sanctions the SIP Auditor (`/auditor`) using the live NYC DOT Street Improvement Projects (SIP) dataset from Open Data (Socrata API) rather than a hand-typed fixture. Section 6 is updated to reflect these are now in scope.
 
 ---
 
@@ -242,6 +244,8 @@ of that group — it depends only on the primary dataset.
 13. **[P1]** The system shall mark the two documented policy dates on the time axis — 2019-03-18 (Staten Island pilot) and 2020-04-06 (citywide) — as labelled reference markers, so the structural break is located visually rather than only described in prose.
 14. **[P1]** The system shall display a supplementary map of the highest-collision-count locations in the 2018–2025 window, computed as `COUNT(*)` from `h9gi-nx95` grouped by latitude/longitude rounded to 5 decimal places (~1m precision), ranked descending, limited to the top 1000 points, with a screen-reader-accessible tabular fallback per NFR-3. This is a raw collision-count map, not a severity-weighted risk score — page copy shall state that distinction explicitly, so the "Danger Index" name is not read as an algorithmic safety index (§6).
 15. **[P1]** The system shall let a user enter a ZIP code and display that ZIP's raw and casualty-filtered ("repaired") collision series for 2018–2025 side by side, computed through the same `fetchYearlyMetric` window/query contract as the citywide view (FR-1–4, FR-12), with the exact SoQL displayed per FR-8. The ZIP code shall be validated against `^\d{5}$` before being interpolated into `$where`, so a URL-supplied value cannot reach the query unvalidated.
+16. **[P1]** The system shall compute the Traffic Danger Index (TDI) Leaderboard (`/tdi`) using the Vision Zero severity-weighting standard (Fatalities=3, Injuries=1), replacing the uncited `deaths*10` weight.
+17. **[P1]** The system shall power the SIP Auditor (`/auditor`) using the live NYC DOT Street Improvement Projects (SIP) dataset via the Open Data Socrata API, replacing the static `sips.json` fixture.
 
 ### 5.4 Non-functional requirements
 
@@ -278,7 +282,7 @@ fields (`perp_race`, `perp_sex`, `age_group`) are **excluded from ingestion enti
 ## 6. Out of Scope (v1)
 
 - **Maps and geospatial clustering (advanced)** — H3 binning, K-Means/BIRCH clustering, and true kernel-density heatmaps remain deferred to v2. **FR-14 (added v1.3)** is a narrower exception already shipped: a plain coordinate-rounded collision-count map, not a clustering algorithm — it adds no clustering logic and doesn't strengthen the reporting-integrity thesis, but it's a small, already-live, honestly-labeled addition, not a new subsystem.
-- **The Danger Index / safe-routing algorithm** — still deferred indefinitely. It requires a street-network graph and a defensible severity-weighting scheme; that is a separate product, not a feature of this one. **Naming caveat (v1.3):** the page shipped under the name "Danger Index" in fact implements FR-14 — a raw collision-count map — not this severity-weighted algorithm. The name is retained for continuity (human decision, 2026-08-15) but FR-14 and the page copy both state explicitly that it is a count, not an algorithmic risk score, so the name does not misrepresent what's computed.
+- **The safe-routing algorithm** — still deferred indefinitely. It requires a street-network graph; that is a separate product, not a feature of this one. **Naming caveat (v1.5):** the "Danger Index" page now implements FR-16 (a severity-weighted index by location), replacing the raw collision-count map (FR-14), but it is still a leaderboard, not a safe-routing algorithm.
 - **Arrest demographic fields** (`perp_race`, `perp_sex`, `age_group`) — **permanently excluded, not deferred.** Arrest density reflects patrol and enforcement patterns, not ground-truth offending; surfacing demographics against a "safety" metric risks presenting policing bias as neutral fact. Nothing in the thesis needs them.
 - **Causal claims about enforcement** — permanently out. The 2020–21 fatality rise is confounded by nationwide pandemic speed increases. The product shows co-movement and names the confounder; it does not assert cause.
 - **Matched-location traffic-volume normalization** (`7ym2-wayt`) — deferred to v2. It would strengthen the argument by showing traffic recovered while recorded crashes kept falling, but the dataset is a location-varying sample (98,961 readings in 2018 vs. 40,224 in 2020), so a valid comparison requires same-location matching — real work, and not a v1 blocker.
