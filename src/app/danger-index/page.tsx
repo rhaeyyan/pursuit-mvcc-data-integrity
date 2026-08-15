@@ -21,6 +21,12 @@ export default async function DangerIndexPage() {
           based on total collision volume. This heatmap aggregates crash data to
           pinpoint high-risk locations.
         </p>
+        <p className="text-sm text-slate-500 leading-relaxed mt-3">
+          This is a raw collision count by location, not a severity-weighted
+          risk score — it does not account for injury or fatality severity,
+          traffic volume, or road design. &ldquo;Danger&rdquo; here means
+          &ldquo;most collisions recorded,&rdquo; nothing more.
+        </p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6 mb-8 relative z-0">
