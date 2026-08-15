@@ -1,6 +1,6 @@
 # Product Requirement Document (PRD): MVCC Data — NYC Traffic Reporting-Integrity Dashboard
 
-**Document Version:** 1.2 (revised draft — supersedes v1.1)
+**Document Version:** 1.3 (revised draft — supersedes v1.2)
 
 **Status:** Draft — pending human review before Cedar (Tech Lead) [SPEC] conversion
 
@@ -50,6 +50,17 @@
 > from that second document** — its injury figures were found to be back-derived from a rounded
 > percentage rather than queried, so every number below remains this PRD's own live-query
 > verification.
+
+> **v1.3 revision notes.** The Danger Index feature (a collision-count-by-location map under
+> `/danger-index`) shipped to `main` on 2026-08-13 without a PRD update; §6 still listed it "out
+> of scope... deferred indefinitely." This revision reconciles the two: (1) a new **FR-14 [P1]**
+> documents what actually shipped — a plain `COUNT(*)`-by-rounded-coordinate map, not the
+> severity-weighted, street-network safe-routing algorithm §6 was describing; (2) a matching
+> street-safety-advocate story is added to §3; (3) §6 is narrowed to keep the harder
+> severity-weighted/clustering work out of scope while acknowledging the simpler map is now in;
+> (4) the "Danger Index" name is kept for continuity (human decision, 2026-08-15) but both FR-14
+> and the page copy now state explicitly that it is a raw count, not an algorithmic risk score, so
+> the name does not misrepresent what is computed.
 
 ---
 
