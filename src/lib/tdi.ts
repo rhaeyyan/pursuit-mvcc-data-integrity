@@ -52,7 +52,7 @@ export async function fetchTDILeaderboard(): Promise<TDIResult[]> {
 
     const population = Object.values(cds).reduce((acc, val) => acc + val, 0);
 
-    const tdi = ((deaths * 10 + injuries) / population) * 10000;
+    const tdi = ((deaths * 3 + injuries) / population) * 10000;
 
     results.push({
       region: borough,

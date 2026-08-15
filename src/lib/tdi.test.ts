@@ -59,21 +59,21 @@ describe("fetchTDILeaderboard", () => {
     // BROOKLYN population = 2506846
     // BRONX population = 1380712
 
-    // Formula: TDI = (((deaths * 10) + injuries) / population) * 10000
-    // BROOKLYN TDI = (((5 * 10) + 200) / 2506846) * 10000 = 0.997269...
-    // BRONX TDI = (((2 * 10) + 100) / 1380712) * 10000 = 0.869116...
+    // Formula: TDI = (((deaths * 3) + injuries) / population) * 10000
+    // BROOKLYN TDI = (((5 * 3) + 200) / 2506846) * 10000 = 0.85765...
+    // BRONX TDI = (((2 * 3) + 100) / 1380712) * 10000 = 0.76771...
 
     // Result should be sorted descending, so Brooklyn is first
     expect(result[0].region).toBe("BROOKLYN");
     expect(result[0].deaths).toBe(5);
     expect(result[0].injuries).toBe(200);
     expect(result[0].population).toBe(2506846);
-    expect(result[0].tdi).toBeCloseTo(0.997, 3);
+    expect(result[0].tdi).toBeCloseTo(0.858, 3);
 
     expect(result[1].region).toBe("BRONX");
     expect(result[1].deaths).toBe(2);
     expect(result[1].injuries).toBe(100);
     expect(result[1].population).toBe(1380712);
-    expect(result[1].tdi).toBeCloseTo(0.869, 3);
+    expect(result[1].tdi).toBeCloseTo(0.768, 3);
   });
 });
